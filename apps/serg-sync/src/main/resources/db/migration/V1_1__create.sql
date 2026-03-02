@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS serg_document
 (
-    matrikkelenhetId VARCHAR primary key NOT NULL,
-    hendelse         JSONB,
+    matrikkelenhetId BIGINT primary key NOT NULL,
+    hendelse         JSONB               NOT NULL,
     formueobjekt     JSONB,
-    sistOppdatert    timestamp           NOT NULL,
     status           VARCHAR             NOT NULL, -- PENDING, FETCHED, FAILED, OK,
-    kommentar        VARCHAR
+    kommentar        VARCHAR,
+    sistOppdatert    timestamp           NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_serg_status ON serg_document (status);

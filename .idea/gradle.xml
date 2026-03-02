@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
@@ -23,7 +24,8 @@
             <option value="$PROJECT_DIR$/apps/serg-sync" />
             <option value="$PROJECT_DIR$/buildSrc" />
             <option value="$PROJECT_DIR$/libs" />
-            <option value="$PROJECT_DIR$/libs/utils" />
+            <option value="$PROJECT_DIR$/libs/kotlin-utils" />
+            <option value="$PROJECT_DIR$/libs/ktor-utils" />
             <option value="$PROJECT_DIR$/tjenestespesifikasjoner" />
             <option value="$PROJECT_DIR$/tjenestespesifikasjoner/openapi-infrastructure" />
             <option value="$PROJECT_DIR$/tjenestespesifikasjoner/serg" />

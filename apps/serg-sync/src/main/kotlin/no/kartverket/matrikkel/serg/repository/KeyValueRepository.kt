@@ -22,7 +22,7 @@ class KeyValueRepository(
         }
     }
 
-    suspend fun setValue(key: String, value: String): Boolean {
+    suspend fun setValue(key: String, value: String) {
         @Language("SQL")
         val sql = """
             INSERT INTO $table (key, value)
@@ -31,7 +31,7 @@ class KeyValueRepository(
             DO UPDATE SET value = EXCLUDED.value
         """.trimIndent()
 
-        return transactional(dataSource) { tx ->
+        transactional(dataSource) { tx ->
             tx.run(
                 queryOf(
                     sql, mapOf(
@@ -43,13 +43,13 @@ class KeyValueRepository(
         }
     }
 
-    suspend fun delete(key: String): Boolean {
+    suspend fun delete(key: String) {
         @Language("SQL")
         val sql = """
             DELETE FROM $table where key = :key
         """.trimIndent()
 
-        return transactional(dataSource) { tx ->
+        transactional(dataSource) { tx ->
             tx.run(
                 queryOf(
                     sql, mapOf(
