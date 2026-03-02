@@ -1,0 +1,251 @@
+  {
+  "openapi" : "3.0.3",
+  "info" : {
+    "description" : "Tjeneste for uthenting av hendelser for Formuesobjekt fast eiendom API.",
+    "version" : "1.0.1",
+    "title" : "Formuesobjekt fast eiendom hendelser API",
+    "termsOfService" : "https://www.skatteetaten.no/deling/bruksvilkar-for-delingstjenester",
+    "contact" : {
+      "name" : "Brukerstøtte",
+      "url" : "https://www.skatteetaten.no/deling/kontakt/"
+    }
+  },
+  "externalDocs" : {
+    "description" : "Dokumentasjon på Skatteetatens GitHub",
+    "url" : "https://skatteetaten.github.io/api-dokumentasjon/api/hendelser"
+  },
+  "servers" : [ {
+    "url" : "https://formuesobjektfasteiendomhendelser.api.skatteetaten-test.no/v1",
+    "description" : "Ekstern test"
+  }, {
+    "url" : "https://formuesobjektfasteiendomhendelser.api.skatteetaten.no/v1",
+    "description" : "Produksjon"
+  } ],
+  "components" : {
+    "schemas" : {
+      "Feil" : {
+        "description" : "Feilstruktur for alle feilmeldinger.",
+        "type" : "object",
+        "properties" : {
+          "kode" : {
+            "type" : "string",
+            "description" : "Feilkode, for maskinell håndtering",
+            "example" : "FFE-0xx"
+          },
+          "melding" : {
+            "type" : "string",
+            "description" : "Beskrivelse av feilen som har oppstått",
+            "example" : "Fant ikke gitt personidentifikator"
+          },
+          "korrelasjonsid" : {
+            "type" : "string",
+            "description" : "Korrelasjonsid",
+            "example" : "123e4567-e89b-12d3-a456-426655440000"
+          }
+        }
+      },
+      "Hendelser" : {
+        "type" : "object",
+        "description" : "En liste med beskrivelse av hendelser for et gitt formål (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/5138da18-be20-11e6-8004-005056825ca0'>Begrepsreferanse</a>)",
+        "properties" : {
+          "hendelser" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "En liste med beskrivelse av hendelser for et gitt formål (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/5138da18-be20-11e6-8004-005056825ca0'>Begrepsreferanse</a>)",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Hendelse"
+              } ],
+              "xml" : {
+                "name" : "hendelse"
+              }
+            }
+          }
+        }
+      },
+      "Hendelse" : {
+        "type" : "object",
+        "description" : "Noe som har inntruffet i datasettet, et nytt formuesobjekt, endret formuesobjekt eller slettet formuesobjekt",
+        "properties" : {
+          "sekvensnummer" : {
+            "description" : "Sekvensnummer for hendelse i hendelseslista",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "hendelseidentifikator" : {
+            "description" : "Unik identifikator for hendelse",
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "skatteetatensEiendomsidentifikator" : {
+            "description" : "Unik eiendomsidentifikator fastsatt av Skatteetaten for å identifisere hele eller en gitt del av fast eiendom som formuesobjekt",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "matrikkelUnikIdentifikator" : {
+            "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "registreringstidspunkt" : {
+            "description" : "Når hendelsen er registrert i delingstjenesten",
+            "$ref" : "#/components/schemas/DatoKlokkeslett"
+          },
+          "hendelsestype" : {
+            "description" : "Kodeliste, ny, endret, slettet. Hva slags hendelse som inntraff",
+            "$ref" : "#/components/schemas/Hendelsestype"
+          },
+          "kommunenummer" : {
+            "description" : "Et nummer som identifiserer en kommune eller et kommunelignende område (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e0f3-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Kommunenummer"
+          }
+        }
+      },
+      "Start" : {
+        "type" : "object",
+        "description" : "",
+        "properties" : {
+          "sekvensnummer" : {
+            "description" : "sekvensnummer for første hendelse fra og med oppgitt dato",
+            "$ref" : "#/components/schemas/Heltall"
+          }
+        }
+      },
+      "Heltall" : {
+        "type" : "integer",
+        "description" : "hele tall, dvs. hele tall i mengden {..., -2, -1, 0, 1, 2, ...} (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52af0-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "format" : "int64"
+      },
+      "UUID" : {
+        "type" : "string",
+        "format" : "uuid",
+        "description" : "universell unik identifikator - 128-bit tegnstreng til bruk for å identifisere noe unikt uavhengig av scope. Sannsynligheten for at samme UUID genereres to ganger uavhengig av hverandre er ikke lik 0, men er nære nok til å regnes som ubetydelig. Formatet er 32 hexadesimale tall (0-9 + a-f) separert med 4 bindestreker på formen 8-4-4-4-12 for totalt 36 tegn."
+      },
+      "DatoKlokkeslett" : {
+        "type" : "string",
+        "description" : "en kombinasjon av typene Dato og Klokkeslett. Kodes som en tekststreng etter datoformatering spesifisert i ISO 8601 (ISO 8601:2004 Data elements and interchange formats -- Information interchange -- Representation of dates and times). (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52aee-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "format" : "date-time"
+      },
+      "Hendelsestype" : {
+        "type" : "string",
+        "description" : "Kodeliste, ny, endret, slettet. Hva slags hendelse som inntraff",
+        "enum" : [ "ny", "endret", "slettet" ]
+      },
+      "Kommunenummer" : {
+        "type" : "string",
+        "description" : "nummer for kommune (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e0f3-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "minLength" : 4,
+        "pattern" : "([0-9]){4}",
+        "maxLength" : 4
+      }
+    }
+  },
+  "paths" : {
+    "/hendelser" : {
+      "get" : {
+        "summary" : "Hent hendelser for Formuesobjekt fast eiendom",
+        "description" : "Hent hendelser for Formuesobjekt fast eiendom.",
+        "operationId" : "HentHendelserFormuesobjektFastEiendom",
+        "tags" : [ "hendelser" ],
+        "parameters" : [ {
+          "name" : "fraSekvensnummer",
+          "in" : "query",
+          "description" : "Fra og med hvilket sekvensnummer skal spørres etter. Må være større enn 0.",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "antall",
+          "in" : "query",
+          "description" : "Maks antall ønskede hendelser i responsen. Må være større enn 0.",
+          "required" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        }, {
+          "name" : "Korrelasjonsid",
+          "in" : "header",
+          "description" : "Korrelasjonsid, unik identifikator for den tekniske forespørselen. Må være på UUID-format",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "example" : "123e4567-e89b-12d3-a456-426655440000"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Gyldig respons",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Hendelser"
+                }
+              }
+            }
+          },
+          "default" : {
+            "description" : "Diverse feilmeldinger, se egen dokumentasjon",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Feil"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hendelser/start" : {
+      "get" : {
+        "summary" : "Hent startpunkt for hendelseslisten",
+        "description" : "Hent start for hendelseslisten",
+        "operationId" : "HentStart",
+        "tags" : [ "hendelser" ],
+        "parameters" : [ {
+          "name" : "dato",
+          "in" : "query",
+          "description" : "En dato på ISO 8601-format, YYYY-MM-DD. Endepunktet vil returnere sekvensnummer for første hendelse fra og med denne denne datoen. Kan ikke være en dato i fremtiden. Påkrevd parameter.",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "2022-08-21"
+        }, {
+          "name" : "Korrelasjonsid",
+          "in" : "header",
+          "description" : "Korrelasjonsid, unik identifikator for den tekniske forespørselen. Må være på UUID-format",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "example" : "123e4567-e89b-12d3-a456-426655440000"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Gyldig respons",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Start"
+                }
+              }
+            }
+          },
+          "default" : {
+            "description" : "Diverse feilmeldinger, se egen dokumentasjon",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Feil"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
