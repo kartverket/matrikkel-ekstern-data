@@ -3,9 +3,9 @@ package no.kartverket.matrikkel.serg.repository
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlinx.coroutines.runBlocking
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models.*
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.*
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
 import java.util.*
 

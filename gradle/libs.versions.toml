@@ -11,6 +11,7 @@ kotlinxCoroutines = "1.10.2"
 ktorVersion = "3.3.3"
 kotliQueryVersion = "1.9.1"
 openapi = "7.18.0"
+jacksonVersion = "2.21.1"
 okhttpVersion = '5.3.2'
 flywayVersion = "12.0.3"
 postgresqlVersion = "42.7.7"
@@ -30,7 +31,7 @@ kotlinxCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", 
 
 ktorServerCore = { module = "io.ktor:ktor-server-core", version.ref = "ktorVersion" }
 ktorServerContentNegotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktorVersion" }
-ktorSerializationKotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
+ktorSerializationJackson = { module = "io.ktor:ktor-serialization-jackson", version.ref = "ktorVersion" }
 ktorServerMetricsMicrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktorVersion" }
 ktorServerCallLogging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktorVersion" }
 ktorServerCallId = { module = "io.ktor:ktor-server-call-id", version.ref = "ktorVersion" }
@@ -41,6 +42,7 @@ ktorServerHostCommon = { module = "io.ktor:ktor-server-host-common", version.ref
 ktorServerStatusPages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktorVersion" }
 ktorServerNetty = { module = "io.ktor:ktor-server-netty", version.ref = "ktorVersion" }
 ktorServerWebsockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktorVersion" }
+ktorServerTestHost = { module = "io.ktor:ktor-server-test-host", version.ref = "ktorVersion" }
 
 ktorClientCore = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
 ktorClientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
@@ -48,6 +50,8 @@ ktorClientWebsockets = { module = "io.ktor:ktor-client-websockets", version.ref 
 ktorClientCio = { module = "io.ktor:ktor-client-cio", version.ref = "ktorVersion" }
 kotliQuery = { module = "com.github.seratch:kotliquery", version.ref = "kotliQueryVersion"}
 okhttp = { module = 'com.squareup.okhttp3:okhttp', version.ref = 'okhttpVersion' }
+jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref="jacksonVersion" }
+jacksonJSR310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref="jacksonVersion" }
 micrometerPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheusVersion"}
 
 flyway = { module = "org.flywaydb:flyway-core", version.ref = "flywayVersion" }
@@ -72,7 +76,7 @@ kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutine
 ktorEcosystem = [
     "ktorServerCore",
     "ktorServerContentNegotiation",
-    "ktorSerializationKotlinxJson",
+    "ktorSerializationJackson",
     "ktorServerCallId",
     "ktorServerCallLogging",
     "ktorServerCors",
@@ -84,12 +88,15 @@ ktorEcosystem = [
     "ktorServerNetty",
     "ktorServerWebsockets",
     "micrometerPrometheus",
+    "ktorServerTestHost"
 ]
 ktorClientEcosystem = [
     "ktorClientCore",
     "ktorClientContentNegotiation",
     "ktorClientWebsockets",
     "ktorClientCio",
+    "jackson",
+    "jacksonJSR310"
 ]
 
 testEcosystem = [

@@ -31,9 +31,9 @@ tasks.register<GenerateTask>("generateForHendelser") {
     generatorName = "kotlin"
     library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
-    configOptions.put("serializationLibrary", "kotlinx_serialization")
-    apiPackage = "no.utgdev.tjenestespesifikasjoner.serg.hendelser.apis"
-    modelPackage = "no.utgdev.tjenestespesifikasjoner.serg.hendelser.models"
+    configOptions.put("serializationLibrary", "jackson")
+    apiPackage = "no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis"
+    modelPackage = "no.kartverket.tjenestespesifikasjoner.serg.hendelser.models"
 
     globalProperties.put("apis", "")
     globalProperties.put("models", "")
@@ -57,9 +57,9 @@ tasks.register<GenerateTask>("generateForFormueobjekt") {
     generatorName = "kotlin"
     library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
-    configOptions.put("serializationLibrary", "kotlinx_serialization")
-    apiPackage = "no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.apis"
-    modelPackage = "no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models"
+    configOptions.put("serializationLibrary", "jackson")
+    apiPackage = "no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis"
+    modelPackage = "no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models"
 
     globalProperties.put("apis", "")
     globalProperties.put("models", "")

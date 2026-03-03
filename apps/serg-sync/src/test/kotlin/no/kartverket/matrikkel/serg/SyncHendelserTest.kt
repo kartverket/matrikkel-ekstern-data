@@ -10,10 +10,10 @@ import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelser
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelser
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
 import java.util.*
 

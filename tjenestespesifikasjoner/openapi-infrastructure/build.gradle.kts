@@ -24,7 +24,7 @@ openApiGenerate {
     generatorName = "kotlin"
     library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
-    configOptions.put("serializationLibrary", "kotlinx_serialization")
+    configOptions.put("serializationLibrary", "jackson")
 
     globalProperties.put("apis", "false")
     globalProperties.put("models", "false")

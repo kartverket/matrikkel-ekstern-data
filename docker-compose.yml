@@ -1,14 +1,38 @@
 services:
   postgres:
     image: postgres:18.3-alpine
+    env_file:
+      - docker/local-compose.env
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
+  serg-mock:
+    build:
+      context: .
+      dockerfile: apps/serg-mock/Dockerfile
+    env_file:
+      - docker/local-compose.env
+    ports:
+      - "8094:8084"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  serg-sync:
+    build:
+      context: .
+      dockerfile: apps/serg-sync/Dockerfile
+    env_file:
+      - docker/local-compose.env
+    ports:
+      - "8090:8080"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      serg-mock:
+        condition: service_started

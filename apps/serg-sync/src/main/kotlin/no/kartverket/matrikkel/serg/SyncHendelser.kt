@@ -4,9 +4,9 @@ import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.transactional
-import no.utgdev.kotlin.retry
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.kotlin.retry
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import java.util.*
 import javax.sql.DataSource
 

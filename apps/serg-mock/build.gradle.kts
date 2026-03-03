@@ -19,5 +19,5 @@ dependencies {
 }
 
 application {
-    mainClass = "no.utgdev.serg.mock.AppKt"
+    mainClass = "no.kartverket.serg.mock.AppKt"
 }

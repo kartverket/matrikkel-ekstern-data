@@ -9,11 +9,11 @@ import kotlinx.coroutines.runBlocking
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
 import java.sql.SQLException
 import java.util.UUID

@@ -1,23 +1,16 @@
 package no.kartverket.matrikkel.serg.repository
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toKotlinLocalDateTime
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
 import kotliquery.Row
 import kotliquery.Session
 import kotliquery.queryOf
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
-import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.intellij.lang.annotations.Language
-import java.util.*
+import org.openapitools.client.infrastructure.Serializer
 import javax.sql.DataSource
 
 data class SergDocument(
@@ -33,28 +26,10 @@ enum class SergDocumentStatus {
     REQUIRE_SYNCHRONIZATION, SYNCHRONIZED, FAILURE, DELETED
 }
 
-object UUIDSerializer : KSerializer<UUID> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: UUID) {
-        encoder.encodeString(value.toString())
-    }
-
-    override fun deserialize(decoder: Decoder): UUID {
-        return UUID.fromString(decoder.decodeString())
-    }
-}
-
 class SergDocumentRepository(
     private val dataSource: DataSource
 ) {
-    private val format = Json {
-        isLenient = true
-        serializersModule = SerializersModule {
-            contextual(UUID::class, UUIDSerializer)
-        }
-    }
-
+    private val format = Serializer.jacksonObjectMapper
     @Language("TEXT")
     private val table: String = "serg_document"
 
@@ -139,7 +114,7 @@ class SergDocumentRepository(
             queryOf(
                 sql, mapOf(
                     "id" to matrikkelenhetId,
-                    "hendelse" to format.encodeToString(hendelse),
+                    "hendelse" to format.writeValueAsString(hendelse),
                     "status" to status.name
                 )
             ).asUpdate
@@ -171,7 +146,7 @@ class SergDocumentRepository(
                     queryOf(
                         sql, mapOf(
                             "id" to matrikkelenhetId,
-                            "formueobjekt" to format.encodeToString(formueobjekt),
+                            "formueobjekt" to format.writeValueAsString(formueobjekt),
                             "status" to SergDocumentStatus.SYNCHRONIZED.name
                         )
                     ).asUpdate
@@ -246,8 +221,8 @@ class SergDocumentRepository(
     private fun mapSergDocument(row: Row): SergDocument {
         return SergDocument(
             matrikkelenhetId = row.long("matrikkelenhetId"),
-            hendelse = format.decodeFromString(row.string("hendelse")),
-            formueobjekt = row.stringOrNull("formueobjekt")?.let(format::decodeFromString),
+            hendelse = format.readValue(row.string("hendelse")),
+            formueobjekt = row.stringOrNull("formueobjekt")?.let(format::readValue),
             status = SergDocumentStatus.valueOf(row.string("status")),
             kommentar = row.stringOrNull("kommentar"),
             sistOppdatert = row.localDateTime("sistOppdatert").toKotlinLocalDateTime(),

@@ -3,8 +3,8 @@ package no.kartverket.matrikkel.serg
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
 import no.kartverket.matrikkel.serg.repository.transactional
-import no.utgdev.kotlin.retry
-import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.kotlin.retry
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import java.util.*
 import javax.sql.DataSource
 
