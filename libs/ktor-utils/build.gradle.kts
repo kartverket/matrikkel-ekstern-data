@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.bundles.ktorEcosystem)
+    api(libs.bundles.ktorEcosystem)
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(project(":libs:kotlin-utils"))
     testImplementation(libs.bundles.testEcosystem)

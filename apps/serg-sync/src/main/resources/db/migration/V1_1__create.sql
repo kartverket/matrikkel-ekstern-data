@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS serg_document
 );
 
 CREATE INDEX IF NOT EXISTS idx_serg_status ON serg_document (status);
+CREATE INDEX IF NOT EXISTS idx_serg_sistOppdatert ON serg_document (status, sistOppdatert ASC);
 CREATE INDEX IF NOT EXISTS idx_serg_hendelse ON serg_document USING gin (hendelse);
 CREATE INDEX IF NOT EXISTS idx_serg_formueobjekt ON serg_document USING gin (formueobjekt);
 
@@ -19,4 +20,4 @@ CREATE TABLE IF NOT EXISTS keyvalue
     value           VARCHAR NOT NULL
 );
 
-INSERT INTO keyvalue VALUES ('sekvensnummer', '0');
+INSERT INTO keyvalue VALUES ('sekvensnummer', '1');

@@ -1,10 +1,14 @@
 plugins {
     id("buildsrc.convention.kotlin-jvm")
     application
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.kotlinPluginSerialization)
 }
 
 dependencies {
     implementation(project(":tjenestespesifikasjoner:serg"))
+    implementation(project(":libs:ktor-utils"))
+    implementation(project(":libs:kotlin-utils"))
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.kotliQuery)
     implementation(libs.flyway)

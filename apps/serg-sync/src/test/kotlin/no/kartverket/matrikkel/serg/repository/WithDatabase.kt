@@ -19,6 +19,7 @@ interface WithDatabase {
             .withUsername("postgres")
             .withPassword("postgres")
             .apply { start() }
+
         private val dataSource = HikariDataSource(
             HikariConfig().apply {
                 jdbcUrl = postgres.jdbcUrl
@@ -34,13 +35,6 @@ interface WithDatabase {
         fun setup(): Unit {
             Flyway.configure().dataSource(dataSource).load().migrate()
         }
-
-        @AfterAll
-        @JvmStatic
-        fun teardown(): Unit {
-            dataSource.close()
-        }
-
     }
 
     @AfterEach

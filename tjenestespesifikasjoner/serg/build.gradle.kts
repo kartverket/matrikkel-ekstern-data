@@ -29,7 +29,7 @@ tasks.register<GenerateTask>("generateForHendelser") {
     generateApiTests = false
 
     generatorName = "kotlin"
-    library = "jvm-ktor"
+    library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
     configOptions.put("serializationLibrary", "kotlinx_serialization")
     apiPackage = "no.utgdev.tjenestespesifikasjoner.serg.hendelser.apis"
@@ -55,7 +55,7 @@ tasks.register<GenerateTask>("generateForFormueobjekt") {
     generateApiTests = false
 
     generatorName = "kotlin"
-    library = "jvm-ktor"
+    library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
     configOptions.put("serializationLibrary", "kotlinx_serialization")
     apiPackage = "no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.apis"

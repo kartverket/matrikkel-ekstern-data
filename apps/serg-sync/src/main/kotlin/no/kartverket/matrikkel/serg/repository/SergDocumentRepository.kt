@@ -15,6 +15,7 @@ import kotliquery.Session
 import kotliquery.queryOf
 import no.utgdev.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.utgdev.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.intellij.lang.annotations.Language
 import java.util.*
 import javax.sql.DataSource
@@ -29,7 +30,7 @@ data class SergDocument(
 )
 
 enum class SergDocumentStatus {
-    REQUIRE_SYNCHRONIZATION, SYNCHRONIZED, FAILURE,
+    REQUIRE_SYNCHRONIZATION, SYNCHRONIZED, FAILURE, DELETED
 }
 
 object UUIDSerializer : KSerializer<UUID> {
@@ -77,16 +78,50 @@ class SergDocumentRepository(
         )
     }
 
-    suspend fun upsertFraHendelse(
-        hendelse: Hendelse,
-    ) = transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
+    suspend fun listByStatus(status: SergDocumentStatus, limit: Int = 100): List<SergDocument> =
+        transactional(dataSource) { tx ->
+            listByStatus(tx, status, limit)
+        }
+
+    fun listByStatus(tx: Session, status: SergDocumentStatus, limit: Int = 100): List<SergDocument> {
+        @Language("SQL")
+        val sql = """
+            SELECT * from $table
+            WHERE status = :status
+            ORDER BY sistOppdatert ASC
+            LIMIT :limit
+            FOR UPDATE SKIP LOCKED
+        """.trimIndent()
+
+        return tx.run(
+            queryOf(
+                sql, mapOf(
+                    "status" to status.name,
+                    "limit" to limit
+                )
+            )
+                .map(::mapSergDocument)
+                .asList
+        )
+    }
+
+    suspend fun upsertFraHendelse(hendelse: Hendelse) {
+        return transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
+    }
 
     fun upsertFraHendelse(
         tx: Session,
         hendelse: Hendelse,
     ) {
-        val matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator) {
+        val matrikkelenhetId = checkNotNull(hendelse.matrikkelUnikIdentifikator) {
             "matrikkelenhetId is required"
+        }
+
+        val status = when (hendelse.hendelsestype) {
+            Hendelsestype.ny -> SergDocumentStatus.REQUIRE_SYNCHRONIZATION
+            Hendelsestype.endret -> SergDocumentStatus.REQUIRE_SYNCHRONIZATION
+            Hendelsestype.slettet -> SergDocumentStatus.DELETED
+            null -> error("Cannot process Hendelse without a type")
         }
 
         @Language("SQL")
@@ -105,44 +140,49 @@ class SergDocumentRepository(
                 sql, mapOf(
                     "id" to matrikkelenhetId,
                     "hendelse" to format.encodeToString(hendelse),
-                    "status" to SergDocumentStatus.REQUIRE_SYNCHRONIZATION.name
+                    "status" to status.name
                 )
             ).asUpdate
         )
     }
 
-    suspend fun settFormueobjektdata(
-        formueobjekt: FastEiendomSomFormuesobjekt,
-    ) = transactional(dataSource) { tx -> settFormueobjektdata(tx, formueobjekt) }
+    suspend fun settFormueobjektdata(matrikkelenhetId: Long, formueobjekt: Result<FastEiendomSomFormuesobjekt>) {
+        return transactional(dataSource) { tx -> settFormueobjektdata(tx, matrikkelenhetId, formueobjekt) }
+    }
 
     fun settFormueobjektdata(
         tx: Session,
-        formueobjekt: FastEiendomSomFormuesobjekt,
+        matrikkelenhetId: Long,
+        result: Result<FastEiendomSomFormuesobjekt>,
     ) {
-        @Language("SQL")
-        val sql = """
-            UPDATE $table
-            SET formueobjekt = :formueobjekt::jsonb, sistOppdatert = now(), status = :status
-            WHERE matrikkelenhetId = :id
-        """.trimIndent()
+        result.fold(
+            onFailure = { exception ->
+                settSomFeil(tx, matrikkelenhetId, exception.message ?: "Ukjent feil")
+            },
+            onSuccess = { formueobjekt ->
+                @Language("SQL")
+                val sql = """
+                UPDATE $table
+                SET formueobjekt = :formueobjekt::jsonb, sistOppdatert = now(), status = :status, kommentar = NULL
+                WHERE matrikkelenhetId = :id
+            """.trimIndent()
 
-        val matrikkelenhetId = requireNotNull(formueobjekt.identifikator?.matrikkelUnikIdentifikator) {
-            "matrikkelenhetId is required"
-        }
-        tx.run(
-            queryOf(
-                sql, mapOf(
-                    "id" to matrikkelenhetId,
-                    "formueobjekt" to format.encodeToString(formueobjekt),
-                    "status" to SergDocumentStatus.SYNCHRONIZED.name
+                tx.run(
+                    queryOf(
+                        sql, mapOf(
+                            "id" to matrikkelenhetId,
+                            "formueobjekt" to format.encodeToString(formueobjekt),
+                            "status" to SergDocumentStatus.SYNCHRONIZED.name
+                        )
+                    ).asUpdate
                 )
-            ).asUpdate
+            }
         )
     }
 
     fun settStatus(
         tx: Session,
-        matrikkelenhetId: String,
+        matrikkelenhetId: Long,
         status: SergDocumentStatus,
     ) {
         @Language("SQL")
@@ -164,7 +204,7 @@ class SergDocumentRepository(
 
     fun settKommentar(
         tx: Session,
-        matrikkelenhetId: String,
+        matrikkelenhetId: Long,
         kommentar: String
     ) {
         @Language("SQL")
@@ -179,6 +219,25 @@ class SergDocumentRepository(
                 sql, mapOf(
                     "id" to matrikkelenhetId,
                     "kommentar" to kommentar
+                )
+            ).asUpdate
+        )
+    }
+
+    fun settSomFeil(tx: Session, matrikkelenhetId: Long, kommentar: String) {
+        @Language("SQL")
+        val sql = """
+            UPDATE $table
+            SET kommentar = :kommentar, status = :status
+            WHERE matrikkelenhetId = :id
+        """.trimIndent()
+
+        tx.run(
+            queryOf(
+                sql, mapOf(
+                    "id" to matrikkelenhetId,
+                    "kommentar" to kommentar,
+                    "status" to SergDocumentStatus.FAILURE.name
                 )
             ).asUpdate
         )

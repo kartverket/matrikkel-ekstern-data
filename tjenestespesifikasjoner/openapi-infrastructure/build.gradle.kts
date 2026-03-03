@@ -22,7 +22,7 @@ openApiGenerate {
     generateApiTests = false
 
     generatorName = "kotlin"
-    library = "jvm-ktor"
+    library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
     configOptions.put("serializationLibrary", "kotlinx_serialization")
 

@@ -2,15 +2,15 @@ package no.kartverket.matrikkel.config
 
 
 class DatabaseConfiguration(
-    val dbName: String,
     val jdbcUrl: String,
     val username: String,
     val password: String,
 )
 
 class Configuration(
+    val sergBaseUrl: String = getRequiredConfig("SERG_BASE_URL"),
+    val sergPrivateJWK: String = getRequiredConfig("SERG_PRIVATE_JWK"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
-        dbName = getRequiredConfig("DB_NAME"),
         jdbcUrl     = getRequiredConfig("DB_URL"),
         username = getRequiredConfig("DB_USERNAME"),
         password = getRequiredConfig("DB_PASSWORD"),

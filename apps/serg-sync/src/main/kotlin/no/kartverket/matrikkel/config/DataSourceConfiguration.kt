@@ -1,19 +1,27 @@
 package no.kartverket.matrikkel.config
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
-import javax.sql.DataSource
 
 class DataSourceConfiguration(val config: Configuration) {
-
-    fun createDatasource(): DataSource {
-        return TODO()
+    fun createDatasource(): HikariDataSource {
+        val config = HikariConfig().apply {
+            jdbcUrl = config.database.jdbcUrl
+            username = config.database.username
+            password = config.database.password
+            maximumPoolSize = 10
+        }
+        return HikariDataSource(config)
     }
 
     fun runFlyway() {
-        Flyway
-            .configure()
-            .dataSource(createDatasource())
-            .load()
-            .migrate()
+        createDatasource().use {
+            Flyway
+                .configure()
+                .dataSource(it)
+                .load()
+                .migrate()
+        }
     }
 }
