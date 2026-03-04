@@ -63,6 +63,7 @@ jobs:
           image: ${{ needs.version.outputs.image }}
         with:
           context: .
+          file: apps/serg-sync/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ env.image }}
       - name: Tag commit med artifaktversjon
