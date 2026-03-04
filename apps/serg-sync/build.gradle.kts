@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":tjenestespesifikasjoner:serg"))
     implementation(project(":libs:ktor-utils"))
     implementation(project(":libs:kotlin-utils"))
+     implementation(project(":libs:logging"))
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.kotliQuery)
     implementation(libs.flyway)

@@ -4,6 +4,7 @@
 
 [versions]
 logbackVersion = "1.4.14"
+logstashVersion = "9.0"
 kotlin = "2.3.0"
 kotlinxDatetime = "0.7.1"
 kotlinxSerializationJSON = "1.9.0"
@@ -24,6 +25,7 @@ hikariVersion = "5.1.0"
 
 [libraries]
 logbackClassic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackVersion" }
+logstash = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstashVersion" }
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
@@ -74,6 +76,8 @@ testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", ve
 [bundles]
 kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutines"]
 ktorEcosystem = [
+    "logbackClassic",
+    "logstash",
     "ktorServerCore",
     "ktorServerContentNegotiation",
     "ktorSerializationJackson",
@@ -101,6 +105,7 @@ ktorClientEcosystem = [
 
 testEcosystem = [
     "logbackClassic",
+    "logstash",
     "junitApi",
     "junitEngine",
     "junitParams",

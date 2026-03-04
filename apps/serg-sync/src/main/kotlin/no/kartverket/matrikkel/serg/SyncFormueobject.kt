@@ -14,10 +14,10 @@ class SyncFormueobject(
 ) {
     private val documentRepository = SergDocumentRepository(dataSource)
 
-    suspend fun sync(): Result<Unit> {
+    suspend fun sync(antall: Int = 10): Result<Int> {
         return runCatching {
             transactional(dataSource) { tx ->
-                val documents = documentRepository.listByStatus(tx, SergDocumentStatus.REQUIRE_SYNCHRONIZATION, 10)
+                val documents = documentRepository.listByStatus(tx, SergDocumentStatus.REQUIRE_SYNCHRONIZATION, limit = antall)
 
                 for (document in documents) {
                     val hendelseId = document.hendelse.hendelseidentifikator
@@ -37,6 +37,8 @@ class SyncFormueobject(
                         documentRepository.settFormueobjektdata(tx, matrikkelenhetId, result)
                     }
                 }
+
+                documents.size // Return candidates processed
             }
         }
     }

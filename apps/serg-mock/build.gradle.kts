@@ -8,9 +8,9 @@ plugins {
 dependencies {
     implementation(project(":libs:ktor-utils"))
     implementation(project(":libs:kotlin-utils"))
+    implementation(project(":libs:logging"))
     implementation(libs.bundles.ktorEcosystem)
     implementation(libs.bundles.kotlinxEcosystem)
-    implementation(libs.logbackClassic)
 
     implementation(project(":tjenestespesifikasjoner:serg"))
 

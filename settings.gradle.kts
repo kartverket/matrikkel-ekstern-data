@@ -23,6 +23,7 @@ include(":apps:serg-sync")
 include(":apps:serg-mock")
 include(":libs:kotlin-utils")
 include(":libs:ktor-utils")
+include(":libs:logging")
 include(":tjenestespesifikasjoner:openapi-infrastructure")
 include(":tjenestespesifikasjoner:serg")
 
