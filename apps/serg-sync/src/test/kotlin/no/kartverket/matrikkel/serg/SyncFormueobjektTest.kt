@@ -1,13 +1,18 @@
 package no.kartverket.matrikkel.serg
 
 import assertk.assertThat
-import assertk.assertions.*
+import assertk.assertions.hasMessage
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFailure
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNull
+import assertk.assertions.isSuccess
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
+import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
+import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
@@ -24,7 +29,7 @@ class SyncFormueobjektTest : WithDatabase {
     fun `ingen dokumenter å synkronisere`() = runBlocking {
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 0) {
@@ -33,8 +38,8 @@ class SyncFormueobjektTest : WithDatabase {
     }
 
     @Test
-    fun `henter kun REQUIRE_SYNCHRONIZATION`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+    fun `henter kun KREVER_SYNKRONISERING`() = runBlocking {
+        val repository = SergDokumentRepository(dataSource())
         val requireId = 1001L
         val syncedId = 1002L
         val deletedId = 1003L
@@ -57,7 +62,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", requireHendelseId.toString(), any())
         } returns formueobjekt(requireId, requireHendelseId)
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -67,33 +72,33 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
 
-        assertThat(repository.getData(requireId)?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
-        assertThat(repository.getData(syncedId)?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
-        assertThat(repository.getData(deletedId)?.status).isEqualTo(SergDocumentStatus.DELETED)
-        assertThat(repository.getData(failureId)?.status).isEqualTo(SergDocumentStatus.FAILURE)
-        assertThat(repository.getData(failureId)?.kommentar).isEqualTo("gammel feil")
+        assertThat(repository.hentData(requireId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
+        assertThat(repository.hentData(syncedId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
+        assertThat(repository.hentData(deletedId)?.status).isEqualTo(SergDokumentStatus.SLETTET)
+        assertThat(repository.hentData(failureId)?.status).isEqualTo(SergDokumentStatus.FEIL)
+        assertThat(repository.hentData(failureId)?.kommentar).isEqualTo("gammel feil")
     }
 
     @Test
-    fun `mangler hendelseId gir FAILURE uten API-kall`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+    fun `mangler hendelseId gir FEIL uten API-kall`() = runBlocking {
+        val repository = SergDokumentRepository(dataSource())
         val id = 2001L
         upsertHendelse(repository, id, hendelseId = null)
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
-        assertThat(repository.getData(id)?.status).isEqualTo(SergDocumentStatus.FAILURE)
-        assertThat(repository.getData(id)?.kommentar).isEqualTo("Mangler hendelseId")
+        assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.FEIL)
+        assertThat(repository.hentData(id)?.kommentar).isEqualTo("Mangler hendelseId")
         verify(exactly = 0) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
     }
 
     @Test
-    fun `API-suksess lagrer formueobjekt og setter SYNCHRONIZED`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+    fun `API-suksess lagrer formueobjekt og setter SYNKRONISERT`() = runBlocking {
+        val repository = SergDokumentRepository(dataSource())
         val id = 3001L
         val hendelseId = upsertHendelse(repository, id)
         val api = mockk<FormuesobjektFastEiendomApi>()
@@ -102,11 +107,11 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } returns response
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
-        val data = repository.getData(id)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
+        val data = repository.hentData(id)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
         assertThat(data?.formueobjekt).isEqualTo(response)
         assertThat(data?.kommentar).isNull()
         verify(exactly = 1) {
@@ -115,8 +120,8 @@ class SyncFormueobjektTest : WithDatabase {
     }
 
     @Test
-    fun `API-feil setter FAILURE med feilmelding`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+    fun `API-feil setter FEIL med feilmelding`() = runBlocking {
+        val repository = SergDokumentRepository(dataSource())
         val id = 4001L
         val hendelseId = upsertHendelse(repository, id)
         val api = mockk<FormuesobjektFastEiendomApi>()
@@ -124,17 +129,17 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } throws RuntimeException("SERG formueobjekt utilgjengelig")
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
-        val data = repository.getData(id)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.FAILURE)
+        val data = repository.hentData(id)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.FEIL)
         assertThat(data?.kommentar).isEqualTo("SERG formueobjekt utilgjengelig")
     }
 
     @Test
     fun `fortsetter med neste dokument når ett API-kall feiler`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
         val failId = 5001L
         val okId = 5002L
         val failHendelseId = upsertHendelse(repository, failId)
@@ -147,12 +152,12 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
         } returns formueobjekt(okId, okHendelseId)
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
-        assertThat(repository.getData(failId)?.status).isEqualTo(SergDocumentStatus.FAILURE)
-        assertThat(repository.getData(failId)?.kommentar).isEqualTo("første feilet")
-        assertThat(repository.getData(okId)?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
+        assertThat(repository.hentData(failId)?.status).isEqualTo(SergDokumentStatus.FEIL)
+        assertThat(repository.hentData(failId)?.kommentar).isEqualTo("første feilet")
+        assertThat(repository.hentData(okId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
         verify(exactly = 3) {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", failHendelseId.toString(), any())
         }
@@ -163,7 +168,7 @@ class SyncFormueobjektTest : WithDatabase {
 
     @Test
     fun `sender riktige API-parametre`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
         val id = 6001L
         val hendelseId = upsertHendelse(repository, id)
         val api = mockk<FormuesobjektFastEiendomApi>()
@@ -171,7 +176,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         } returns formueobjekt(id, hendelseId)
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -181,7 +186,7 @@ class SyncFormueobjektTest : WithDatabase {
 
     @Test
     fun `behandler maks 10 dokumenter per kjøring`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
         val idsByHendelseId = (1L..12L).associate { id ->
             val hendelseId = upsertHendelse(repository, id)
             hendelseId.toString() to id
@@ -195,19 +200,19 @@ class SyncFormueobjektTest : WithDatabase {
             formueobjekt(id, UUID.fromString(hid))
         }
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 10) {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", any(), any())
         }
-        assertThat(repository.listByStatus(SergDocumentStatus.SYNCHRONIZED, 100).size).isEqualTo(10)
-        assertThat(repository.listByStatus(SergDocumentStatus.REQUIRE_SYNCHRONIZATION, 100).size).isEqualTo(2)
+        assertThat(repository.listEtterStatus(SergDokumentStatus.SYNKRONISERT, 100).size).isEqualTo(10)
+        assertThat(repository.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, 100).size).isEqualTo(2)
     }
 
     @Test
     fun `tidligere kommentar nullstilles ved vellykket synk`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
         val id = 7001L
         upsertHendelse(repository, id)
         repository.settFormueobjektdata(
@@ -215,35 +220,35 @@ class SyncFormueobjektTest : WithDatabase {
             Result.failure(RuntimeException("gammel feil"))
         )
         val nyHendelseId = upsertHendelse(repository, id)
-        assertThat(repository.getData(id)?.status).isEqualTo(SergDocumentStatus.REQUIRE_SYNCHRONIZATION)
-        assertThat(repository.getData(id)?.kommentar).isEqualTo("gammel feil")
+        assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
+        assertThat(repository.hentData(id)?.kommentar).isEqualTo("gammel feil")
 
         val api = mockk<FormuesobjektFastEiendomApi>()
         every {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", nyHendelseId.toString(), any())
         } returns formueobjekt(id, nyHendelseId)
 
-        val result = SyncFormueobject(dataSource(), api).sync()
+        val result = SyncFormuesobjekt(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
-        val data = repository.getData(id)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
+        val data = repository.hentData(id)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
         assertThat(data?.kommentar).isNull()
     }
 
     @Test
-    fun `uventet DB-feil gir failure-resultat`() = runBlocking {
+    fun `uventet DB-feil gir feil-resultat`() = runBlocking {
         val failingDataSource = mockk<DataSource>()
         every { failingDataSource.connection } throws SQLException("db down")
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormueobject(failingDataSource, api).sync()
+        val result = SyncFormuesobjekt(failingDataSource, api).sync()
 
         assertThat(result).isFailure().isInstanceOf(SQLException::class).hasMessage("db down")
     }
 
     private suspend fun upsertHendelse(
-        repository: SergDocumentRepository,
+        repository: SergDokumentRepository,
         id: Long,
         hendelseId: UUID? = UUID.randomUUID(),
         type: Hendelsestype = Hendelsestype.ny,

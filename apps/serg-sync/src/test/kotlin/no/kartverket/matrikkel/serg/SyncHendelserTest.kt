@@ -1,21 +1,26 @@
 package no.kartverket.matrikkel.serg
 
 import assertk.assertThat
-import assertk.assertions.*
+import assertk.assertions.hasMessage
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFailure
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
+import assertk.assertions.isSuccess
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
-import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
+import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
+import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelser
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
-import java.util.*
+import java.util.UUID
 
 class SyncHendelserTest : WithDatabase {
     @Test
@@ -67,7 +72,7 @@ class SyncHendelserTest : WithDatabase {
     fun `henter hendelser fra SERG`() = runBlocking {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
-        val documentRepository = SergDocumentRepository(dataSource())
+        val dokumentRepository = SergDokumentRepository(dataSource())
         val hendelser = listOf(
             hendelse(id = 1001L, type = Hendelsestype.ny, seq = 10L),
             hendelse(id = 1002L, type = Hendelsestype.slettet, seq = 11L),
@@ -84,13 +89,13 @@ class SyncHendelserTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
         }
 
-        val nyHendelseData = documentRepository.getData(1001L)
+        val nyHendelseData = dokumentRepository.hentData(1001L)
         assertThat(nyHendelseData?.hendelse).isEqualTo(hendelser[0])
-        assertThat(nyHendelseData?.status).isEqualTo(SergDocumentStatus.REQUIRE_SYNCHRONIZATION)
+        assertThat(nyHendelseData?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
 
-        val slettetHendelseData = documentRepository.getData(1002L)
+        val slettetHendelseData = dokumentRepository.hentData(1002L)
         assertThat(slettetHendelseData?.hendelse).isEqualTo(hendelser[1])
-        assertThat(slettetHendelseData?.status).isEqualTo(SergDocumentStatus.DELETED)
+        assertThat(slettetHendelseData?.status).isEqualTo(SergDokumentStatus.SLETTET)
 
         assertThat(keyValueRepository.getValue("sekvensnummer")).isEqualTo("11")
     }
@@ -121,7 +126,7 @@ class SyncHendelserTest : WithDatabase {
     fun `lagrer alle hendelser og rapporterer om eventuelle ugyldige data`() = runBlocking {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
-        val documentRepository = SergDocumentRepository(dataSource())
+        val dokumentRepository = SergDokumentRepository(dataSource())
         val hendelserApi = gittHendelseApiSomReturnerer(
             listOf(
                 hendelse(id = 2001L, type = Hendelsestype.ny, seq = 12L),
@@ -136,8 +141,8 @@ class SyncHendelserTest : WithDatabase {
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
         }
-        assertThat(documentRepository.getData(2001L)).isNotNull()
-        assertThat(documentRepository.getData(2002L)).isNotNull()
+        assertThat(dokumentRepository.hentData(2001L)).isNotNull()
+        assertThat(dokumentRepository.hentData(2002L)).isNotNull()
     }
 
     private fun hendelse(id: Long?, type: Hendelsestype, seq: Long = 1L): Hendelse {

@@ -10,7 +10,7 @@ import assertk.assertions.prop
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import no.kartverket.matrikkel.serg.SyncFormueobject
+import no.kartverket.matrikkel.serg.SyncFormuesobjekt
 import no.kartverket.matrikkel.serg.SyncHendelser
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
@@ -39,32 +39,32 @@ class SyncFullTest : WithDatabase {
             .slettFormueobjekt(100)
 
         val kvRepo = KeyValueRepository(dataSource())
-        val sergDocumentRepo = SergDocumentRepository(dataSource())
+        val sergDokumentRepo = SergDokumentRepository(dataSource())
         val hendelserSync = SyncHendelser(dataSource(), hendelseApi)
-        val formueobjektSync = SyncFormueobject(dataSource(), formueobjektApi)
+        val formueobjektSync = SyncFormuesobjekt(dataSource(), formueobjektApi)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1")
 
         synchronizeHendelser(hendelserSync)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("2601")
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.REQUIRE_SYNCHRONIZATION, limit = 3000)).hasSize(900)
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.DELETED, limit = 1000)).hasSize(100)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(900)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SLETTET, limit = 1000)).hasSize(100)
 
         val matrikkelenhetId = ctrl.randomMatrikkelenhetId()
-        assertThat(sergDocumentRepo.getData(matrikkelenhetId)).isNotNull().all {
-            prop(SergDocument::hendelse).isNotNull()
-            prop(SergDocument::formueobjekt).isNull()
+        assertThat(sergDokumentRepo.hentData(matrikkelenhetId)).isNotNull().all {
+            prop(SergDokument::hendelse).isNotNull()
+            prop(SergDokument::formueobjekt).isNull()
         }
 
         synchronizeFormueobjekt(formueobjektSync)
 
-        assertThat(sergDocumentRepo.getData(matrikkelenhetId)).isNotNull().all {
-            prop(SergDocument::hendelse).isNotNull()
-            prop(SergDocument::formueobjekt).isNotNull()
+        assertThat(sergDokumentRepo.hentData(matrikkelenhetId)).isNotNull().all {
+            prop(SergDokument::hendelse).isNotNull()
+            prop(SergDokument::formueobjekt).isNotNull()
         }
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.REQUIRE_SYNCHRONIZATION, limit = 3000)).hasSize(0)
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.SYNCHRONIZED, limit = 3000)).hasSize(900)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(0)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SYNKRONISERT, limit = 3000)).hasSize(900)
 
 
         ctrl
@@ -73,15 +73,15 @@ class SyncFullTest : WithDatabase {
 
         synchronizeHendelser(hendelserSync)
 
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.REQUIRE_SYNCHRONIZATION, limit = 3000)).hasSize(200)
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.DELETED, limit = 3000)).hasSize(200)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(200)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SLETTET, limit = 3000)).hasSize(200)
 
         synchronizeFormueobjekt(formueobjektSync)
-        assertThat(sergDocumentRepo.listByStatus(SergDocumentStatus.SYNCHRONIZED, limit = 3000)).hasSize(800)
+        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SYNKRONISERT, limit = 3000)).hasSize(800)
     }
 }
 
-private suspend fun synchronizeFormueobjekt(formueobjektSync: SyncFormueobject) {
+private suspend fun synchronizeFormueobjekt(formueobjektSync: SyncFormuesobjekt) {
     do {
         val result = formueobjektSync.sync()
         val antall = result.fold(

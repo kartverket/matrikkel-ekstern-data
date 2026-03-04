@@ -13,39 +13,39 @@ import org.intellij.lang.annotations.Language
 import org.openapitools.client.infrastructure.Serializer
 import javax.sql.DataSource
 
-data class SergDocument(
+data class SergDokument(
     val matrikkelenhetId: Long,
     val hendelse: Hendelse,
     val formueobjekt: FastEiendomSomFormuesobjekt?,
-    val status: SergDocumentStatus,
+    val status: SergDokumentStatus,
     val kommentar: String?,
     val sistOppdatert: LocalDateTime?,
 )
 
-enum class SergDocumentStatus {
-    REQUIRE_SYNCHRONIZATION,
-    SYNCHRONIZED,
-    FAILURE,
-    DELETED,
+enum class SergDokumentStatus {
+    KREVER_SYNKRONISERING,
+    SYNKRONISERT,
+    FEIL,
+    SLETTET,
 }
 
-class SergDocumentRepository(
+class SergDokumentRepository(
     private val dataSource: DataSource,
 ) {
     private val format = Serializer.jacksonObjectMapper
 
     @Language("TEXT")
-    private val table: String = "serg_document"
+    private val table: String = "serg_dokument"
 
-    suspend fun getData(matrikkelenhetId: Long): SergDocument? =
+    suspend fun hentData(matrikkelenhetId: Long): SergDokument? =
         transactional(dataSource) { tx ->
-            getData(tx, matrikkelenhetId)
+            hentData(tx, matrikkelenhetId)
         }
 
-    fun getData(
+    fun hentData(
         tx: Session,
         matrikkelenhetId: Long,
-    ): SergDocument? {
+    ): SergDokument? {
         @Language("SQL")
         val sql =
             """
@@ -56,24 +56,24 @@ class SergDocumentRepository(
             queryOf(
                 sql,
                 mapOf("id" to matrikkelenhetId),
-            ).map(::mapSergDocument)
+            ).map(::mapSergDokument)
                 .asSingle,
         )
     }
 
-    suspend fun listByStatus(
-        status: SergDocumentStatus,
+    suspend fun listEtterStatus(
+        status: SergDokumentStatus,
         limit: Int = 100,
-    ): List<SergDocument> =
+    ): List<SergDokument> =
         transactional(dataSource) { tx ->
-            listByStatus(tx, status, limit)
+            listEtterStatus(tx, status, limit)
         }
 
-    fun listByStatus(
+    fun listEtterStatus(
         tx: Session,
-        status: SergDocumentStatus,
+        status: SergDokumentStatus,
         limit: Int = 100,
-    ): List<SergDocument> {
+    ): List<SergDokument> {
         @Language("SQL")
         val sql =
             """
@@ -91,7 +91,7 @@ class SergDocumentRepository(
                     "status" to status.name,
                     "limit" to limit,
                 ),
-            ).map(::mapSergDocument)
+            ).map(::mapSergDokument)
                 .asList,
         )
     }
@@ -107,9 +107,9 @@ class SergDocumentRepository(
         }
 
         val status = when (hendelse.hendelsestype) {
-            Hendelsestype.ny -> SergDocumentStatus.REQUIRE_SYNCHRONIZATION
-            Hendelsestype.endret -> SergDocumentStatus.REQUIRE_SYNCHRONIZATION
-            Hendelsestype.slettet -> SergDocumentStatus.DELETED
+            Hendelsestype.ny -> SergDokumentStatus.KREVER_SYNKRONISERING
+            Hendelsestype.endret -> SergDokumentStatus.KREVER_SYNKRONISERING
+            Hendelsestype.slettet -> SergDokumentStatus.SLETTET
             null -> error("Cannot process Hendelse without a type")
         }
 
@@ -166,7 +166,7 @@ class SergDocumentRepository(
                         mapOf(
                             "id" to matrikkelenhetId,
                             "formueobjekt" to format.writeValueAsString(formueobjekt),
-                            "status" to SergDocumentStatus.SYNCHRONIZED.name,
+                            "status" to SergDokumentStatus.SYNKRONISERT.name,
                         ),
                     ).asUpdate,
                 )
@@ -177,7 +177,7 @@ class SergDocumentRepository(
     fun settStatus(
         tx: Session,
         matrikkelenhetId: Long,
-        status: SergDocumentStatus,
+        status: SergDokumentStatus,
     ) {
         @Language("SQL")
         val sql =
@@ -241,18 +241,18 @@ class SergDocumentRepository(
                 mapOf(
                     "id" to matrikkelenhetId,
                     "kommentar" to kommentar,
-                    "status" to SergDocumentStatus.FAILURE.name,
+                    "status" to SergDokumentStatus.FEIL.name,
                 ),
             ).asUpdate,
         )
     }
 
-    private fun mapSergDocument(row: Row): SergDocument {
-        return SergDocument(
+    private fun mapSergDokument(row: Row): SergDokument {
+        return SergDokument(
             matrikkelenhetId = row.long("matrikkelenhetId"),
             hendelse = format.readValue(row.string("hendelse")),
             formueobjekt = row.stringOrNull("formueobjekt")?.let(format::readValue),
-            status = SergDocumentStatus.valueOf(row.string("status")),
+            status = SergDokumentStatus.valueOf(row.string("status")),
             kommentar = row.stringOrNull("kommentar"),
             sistOppdatert = row.localDateTime("sistOppdatert").toKotlinLocalDateTime(),
         )

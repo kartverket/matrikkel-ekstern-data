@@ -2,11 +2,7 @@ package no.kartverket.matrikkel.serg.repository
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import no.kartverket.matrikkel.config.Configuration
-import no.kartverket.matrikkel.config.DataSourceConfiguration
-import no.kartverket.matrikkel.config.DatabaseConfiguration
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.containers.PostgreSQLContainer
@@ -44,8 +40,10 @@ interface WithDatabase {
             connection.createStatement().use { stmt ->
                 stmt.execute(
                     """
-                    truncate table serg_document, keyvalue
+                    truncate table serg_dokument, keyvalue
                     restart identity
+                    ;
+                    INSERT INTO keyvalue(key, value) VALUES ('sekvensnummer', '1')
                     """.trimIndent()
                 )
             }

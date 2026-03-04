@@ -3,8 +3,6 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-logbackVersion = "1.4.14"
-logstashVersion = "9.0"
 kotlin = "2.3.0"
 kotlinxDatetime = "0.7.1"
 kotlinxSerializationJSON = "1.9.0"
@@ -13,7 +11,7 @@ ktorVersion = "3.3.3"
 kotliQueryVersion = "1.9.1"
 openapi = "7.18.0"
 jacksonVersion = "2.21.1"
-okhttpVersion = '5.3.2'
+okhttpVersion = "5.3.2"
 flywayVersion = "12.0.3"
 postgresqlVersion = "42.7.7"
 junitVersion = "6.0.3"
@@ -24,8 +22,10 @@ prometheusVersion = "1.6.2"
 hikariVersion = "5.1.0"
 
 [libraries]
-logbackClassic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackVersion" }
-logstash = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstashVersion" }
+slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
+logbackClassic = { module = "ch.qos.logback:logback-classic", version = "1.5.32" }
+logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
+
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
@@ -51,16 +51,19 @@ ktorClientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiati
 ktorClientWebsockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktorVersion" }
 ktorClientCio = { module = "io.ktor:ktor-client-cio", version.ref = "ktorVersion" }
 kotliQuery = { module = "com.github.seratch:kotliquery", version.ref = "kotliQueryVersion"}
-okhttp = { module = 'com.squareup.okhttp3:okhttp', version.ref = 'okhttpVersion' }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttpVersion" }
+okhttpMockserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttpVersion" }
 jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref="jacksonVersion" }
 jacksonJSR310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref="jacksonVersion" }
 micrometerPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheusVersion"}
+
+nimbusOidcSDK = { module = "com.nimbusds:oauth2-oidc-sdk", version = "11.33" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version = "3.2.2" }
 
 flyway = { module = "org.flywaydb:flyway-core", version.ref = "flywayVersion" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flywayVersion" }
 hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikariVersion" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresqlVersion" }
-
 
 junitApi = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junitVersion" }
 junitEngine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junitVersion" }
@@ -110,10 +113,11 @@ testEcosystem = [
     "junitEngine",
     "junitParams",
     "assertk",
-    "mockk"
+    "mockk",
+    "okhttpMockserver"
 ]
 
 [plugins]
 kotlinPluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktorVersion" }
-openapi-generator = { id = 'org.openapi.generator', version.ref = "openapi"}
+openapi-generator = { id = "org.openapi.generator", version.ref = "openapi"}

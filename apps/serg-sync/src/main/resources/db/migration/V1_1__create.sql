@@ -1,17 +1,17 @@
-CREATE TABLE IF NOT EXISTS serg_document
+CREATE TABLE IF NOT EXISTS serg_dokument
 (
     matrikkelenhetId BIGINT primary key NOT NULL,
     hendelse         JSONB               NOT NULL,
     formueobjekt     JSONB,
-    status           VARCHAR             NOT NULL, -- PENDING, FETCHED, FAILED, OK,
+    status           VARCHAR             NOT NULL CHECK ( status IN ('KREVER_SYNKRONISERING', 'SYNKRONISERT', 'FEIL', 'SLETTET') ),
     kommentar        VARCHAR,
     sistOppdatert    timestamp           NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_serg_status ON serg_document (status);
-CREATE INDEX IF NOT EXISTS idx_serg_sistOppdatert ON serg_document (status, sistOppdatert ASC);
-CREATE INDEX IF NOT EXISTS idx_serg_hendelse ON serg_document USING gin (hendelse);
-CREATE INDEX IF NOT EXISTS idx_serg_formueobjekt ON serg_document USING gin (formueobjekt);
+CREATE INDEX IF NOT EXISTS idx_serg_dokument_status ON serg_dokument (status);
+CREATE INDEX IF NOT EXISTS idx_serg_dokument_sistOppdatert ON serg_dokument (status, sistOppdatert ASC);
+CREATE INDEX IF NOT EXISTS idx_serg_dokument_hendelse ON serg_dokument USING gin (hendelse);
+CREATE INDEX IF NOT EXISTS idx_serg_dokument_formueobjekt ON serg_dokument USING gin (formueobjekt);
 
 
 CREATE TABLE IF NOT EXISTS keyvalue

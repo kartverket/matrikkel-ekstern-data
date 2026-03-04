@@ -3,16 +3,21 @@ package no.kartverket.matrikkel.serg.repository
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlinx.coroutines.runBlocking
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.*
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
-import java.util.*
+import java.util.UUID
 
-class SergDocumentRepositoryTest : WithDatabase {
+class SergDokumentRepositoryTest : WithDatabase {
     @Test
     fun `skal kunne lagre hendelse`(): Unit = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
 
         val hendelse = Hendelse(
             sekvensnummer = 123L,
@@ -23,16 +28,16 @@ class SergDocumentRepositoryTest : WithDatabase {
         )
 
         repository.upsertFraHendelse(hendelse)
-        val data = repository.getData(1234)
+        val data = repository.hentData(1234)
 
         assertThat(data?.matrikkelenhetId).isEqualTo(hendelse.matrikkelUnikIdentifikator)
         assertThat(data?.hendelse).isEqualTo(hendelse)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.REQUIRE_SYNCHRONIZATION)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
     }
 
     @Test
     fun `skal kunne oppdatere innslag med formueobjekt data`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
 
         val hendelse = Hendelse(
             sekvensnummer = 123L,
@@ -64,22 +69,22 @@ class SergDocumentRepositoryTest : WithDatabase {
 
         repository.settFormueobjektdata(1234, Result.success(formueobjekt))
         3
-        val data = repository.getData(1234)
+        val data = repository.hentData(1234)
 
         assertThat(data?.matrikkelenhetId).isEqualTo(hendelse.matrikkelUnikIdentifikator)
         assertThat(data?.hendelse).isEqualTo(hendelse)
         assertThat(data?.formueobjekt).isEqualTo(formueobjekt)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
     }
 
     @Test
     fun `ny hendelse resetter status`() = runBlocking {
-        val repository = SergDocumentRepository(dataSource())
+        val repository = SergDokumentRepository(dataSource())
 
         repository.upsertFraHendelse(Hendelse(matrikkelUnikIdentifikator = 1234, hendelsestype = Hendelsestype.ny))
 
-        var data = repository.getData(1234)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.REQUIRE_SYNCHRONIZATION)
+        var data = repository.hentData(1234)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
 
         repository.settFormueobjektdata(
             1234, Result.success(
@@ -91,12 +96,12 @@ class SergDocumentRepositoryTest : WithDatabase {
             )
         )
 
-        data = repository.getData(1234)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.SYNCHRONIZED)
+        data = repository.hentData(1234)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
 
         repository.upsertFraHendelse(Hendelse(matrikkelUnikIdentifikator = 1234, hendelsestype = Hendelsestype.ny))
 
-        data = repository.getData(1234)
-        assertThat(data?.status).isEqualTo(SergDocumentStatus.REQUIRE_SYNCHRONIZATION)
+        data = repository.hentData(1234)
+        assertThat(data?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
     }
 }
