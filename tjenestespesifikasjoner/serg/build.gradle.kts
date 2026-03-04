@@ -32,6 +32,7 @@ tasks.register<GenerateTask>("generateForHendelser") {
     library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
     configOptions.put("serializationLibrary", "jackson")
+    typeMappings.put("string+date-time", "LocalDateTime")
     apiPackage = "no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis"
     modelPackage = "no.kartverket.tjenestespesifikasjoner.serg.hendelser.models"
 
@@ -58,6 +59,7 @@ tasks.register<GenerateTask>("generateForFormueobjekt") {
     library = "jvm-okhttp4"
     configOptions.put("dateLibrary", "java8")
     configOptions.put("serializationLibrary", "jackson")
+    typeMappings.put("string+date-time", "LocalDateTime")
     apiPackage = "no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis"
     modelPackage = "no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models"
 
