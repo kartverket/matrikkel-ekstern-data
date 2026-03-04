@@ -4,7 +4,9 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 
-class DataSourceConfiguration(val config: Configuration) {
+class DataSourceConfiguration(
+    val config: Configuration,
+) {
     fun createDatasource(): HikariDataSource {
         val config = HikariConfig().apply {
             jdbcUrl = config.database.jdbcUrl

@@ -1,9 +1,9 @@
 package no.kartverket.matrikkel.serg
 
+import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentStatus
 import no.kartverket.matrikkel.serg.repository.transactional
-import no.kartverket.kotlin.retry
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import java.util.*
 import javax.sql.DataSource
@@ -30,7 +30,7 @@ class SyncFormueobject(
                                 formueobjektApi.hentFormuesobjektFastEiendom(
                                     rettighetspakke = "kartverketMatrikkel",
                                     hendelseidentifikator = hendelseId.toString(),
-                                    korrelasjonsid = UUID.randomUUID()
+                                    korrelasjonsid = UUID.randomUUID(),
                                 )
                             }
                         }

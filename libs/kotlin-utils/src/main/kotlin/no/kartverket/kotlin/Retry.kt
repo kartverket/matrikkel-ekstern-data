@@ -5,12 +5,16 @@ import kotlinx.coroutines.runBlocking
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 
-fun <T> retry(n: Int, fn: () -> T): T {
+fun <T> retry(
+    n: Int,
+    fn: () -> T,
+): T {
     var attempt = 0
     do {
-        var result = runCatching {
-            fn()
-        }
+        var result =
+            runCatching {
+                fn()
+            }
         attempt++
 
         if (result.isSuccess || attempt == n) return result.getOrThrow()

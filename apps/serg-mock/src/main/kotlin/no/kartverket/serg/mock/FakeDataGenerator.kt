@@ -125,26 +125,29 @@ internal class FakeDataGenerator {
     ): Hendelsestype {
         val bucket = (sequence % 10).toInt()
         return when (preset) {
-            PresetName.BALANCED ->
+            PresetName.BALANCED -> {
                 when ((sequence % 3).toInt()) {
                     0 -> Hendelsestype.slettet
                     1 -> Hendelsestype.ny
                     else -> Hendelsestype.endret
                 }
+            }
 
-            PresetName.NEW_HEAVY ->
+            PresetName.NEW_HEAVY -> {
                 when {
                     bucket < 7 -> Hendelsestype.ny
                     bucket < 9 -> Hendelsestype.endret
                     else -> Hendelsestype.slettet
                 }
+            }
 
-            PresetName.DELETE_HEAVY ->
+            PresetName.DELETE_HEAVY -> {
                 when {
                     bucket < 1 -> Hendelsestype.ny
                     bucket < 4 -> Hendelsestype.endret
                     else -> Hendelsestype.slettet
                 }
+            }
         }
     }
 

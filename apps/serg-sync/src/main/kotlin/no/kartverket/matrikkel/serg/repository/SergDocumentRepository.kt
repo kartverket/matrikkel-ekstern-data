@@ -23,66 +23,80 @@ data class SergDocument(
 )
 
 enum class SergDocumentStatus {
-    REQUIRE_SYNCHRONIZATION, SYNCHRONIZED, FAILURE, DELETED
+    REQUIRE_SYNCHRONIZATION,
+    SYNCHRONIZED,
+    FAILURE,
+    DELETED,
 }
 
 class SergDocumentRepository(
-    private val dataSource: DataSource
+    private val dataSource: DataSource,
 ) {
     private val format = Serializer.jacksonObjectMapper
+
     @Language("TEXT")
     private val table: String = "serg_document"
 
-    suspend fun getData(matrikkelenhetId: Long): SergDocument? = transactional(dataSource) { tx ->
-        getData(tx, matrikkelenhetId)
-    }
+    suspend fun getData(matrikkelenhetId: Long): SergDocument? =
+        transactional(dataSource) { tx ->
+            getData(tx, matrikkelenhetId)
+        }
 
-    fun getData(tx: Session, matrikkelenhetId: Long): SergDocument? {
+    fun getData(
+        tx: Session,
+        matrikkelenhetId: Long,
+    ): SergDocument? {
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             SELECT * from $table where matrikkelenhetId = :id
-        """.trimIndent()
+            """.trimIndent()
 
         return tx.run(
             queryOf(
                 sql,
-                mapOf("id" to matrikkelenhetId)
-            )
-                .map(::mapSergDocument)
-                .asSingle
+                mapOf("id" to matrikkelenhetId),
+            ).map(::mapSergDocument)
+                .asSingle,
         )
     }
 
-    suspend fun listByStatus(status: SergDocumentStatus, limit: Int = 100): List<SergDocument> =
+    suspend fun listByStatus(
+        status: SergDocumentStatus,
+        limit: Int = 100,
+    ): List<SergDocument> =
         transactional(dataSource) { tx ->
             listByStatus(tx, status, limit)
         }
 
-    fun listByStatus(tx: Session, status: SergDocumentStatus, limit: Int = 100): List<SergDocument> {
+    fun listByStatus(
+        tx: Session,
+        status: SergDocumentStatus,
+        limit: Int = 100,
+    ): List<SergDocument> {
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             SELECT * from $table
             WHERE status = :status
             ORDER BY sistOppdatert ASC
             LIMIT :limit
             FOR UPDATE SKIP LOCKED
-        """.trimIndent()
+            """.trimIndent()
 
         return tx.run(
             queryOf(
-                sql, mapOf(
+                sql,
+                mapOf(
                     "status" to status.name,
-                    "limit" to limit
-                )
-            )
-                .map(::mapSergDocument)
-                .asList
+                    "limit" to limit,
+                ),
+            ).map(::mapSergDocument)
+                .asList,
         )
     }
 
-    suspend fun upsertFraHendelse(hendelse: Hendelse) {
-        return transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
-    }
+    suspend fun upsertFraHendelse(hendelse: Hendelse) = transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
 
     fun upsertFraHendelse(
         tx: Session,
@@ -100,7 +114,8 @@ class SergDocumentRepository(
         }
 
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             INSERT INTO $table (matrikkelenhetId, hendelse, sistOppdatert, status)
             VALUES (:id, :hendelse::jsonb, now(), :status)
             ON CONFLICT (matrikkelenhetId)
@@ -108,22 +123,24 @@ class SergDocumentRepository(
                 hendelse = EXCLUDED.hendelse,
                 sistOppdatert = now(),
                 status = EXCLUDED.status
-        """.trimIndent()
+            """.trimIndent()
 
         tx.run(
             queryOf(
-                sql, mapOf(
+                sql,
+                mapOf(
                     "id" to matrikkelenhetId,
                     "hendelse" to format.writeValueAsString(hendelse),
-                    "status" to status.name
-                )
-            ).asUpdate
+                    "status" to status.name,
+                ),
+            ).asUpdate,
         )
     }
 
-    suspend fun settFormueobjektdata(matrikkelenhetId: Long, formueobjekt: Result<FastEiendomSomFormuesobjekt>) {
-        return transactional(dataSource) { tx -> settFormueobjektdata(tx, matrikkelenhetId, formueobjekt) }
-    }
+    suspend fun settFormueobjektdata(
+        matrikkelenhetId: Long,
+        formueobjekt: Result<FastEiendomSomFormuesobjekt>,
+    ) = transactional(dataSource) { tx -> settFormueobjektdata(tx, matrikkelenhetId, formueobjekt) }
 
     fun settFormueobjektdata(
         tx: Session,
@@ -136,22 +153,24 @@ class SergDocumentRepository(
             },
             onSuccess = { formueobjekt ->
                 @Language("SQL")
-                val sql = """
-                UPDATE $table
-                SET formueobjekt = :formueobjekt::jsonb, sistOppdatert = now(), status = :status, kommentar = NULL
-                WHERE matrikkelenhetId = :id
-            """.trimIndent()
+                val sql =
+                    """
+                    UPDATE $table
+                    SET formueobjekt = :formueobjekt::jsonb, sistOppdatert = now(), status = :status, kommentar = NULL
+                    WHERE matrikkelenhetId = :id
+                    """.trimIndent()
 
                 tx.run(
                     queryOf(
-                        sql, mapOf(
+                        sql,
+                        mapOf(
                             "id" to matrikkelenhetId,
                             "formueobjekt" to format.writeValueAsString(formueobjekt),
-                            "status" to SergDocumentStatus.SYNCHRONIZED.name
-                        )
-                    ).asUpdate
+                            "status" to SergDocumentStatus.SYNCHRONIZED.name,
+                        ),
+                    ).asUpdate,
                 )
-            }
+            },
         )
     }
 
@@ -161,60 +180,70 @@ class SergDocumentRepository(
         status: SergDocumentStatus,
     ) {
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             UPDATE $table
             SET status = :status, sistOppdatert = now()
             WHERE matrikkelenhetId = :id
-        """.trimIndent()
+            """.trimIndent()
 
         tx.run(
             queryOf(
-                sql, mapOf(
+                sql,
+                mapOf(
                     "id" to matrikkelenhetId,
-                    "status" to status.name
-                )
-            ).asUpdate
+                    "status" to status.name,
+                ),
+            ).asUpdate,
         )
     }
 
     fun settKommentar(
         tx: Session,
         matrikkelenhetId: Long,
-        kommentar: String
+        kommentar: String,
     ) {
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             UPDATE $table
             SET kommentar = :kommentar
             WHERE matrikkelenhetId = :id
-        """.trimIndent()
+            """.trimIndent()
 
         tx.run(
             queryOf(
-                sql, mapOf(
+                sql,
+                mapOf(
                     "id" to matrikkelenhetId,
-                    "kommentar" to kommentar
-                )
-            ).asUpdate
+                    "kommentar" to kommentar,
+                ),
+            ).asUpdate,
         )
     }
 
-    fun settSomFeil(tx: Session, matrikkelenhetId: Long, kommentar: String) {
+    fun settSomFeil(
+        tx: Session,
+        matrikkelenhetId: Long,
+        kommentar: String,
+    ) {
         @Language("SQL")
-        val sql = """
+        val sql =
+            """
             UPDATE $table
             SET kommentar = :kommentar, status = :status
             WHERE matrikkelenhetId = :id
-        """.trimIndent()
+            """.trimIndent()
 
         tx.run(
             queryOf(
-                sql, mapOf(
+                sql,
+                mapOf(
                     "id" to matrikkelenhetId,
                     "kommentar" to kommentar,
-                    "status" to SergDocumentStatus.FAILURE.name
-                )
-            ).asUpdate
+                    "status" to SergDocumentStatus.FAILURE.name,
+                ),
+            ).asUpdate,
         )
     }
 

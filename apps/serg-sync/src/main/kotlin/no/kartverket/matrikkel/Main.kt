@@ -5,16 +5,15 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import no.kartverket.ktor.KtorServer
+import no.kartverket.ktor.Selftest
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.serg.SyncHendelser
-import no.kartverket.ktor.KtorServer
-import no.kartverket.ktor.Selftest
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import org.slf4j.LoggerFactory
 import java.util.Properties
 import kotlin.io.path.Path
-import kotlin.io.path.readLines
 import kotlin.io.path.reader
 import kotlin.time.Duration.Companion.seconds
 
@@ -32,6 +31,7 @@ class Env {
 }
 
 val logger = LoggerFactory.getLogger("main")
+
 fun main() {
     Env.load("docker/idea.env")
     val config = Configuration()
@@ -39,37 +39,42 @@ fun main() {
 
     dataSourceConfiguration.runFlyway()
 
-    KtorServer.create(Netty, port = 8090) {
-        install(Selftest.Plugin)
+    KtorServer
+        .create(Netty, port = 8090) {
+            install(Selftest.Plugin)
 
-        val hendelserSync = launch(Dispatchers.IO) {
-            val hendelserSync = SyncHendelser(
-                dataSource = dataSourceConfiguration.createDatasource(),
-                hendelserApi = HendelserApi(
-                    basePath = config.sergBaseUrl
-                )
-            )
+            val hendelserSync =
+                launch(Dispatchers.IO) {
+                    val hendelserSync =
+                        SyncHendelser(
+                            dataSource = dataSourceConfiguration.createDatasource(),
+                            hendelserApi =
+                                HendelserApi(
+                                    basePath = config.sergBaseUrl,
+                                ),
+                        )
 
-            do {
-                logger.info("Henter ut hendelser")
-                val hendelser = hendelserSync.sync(1000)
-                val antallHentet = hendelser
-                    .map { it.size }
-                    .fold(
-                        onFailure = {
-                            logger.error("Feilet med henting av hendelser", it)
-                            0
-                        },
-                        onSuccess = {
-                            logger.info("Hentet $it hendelser fra SERG")
-                            it
-                        },
-                    )
+                    do {
+                        logger.info("Henter ut hendelser")
+                        val hendelser = hendelserSync.sync(1000)
+                        val antallHentet =
+                            hendelser
+                                .map { it.size }
+                                .fold(
+                                    onFailure = {
+                                        logger.error("Feilet med henting av hendelser", it)
+                                        0
+                                    },
+                                    onSuccess = {
+                                        logger.info("Hentet $it hendelser fra SERG")
+                                        it
+                                    },
+                                )
 
-                if (antallHentet != 1000) {
-                    delay(5.seconds)
+                        if (antallHentet != 1000) {
+                            delay(5.seconds)
+                        }
+                    } while (true)
                 }
-            } while (true)
-        }
-    }.start(wait = true)
+        }.start(wait = true)
 }

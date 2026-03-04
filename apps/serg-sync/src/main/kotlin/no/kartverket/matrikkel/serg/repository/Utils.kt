@@ -7,7 +7,10 @@ import kotliquery.sessionOf
 import kotliquery.using
 import javax.sql.DataSource
 
-suspend fun <A> transactional(dataSource: DataSource, operation: (TransactionalSession) -> A): A {
+suspend fun <A> transactional(
+    dataSource: DataSource,
+    operation: (TransactionalSession) -> A,
+): A {
     return withContext(Dispatchers.IO) {
         using(sessionOf(dataSource)) { session ->
             session.transaction(operation)

@@ -1,10 +1,10 @@
 package no.kartverket.matrikkel.serg
 
+import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDocumentRepository
 import no.kartverket.matrikkel.serg.repository.transactional
-import no.kartverket.kotlin.retry
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import java.util.*
@@ -26,7 +26,7 @@ class SyncHendelser(
                 hendelserApi.hentHendelserFormuesobjektFastEiendom(
                     fraSekvensnummer = sekvensnummer,
                     antall = antall,
-                    korrelasjonsid = UUID.randomUUID()
+                    korrelasjonsid = UUID.randomUUID(),
                 )
             }
         }.mapCatching { result ->

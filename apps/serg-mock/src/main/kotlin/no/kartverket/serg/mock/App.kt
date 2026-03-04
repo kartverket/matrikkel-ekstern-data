@@ -63,12 +63,12 @@ internal fun Application.configureSergMockApp(
                         DefaultPrettyPrinter().apply {
                             indentArraysWith(DefaultPrettyPrinter.FixedSpaceIndenter.instance)
                             indentObjectsWith(DefaultIndenter("  ", "\n"))
-                        }
+                        },
                     )
                     registerKotlinModule()
                 },
-                streamRequestBody = true
-            )
+                streamRequestBody = true,
+            ),
         )
         jackson {
             findAndRegisterModules()
