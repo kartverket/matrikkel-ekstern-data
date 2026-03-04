@@ -24,6 +24,7 @@ include(":apps:serg-mock")
 include(":libs:kotlin-utils")
 include(":libs:ktor-utils")
 include(":libs:logging")
+include(":libs:oidc-token-client")
 include(":tjenestespesifikasjoner:openapi-infrastructure")
 include(":tjenestespesifikasjoner:serg")
 
