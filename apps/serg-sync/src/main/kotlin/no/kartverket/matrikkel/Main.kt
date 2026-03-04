@@ -9,8 +9,11 @@ import no.kartverket.ktor.KtorServer
 import no.kartverket.ktor.Selftest
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.serg.SyncHendelser
+import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
 import java.util.Properties
 import kotlin.io.path.Path
@@ -33,7 +36,7 @@ class Env {
 val logger = LoggerFactory.getLogger("main")
 
 fun main() {
-    Env.load("docker/idea.env")
+    Env.load("docker/idea.private.env")
     val config = Configuration()
     val dataSourceConfiguration = DataSourceConfiguration(config)
 
@@ -43,6 +46,18 @@ fun main() {
         .create(Netty, port = 8090) {
             install(Selftest.Plugin)
 
+            val tokenClient = MaskinportenMachineToMachineTokenClient(
+                clientId = config.sergClientId,
+                privateJwk = config.sergPrivateJWK,
+                tokenEndpoint = config.sergTokenEndpoint,
+            ).bindTo("skatteetaten:formuesobjektfasteiendom")
+            val httpClient = OkHttpClient.Builder()
+                .addInterceptor(
+                    AuthorizationInterceptor {
+                        tokenClient.createToken().serialize()
+                    }
+                )
+                .build()
             val hendelserSync =
                 launch(Dispatchers.IO) {
                     val hendelserSync =
@@ -50,7 +65,8 @@ fun main() {
                             dataSource = dataSourceConfiguration.createDatasource(),
                             hendelserApi =
                                 HendelserApi(
-                                    basePath = config.sergBaseUrl,
+                                    basePath = config.sergHendelserUrl,
+                                    client = httpClient
                                 ),
                         )
 

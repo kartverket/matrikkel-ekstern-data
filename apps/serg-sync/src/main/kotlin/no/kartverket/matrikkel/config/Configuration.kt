@@ -7,14 +7,18 @@ class DatabaseConfiguration(
 )
 
 class Configuration(
-    val sergBaseUrl: String = getRequiredConfig("SERG_BASE_URL"),
+    val sergHendelserUrl: String = getRequiredConfig("SERG_HENDELSER_URL"),
+    val sergFormueobjektUrl: String = getRequiredConfig("SERG_FORMUEOBJEKT_URL"),
+    val sergClientId: String = getRequiredConfig("SERG_CLIENT_ID"),
     val sergPrivateJWK: String = getRequiredConfig("SERG_PRIVATE_JWK"),
+    val sergTokenEndpoint: String = getRequiredConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
-        jdbcUrl = getRequiredConfig("DB_URL"),
-        username = getRequiredConfig("DB_USERNAME"),
-        password = getRequiredConfig("DB_PASSWORD"),
+        jdbcUrl = getRequiredConfig("POSTGRES_URL"),
+        username = getRequiredConfig("POSTGRES_USER"),
+        password = getRequiredConfig("POSTGRES_PASSWORD"),
     ),
-)
+) {
+}
 
 private fun getConfig(name: String): String? {
     return System.getProperty(name, System.getenv(name))

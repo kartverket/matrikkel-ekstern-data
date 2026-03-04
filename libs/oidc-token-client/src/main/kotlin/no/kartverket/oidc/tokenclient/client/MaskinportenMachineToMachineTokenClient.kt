@@ -5,6 +5,7 @@ import com.nimbusds.oauth2.sdk.JWTBearerGrant
 import com.nimbusds.oauth2.sdk.Scope
 import com.nimbusds.oauth2.sdk.TokenRequest
 import com.nimbusds.oauth2.sdk.TokenResponse
+import no.kartverket.oidc.tokenclient.CaffeineTokenCache
 import no.kartverket.oidc.tokenclient.TokenCache
 import no.kartverket.oidc.tokenclient.utils.TokenClientUtils
 import org.slf4j.LoggerFactory
@@ -13,7 +14,7 @@ class MaskinportenMachineToMachineTokenClient(
     clientId: String,
     tokenEndpoint: String,
     privateJwk: String,
-    tokenCache: TokenCache
+    tokenCache: TokenCache = CaffeineTokenCache()
 ) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache), MachineToMachineTokenClient {
     companion object {
         private val log = LoggerFactory.getLogger("MaskinportenMachineToMachineTokenClient")
