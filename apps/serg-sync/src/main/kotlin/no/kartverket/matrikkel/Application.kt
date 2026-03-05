@@ -11,6 +11,7 @@ import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.ktor.KtorServer
+import no.kartverket.ktor.Metrics
 import no.kartverket.ktor.Selftest
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
@@ -55,6 +56,7 @@ fun runApplication() {
 
     KtorServer
         .create(Netty, port = 8090) {
+            install(Metrics.Plugin)
             install(Selftest.Plugin) {
                 appname = "matrikkel-serg-sync"
             }
