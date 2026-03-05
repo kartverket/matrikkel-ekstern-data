@@ -19,6 +19,7 @@ class HendelserSyncService(
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
     private val dokumentRepository = SergDokumentRepository(dataSource)
+
     init {
         SelftestGenerator.Metadata(sekvensnummerKey) {
             runBlocking {
@@ -47,7 +48,7 @@ class HendelserSyncService(
                     } catch (e: IllegalStateException) {
                         logger.error(
                             "Kunne ikke lagre hendelse: ${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}",
-                            e
+                            e,
                         )
                     }
                 }

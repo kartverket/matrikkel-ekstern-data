@@ -7,7 +7,10 @@ import com.nimbusds.jwt.SignedJWT
 import java.time.Duration
 
 fun interface TokenCache {
-    fun getFromCacheOrTryProvider(cacheKey: String, tokenProvider: () -> SignedJWT): SignedJWT
+    fun getFromCacheOrTryProvider(
+        cacheKey: String,
+        tokenProvider: () -> SignedJWT,
+    ): SignedJWT
 }
 
 class CaffeineTokenCache(
@@ -15,10 +18,13 @@ class CaffeineTokenCache(
     private val cache: Cache<String, SignedJWT> = Caffeine
         .newBuilder()
         .expireAfterWrite(Duration.ofHours(1))
-        .build()
+        .build(),
 ) : TokenCache {
     companion object {
-        fun shouldRefreshToken(token: JWT, earlyRefreshThreshold: Duration): Boolean {
+        fun shouldRefreshToken(
+            token: JWT,
+            earlyRefreshThreshold: Duration,
+        ): Boolean {
             return runCatching {
                 val expiration = token.jwtClaimsSet.expirationTime
                 if (expiration == null) return true
@@ -30,7 +36,10 @@ class CaffeineTokenCache(
         }
     }
 
-    override fun getFromCacheOrTryProvider(cacheKey: String, tokenProvider: () -> SignedJWT): SignedJWT {
+    override fun getFromCacheOrTryProvider(
+        cacheKey: String,
+        tokenProvider: () -> SignedJWT,
+    ): SignedJWT {
         val token = cache.getIfPresent(cacheKey)
 
         return when {
@@ -40,7 +49,10 @@ class CaffeineTokenCache(
         }
     }
 
-    private fun updatedToken(cacheKey: String, tokenProvider: () -> SignedJWT): SignedJWT {
+    private fun updatedToken(
+        cacheKey: String,
+        tokenProvider: () -> SignedJWT,
+    ): SignedJWT {
         val newToken = tokenProvider()
         cache.put(cacheKey, newToken)
         return newToken

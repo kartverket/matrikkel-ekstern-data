@@ -16,19 +16,20 @@ object TokenClientFactory {
             clientId = getEnv(AzureEnv.CLIENT_ID),
             tokenEndpoint = getEnv(AzureEnv.OPENID_CONFIG_TOKEN_ENDPOINT),
             privateJwk = getEnv(AzureEnv.APP_JWK),
-            tokenCache = tokenCache
+            tokenCache = tokenCache,
         )
 
     @JvmStatic
     fun createOnBehalfOfTokenClient(): OnBehalfOfTokenClient = createOnBehalfOfTokenClient(CaffeineTokenCache())
 
     @JvmStatic
-    fun createOnBehalfOfTokenClient(tokenCache: TokenCache): OnBehalfOfTokenClient = AzureAdOnBehalfOfTokenClient(
-        clientId = getEnv(AzureEnv.CLIENT_ID),
-        tokenEndpoint = getEnv(AzureEnv.OPENID_CONFIG_TOKEN_ENDPOINT),
-        privateJwk = getEnv(AzureEnv.APP_JWK),
-        tokenCache = tokenCache
-    )
+    fun createOnBehalfOfTokenClient(tokenCache: TokenCache): OnBehalfOfTokenClient =
+        AzureAdOnBehalfOfTokenClient(
+            clientId = getEnv(AzureEnv.CLIENT_ID),
+            tokenEndpoint = getEnv(AzureEnv.OPENID_CONFIG_TOKEN_ENDPOINT),
+            privateJwk = getEnv(AzureEnv.APP_JWK),
+            tokenCache = tokenCache,
+        )
 
     private fun getEnv(name: String): String {
         val value = requireNotNull(System.getProperty(name, System.getenv(name))) { "$name is required" }

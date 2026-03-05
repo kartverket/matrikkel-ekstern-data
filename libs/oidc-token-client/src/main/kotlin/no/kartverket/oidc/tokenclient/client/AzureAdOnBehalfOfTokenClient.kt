@@ -16,22 +16,29 @@ class AzureAdOnBehalfOfTokenClient(
     clientId: String,
     tokenEndpoint: String,
     privateJwk: String,
-    tokenCache: TokenCache
-) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache), OnBehalfOfTokenClient {
+    tokenCache: TokenCache,
+) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache),
+    OnBehalfOfTokenClient {
     companion object {
         private val log = LoggerFactory.getLogger("AzureAdMachineToMachineTokenClient")
     }
 
-    override fun exchangeOnBehalfOfToken(scope: String, accessToken: SignedJWT): SignedJWT {
+    override fun exchangeOnBehalfOfToken(
+        scope: String,
+        accessToken: SignedJWT,
+    ): SignedJWT {
         val cacheKey = "$scope-${getSubject(accessToken)}"
         return tokenCache.getFromCacheOrTryProvider(cacheKey) { createToken(scope, accessToken) }
     }
 
-    private fun createToken(scope: String, accessToken: SignedJWT): SignedJWT {
+    private fun createToken(
+        scope: String,
+        accessToken: SignedJWT,
+    ): SignedJWT {
         val signedJWT = signedClientAssertion(
             clientAssertionHeader(privateJwkKeyId),
             clientAssertionClaims(this@AzureAdOnBehalfOfTokenClient.clientId, tokenEndpoint.toString()),
-            assertionSigner
+            assertionSigner,
         )
 
         val request = TokenRequest.Builder(tokenEndpoint, signedJWT, JWTBearerGrant(accessToken))

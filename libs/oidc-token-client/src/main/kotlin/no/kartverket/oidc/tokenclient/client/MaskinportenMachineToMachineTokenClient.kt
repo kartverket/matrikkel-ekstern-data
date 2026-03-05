@@ -14,8 +14,9 @@ class MaskinportenMachineToMachineTokenClient(
     clientId: String,
     tokenEndpoint: String,
     privateJwk: String,
-    tokenCache: TokenCache = CaffeineTokenCache()
-) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache), MachineToMachineTokenClient {
+    tokenCache: TokenCache = CaffeineTokenCache(),
+) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache),
+    MachineToMachineTokenClient {
     companion object {
         private val log = LoggerFactory.getLogger("MaskinportenMachineToMachineTokenClient")
     }
@@ -29,7 +30,7 @@ class MaskinportenMachineToMachineTokenClient(
         val signedJWT = TokenClientUtils.signedClientAssertion(
             TokenClientUtils.clientAssertionHeader(privateJwkKeyId),
             TokenClientUtils.clientAssertionClaimsWithScope(clientId, tokenEndpoint.toString(), scope),
-            assertionSigner
+            assertionSigner,
         )
         val request = TokenRequest.Builder(tokenEndpoint, signedJWT, JWTBearerGrant(signedJWT.clientAssertion))
             .scope(Scope(scope))

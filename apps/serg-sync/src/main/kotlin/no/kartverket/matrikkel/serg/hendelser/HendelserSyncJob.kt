@@ -17,7 +17,7 @@ class HendelserSyncJob(
 ) {
     class Config(
         val antall: Int = 1000,
-        val interval: Duration = 60.seconds
+        val interval: Duration = 60.seconds,
     )
 
     private val probe = SelftestGenerator.Reporter("HendelserSyncJob", critical = false)
@@ -39,7 +39,7 @@ class HendelserSyncJob(
                         probe.reportOk()
                         logger.info("Hentet $it hendelser fra SERG")
                         it
-                    }
+                    },
                 )
 
             if (antallHentet != config.antall) {

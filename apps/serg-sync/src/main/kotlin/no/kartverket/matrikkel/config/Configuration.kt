@@ -17,8 +17,7 @@ class Configuration(
         username = getRequiredConfig("POSTGRES_USER"),
         password = getRequiredConfig("POSTGRES_PASSWORD"),
     ),
-) {
-}
+)
 
 private fun getConfig(name: String): String? {
     return System.getProperty(name, System.getenv(name))

@@ -15,7 +15,9 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import okhttp3.OkHttpClient
 import kotlin.time.Duration.Companion.seconds
 
-class Services(val config: Configuration) {
+class Services(
+    val config: Configuration,
+) {
     val tokenClient = MaskinportenMachineToMachineTokenClient(
         clientId = config.sergClientId,
         privateJwk = config.sergPrivateJWK,
@@ -30,13 +32,13 @@ class Services(val config: Configuration) {
         .addInterceptor(
             AuthorizationInterceptor {
                 tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
-            }
+            },
         )
         .build()
 
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
-        client = sergHttpClient
+        client = sergHttpClient,
     )
 
     val hendelserSyncService = HendelserSyncService(
@@ -48,14 +50,13 @@ class Services(val config: Configuration) {
         syncService = hendelserSyncService,
         config = HendelserSyncJob.Config(
             antall = 1000,
-            interval = 60.seconds
-        )
+            interval = 60.seconds,
+        ),
     )
-
 
     val formueobjektApi = FormuesobjektFastEiendomApi(
         basePath = config.sergFormueobjektUrl,
-        client = sergHttpClient
+        client = sergHttpClient,
     )
 
     val formueobjektSyncService = FormuesobjektSyncService(
@@ -66,7 +67,7 @@ class Services(val config: Configuration) {
         syncService = formueobjektSyncService,
         config = FormueobjektSyncJob.Config(
             antall = 10,
-            interval = 60.seconds
-        )
+            interval = 60.seconds,
+        ),
     )
 }

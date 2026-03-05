@@ -22,7 +22,6 @@ object OkHttpUtils {
     class AuthorizationInterceptor(
         tokenProvider: () -> String,
     ) : HeadersInterceptor({
-        mapOf("Authorization" to "Bearer ${tokenProvider()}")
-    })
-
+            mapOf("Authorization" to "Bearer ${tokenProvider()}")
+        })
 }

@@ -18,7 +18,7 @@ class FormueobjektSyncJob(
 ) {
     class Config(
         val antall: Int = 10,
-        val interval: Duration = 60.seconds
+        val interval: Duration = 60.seconds,
     )
 
     private val probe = SelftestGenerator.Reporter("FormueobjektSyncJob", critical = false)
@@ -39,7 +39,7 @@ class FormueobjektSyncJob(
                         probe.reportOk()
                         logger.info("Hentet $it formueobjekt fra SERG")
                         it
-                    }
+                    },
                 )
 
             if (antallHentet != config.antall) {

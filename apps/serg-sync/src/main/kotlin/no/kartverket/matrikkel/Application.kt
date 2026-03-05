@@ -38,7 +38,7 @@ fun runApplication() {
                 services.hendelserApi.hentStart(dato = dagensDato, korrelasjonsid = korrelasjonsId)
             }.fold(
                 onSuccess = { it.sekvensnummer ?: -1 },
-                onFailure = { -99 }
+                onFailure = { -99 },
             ).toString()
         }
     }
@@ -49,7 +49,7 @@ fun runApplication() {
                 services.sergDokumentRepository.tellEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
             }.fold(
                 onSuccess = { it },
-                onFailure = { -99 }
+                onFailure = { -99 },
             ).toString()
         }
     }

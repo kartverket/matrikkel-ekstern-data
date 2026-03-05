@@ -13,7 +13,7 @@ object TokenClientUtils {
     fun signedClientAssertion(
         header: JWSHeader,
         claims: JWTClaimsSet,
-        signer: JWSSigner
+        signer: JWSSigner,
     ): PrivateKeyJWT {
         val signedJWT = SignedJWT(header, claims).apply { sign(signer) }
         return PrivateKeyJWT(signedJWT)
@@ -24,20 +24,30 @@ object TokenClientUtils {
             mapOf(
                 "kid" to keyId,
                 "typ" to "JWT",
-                "alg" to "RS256"
-            )
+                "alg" to "RS256",
+            ),
         )
     }
 
-    fun clientAssertionClaims(clientId: String, audience: String): JWTClaimsSet {
+    fun clientAssertionClaims(
+        clientId: String,
+        audience: String,
+    ): JWTClaimsSet {
         return clientAssertionClaimsBuilder(clientId, audience).build()
     }
 
-    fun clientAssertionClaimsWithScope(clientId: String, audience: String, scope: String): JWTClaimsSet {
+    fun clientAssertionClaimsWithScope(
+        clientId: String,
+        audience: String,
+        scope: String,
+    ): JWTClaimsSet {
         return clientAssertionClaimsBuilder(clientId, audience).claim("scope", scope).build()
     }
 
-    private fun clientAssertionClaimsBuilder(clientId: String, audience: String): Builder {
+    private fun clientAssertionClaimsBuilder(
+        clientId: String,
+        audience: String,
+    ): Builder {
         val now = Date()
         val expiration = Date(now.toInstant().plusSeconds(30).toEpochMilli())
 

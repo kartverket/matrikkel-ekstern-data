@@ -13,8 +13,9 @@ class AzureAdMachineToMachineTokenClient(
     clientId: String,
     tokenEndpoint: String,
     privateJwk: String,
-    tokenCache: TokenCache
-) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache), MachineToMachineTokenClient {
+    tokenCache: TokenCache,
+) : AbstractTokenClient(clientId, tokenEndpoint, privateJwk, tokenCache),
+    MachineToMachineTokenClient {
     companion object {
         private val log = LoggerFactory.getLogger("AzureAdMachineToMachineTokenClient")
     }
@@ -28,7 +29,7 @@ class AzureAdMachineToMachineTokenClient(
         val signedJWT = TokenClientUtils.signedClientAssertion(
             TokenClientUtils.clientAssertionHeader(privateJwkKeyId),
             TokenClientUtils.clientAssertionClaims(clientId, tokenEndpoint.toString()),
-            assertionSigner
+            assertionSigner,
         )
 
         val request = TokenRequest.Builder(tokenEndpoint, signedJWT, ClientCredentialsGrant())
