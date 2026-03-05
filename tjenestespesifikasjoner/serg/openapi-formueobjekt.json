@@ -1,0 +1,557 @@
+{
+  "openapi" : "3.0.3",
+  "info" : {
+    "description" : "Tjenesten leverer forretningshendelser knyttet til formuesobjekter for fast eiendom og rettighetshavere til formuesobjektene. Tjenesten leverer klassifisering av formuesobjektene og eiendommens relasjoner.",
+    "version" : "1.0.1",
+    "title" : "Formuesobjekt fast eiendom API",
+    "termsOfService" : "https://www.skatteetaten.no/deling/bruksvilkar-for-delingstjenester",
+    "contact" : {
+      "name" : "Brukerstøtte",
+      "url" : "https://www.skatteetaten.no/deling/kontakt/"
+    }
+  },
+  "externalDocs" : {
+    "description" : "Dokumentasjon på Skatteetatens GitHub",
+    "url" : "https://skatteetaten.github.io/api-dokumentasjon/api/formuesobjektfasteiendom"
+  },
+  "servers" : [ {
+    "url" : "https://formuesobjektfasteiendom.api.skatteetaten-test.no/v1",
+    "description" : "Ekstern test"
+  }, {
+    "url" : "https://formuesobjektfasteiendom.api.skatteetaten.no/v1",
+    "description" : "Produksjon"
+  } ],
+  "components" : {
+    "schemas" : {
+      "Feil" : {
+        "description" : "Feilstruktur for alle feilmeldinger.",
+        "type" : "object",
+        "properties" : {
+          "kode" : {
+            "type" : "string",
+            "description" : "Feilkode, for maskinell håndtering",
+            "example" : "FFE-0xx"
+          },
+          "melding" : {
+            "type" : "string",
+            "description" : "Beskrivelse av feilen som har oppstått",
+            "example" : "Oppgitt rettighetspakke er ugyldig."
+          },
+          "korrelasjonsid" : {
+            "type" : "string",
+            "description" : "Korrelasjonsid",
+            "example" : "123e4567-e89b-12d3-a456-426655440000"
+          }
+        }
+      },
+      "FastEiendomSomFormuesobjekt" : {
+        "type" : "object",
+        "description" : "Rollen som en gitt fast eiendom i riket har som kan påvirke grunnlag for formuesskatt (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/41b9c8b8-973b-11e9-bed2-005056821322'>Begrepsreferanse</a>)",
+        "properties" : {
+          "identifikator" : {
+            "description" : "Identifikator for den faste eiendommen som formuesobjekt, skatteetatens eiendomsidentifikator og hvis finnes unik identifikator fra Matrikkelen",
+            "$ref" : "#/components/schemas/FormuesobjektIdentifikator"
+          },
+          "hendelsesidentifikator" : {
+            "description" : "Identifikator for en hendelse som har oppstått for en fast eiendom som formuesobjekt",
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "rettighetshaverMangler" : {
+            "description" : "Flagg (sann/usann) som indikerer om det ikke finnes registrerte eiere i opplysningene som finnes om den faste eiendommen som formuesobjekt (sann)",
+            "$ref" : "#/components/schemas/Boolsk"
+          },
+          "eiendomsrelasjon" : {
+            "description" : "Relasjon mellom fast eiendom som formuesobjekt hvor en fast eiendom kan være enten forelder i relasjonen eller barn. Eksempel: Relasjonen samlet hvor flere formuesobjekt som fast eiendom skal ses på som et formuesobjekt, og har en hovedeiendom (forelder) og tilleggseiendommer (barn)",
+            "$ref" : "#/components/schemas/Eiendomsrelasjon"
+          },
+          "eiendomsopplysninger" : {
+            "description" : "Angir opplysninger om eiendom, matrikkelnummer, bygninger og bruksenheter",
+            "$ref" : "#/components/schemas/Eiendomsopplysninger"
+          },
+          "formuesopplysninger" : {
+            "description" : "Opplysninger som har betydning for beregning av formuesverdi på formuesobjekt. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/46f4d724-4c6c-11e8-bb3e-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Formuesopplysninger"
+          },
+          "eieropplysninger" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "Forhåndsdefinerte opplysninger som beskriver hvem som eier en gitt andel av matrikulert fast eiendom eller andel av boenhet i boligselskap og eiernivå og ev. borettsnivå for andelen (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097c8-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Eieropplysninger"
+              } ],
+              "xml" : {
+                "name" : "eieropplysninger"
+              }
+            }
+          }
+        }
+      },
+      "Bruksenhet" : {
+        "type" : "object",
+        "description" : "Samling av bygninger, rom, lokaler, anlegg, og eventuelle tilleggsdeler som sammen anvendes i en bestemt hensikt (f.eks. bolig, kontor) (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e16f-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "properties" : {
+          "bruksenhetsnummer" : {
+            "description" : "En bokstav og fire siffer som entydig identifiserer den enkelte bruksenheten innenfor en adresserbar bygning eller bygningsdel (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e101-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Tekst"
+          },
+          "matrikkelUnikIdentifikator" : {
+            "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+            "$ref" : "#/components/schemas/MatrikkelUnikIdentifikator"
+          }
+        }
+      },
+      "Bygning" : {
+        "type" : "object",
+        "description" : "Konstruksjon som kan anvendes separat, er oppført for et permanent formål, og er egnet eller beregnet til å beskytte mennesker, dyr eller ting.Bygninger over 15 kvadratmeter skal registreres i matrikkelen. Alle bygninger oppført etter 1983 er registrert i Matrikkelen. I enkelte kommuner har man registrert samtlige bygninger.En bygning har en eller flere bruksenheter som beskriver logiske enheter ved bygningen (leiligheter, lokaler). Hver av disse kan ha en egen knytning til adresse og matrikkelenhet. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/9c33fd03-2964-11e6-b2bc-96405985e0fa'>Begrepsreferanse</a>)",
+        "properties" : {
+          "bygningsnummer" : {
+            "description" : "En entydig identifikasjon av bygningen. Bygningsnumrene er unike på landsbasis, og tildeles automatisk. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/4061d78e-fb35-417e-92e5-96d20f8027a0'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Tekst"
+          },
+          "matrikkelUnikIdentifikator" : {
+            "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+            "$ref" : "#/components/schemas/MatrikkelUnikIdentifikator"
+          },
+          "bruksenheter" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "Samling av bygninger, rom, lokaler, anlegg, og eventuelle tilleggsdeler som sammen anvendes i en bestemt hensikt (f.eks. bolig, kontor) (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e16f-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Bruksenhet"
+              } ],
+              "xml" : {
+                "name" : "bruksenhet"
+              }
+            }
+          }
+        }
+      },
+      "Eiendomsopplysninger" : {
+        "type" : "object",
+        "description" : "Angir opplysninger om eiendom, matrikkelnummer, bygninger og bruksenheter",
+        "properties" : {
+          "matrikkelnummer" : {
+            "description" : "offisiell benevnelse for hver enkel matrikkelenhet (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e115-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Matrikkelnummer"
+          },
+          "boenhetIBoligselskap" : {
+            "description" : "boenhet som den skattepliktige eier og har bruksrett til i boligselskap (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/410ab745-9202-11e6-8b61-82ab1fa1f30b'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/BoenhetIBoligselskap"
+          },
+          "bygning" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "Konstruksjon som kan anvendes separat, er oppført for et permanent formål, og er egnet eller beregnet til å beskytte mennesker, dyr eller ting.Bygninger over 15 kvadratmeter skal registreres i matrikkelen. Alle bygninger oppført etter 1983 er registrert i Matrikkelen. I enkelte kommuner har man registrert samtlige bygninger.En bygning har en eller flere bruksenheter som beskriver logiske enheter ved bygningen (leiligheter, lokaler). Hver av disse kan ha en egen knytning til adresse og matrikkelenhet. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/9c33fd03-2964-11e6-b2bc-96405985e0fa'>Begrepsreferanse</a>)",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Bygning"
+              } ],
+              "xml" : {
+                "name" : "bygning"
+              }
+            }
+          }
+        }
+      },
+      "Eiendomsrelasjon" : {
+        "type" : "object",
+        "description" : "Relasjon mellom fast eiendom som formuesobjekt hvor en fast eiendom kan være enten forelder i relasjonen eller barn. Eksempel: Relasjonen samlet hvor flere formuesobjekt som fast eiendom skal ses på som et formuesobjekt, og har en hovedeiendom (forelder) og tilleggseiendommer (barn)",
+        "properties" : {
+          "splittet" : {
+            "description" : "Relasjon som beskriver forholdet mellom underenheter (barn) som er splittet fra en fast eiendom, den splittede eiendommen (forelder)",
+            "$ref" : "#/components/schemas/SplittetFastEiendom"
+          },
+          "samlet" : {
+            "description" : "Relasjon som beskriver forholdet mellom tilleggseiendom (barn) og hovedeiendom (forelder)",
+            "$ref" : "#/components/schemas/SamletFastEiendom"
+          }
+        }
+      },
+      "Eierforhold" : {
+        "type" : "object",
+        "description" : "Forhåndsdefinerte opplysninger som beskriver når og hvordan en gitt fysisk person eller organisasjon ble eier av en gitt andel av en matrikulert fast eiendom eller andel av boenhet i boligselskap og eiernivå  (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097c7-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+        "properties" : {
+          "tinglysing" : {
+            "description" : "Offentlig registrering av eiendomsoverdragelser og rettigheter i fast eiendom og til en viss utstrekning også rettigheter i løsøre (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/87037f04-3b01-4710-85fb-d02eab400e84'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Tinglysing"
+          },
+          "eierandel" : {
+            "description" : "Andel målt i brøk eller prosent som en gitt eier/deleier har i en gitt fast eiendom på et gitt tidspunkt (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/2b292065-e7e6-11e8-b7e4-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Andel"
+          },
+          "eiernivaa" : {
+            "description" : "Uttømmende kodeliste  som beskriver hvilken grad av råderett en gitt rettighetshaver i utgangspunktet har over en bestemt andel av fast eiendom (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/46f4d712-4c6c-11e8-bb3e-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Eiernivaa"
+          }
+        }
+      },
+      "Eieropplysninger" : {
+        "type" : "object",
+        "description" : "Forhåndsdefinerte opplysninger som beskriver hvem som eier en gitt andel av matrikulert fast eiendom eller andel av boenhet i boligselskap og eiernivå og ev. borettsnivå for andelen (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097c8-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+        "properties" : {
+          "personidentifikator" : {
+            "description" : "Identifikator for å identifisere en fysisk person eller juridisk person (oganisasjon eller ligndende)",
+            "$ref" : "#/components/schemas/Personidentifikator"
+          },
+          "erTinglyst" : {
+            "description" : "Sann/usann indikator (flagg) på om eieropplysningene er tinglyste (sann) eller ikke tinglyste (For eksempel kommer fra fastsetting i skatteprosessen (usann) )",
+            "$ref" : "#/components/schemas/Boolsk"
+          },
+          "eierforhold" : {
+            "description" : "Forhåndsdefinerte opplysninger som beskriver når og hvordan en gitt fysisk person eller organisasjon ble eier av en gitt andel av en matrikulert fast eiendom eller andel av boenhet i boligselskap og eiernivå samt eventuelt borettsnivå for andelen (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097c7-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Eierforhold"
+          }
+        }
+      },
+      "Formuesopplysninger" : {
+        "type" : "object",
+        "description" : "Informasjon med mulig betydning for formuesskatteplikt om andel av fast eiendom på et bestemt tidspunkt (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/46f4d724-4c6c-11e8-bb3e-005056821322'>Begrepsreferanse</a>)",
+        "properties" : {
+          "formuestype" : {
+            "description" : "Klassifisering for hvordan en fast eiendom skal behandles i forbindelse med formuesbeskatning. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/23a80822-fd47-4a9f-b265-29b98971892a'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Formuestype"
+          }
+        }
+      },
+      "SamletFastEiendom" : {
+        "type" : "object",
+        "description" : "Fast eiendom som formuesobjekt som er satt sammen av flere matrikkelenheter som skal verdsettes som ett formuesobjekt",
+        "properties" : {
+          "hovedeiendom" : {
+            "description" : "Hovedeiendommen i en samlet relasjon mellom fast eiendom som formuesobjekt",
+            "$ref" : "#/components/schemas/Relasjonsidentifikator"
+          },
+          "tilleggseiendommer" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "Betegnelse Skatteetaten bruker på matrikkelenhet uten egen formuesverdi, men formuesfastsettes sammen med en eller flere andre matrikkelenheter.",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Relasjonsidentifikator"
+              } ],
+              "xml" : {
+                "name" : "relasjonsidentifikator"
+              }
+            }
+          }
+        }
+      },
+      "SplittetFastEiendom" : {
+        "type" : "object",
+        "description" : "Fast eiendom som deles opp i flere formuesobjekter for å ivareta forskjell i verdsetting, eller eierskap, og hvor det ikke er opprettet feste eller eiendommen er seksjonert i matrikkelen.",
+        "properties" : {
+          "splittetHovedeiendom" : {
+            "description" : "Fast eiendom som formuesobjekt som er blitt splittet",
+            "$ref" : "#/components/schemas/Relasjonsidentifikator"
+          },
+          "undereiendommer" : {
+            "type" : "array",
+            "xml" : {
+              "wrapped" : true
+            },
+            "description" : "Fast eiendom som formuesobjekt som er splittdeler av en splittet eiendom",
+            "items" : {
+              "allOf" : [ {
+                "$ref" : "#/components/schemas/Relasjonsidentifikator"
+              } ],
+              "xml" : {
+                "name" : "relasjonsidentifikator"
+              }
+            }
+          }
+        }
+      },
+      "FormuesobjektIdentifikator" : {
+        "type" : "object",
+        "description" : "Identifikator for formuesobjektet",
+        "properties" : {
+          "skatteetatensEiendomsidentifikator" : {
+            "description" : "Unik eiendomsidentifikator fastsatt av Skatteetaten for å identifisere hele eller en gitt del av fast eiendom (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/ce6d329d-98ef-11ea-8a84-005056828ed3'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/SkatteetatensEiendomsidentifikator"
+          },
+          "matrikkelUnikIdentifikator" : {
+            "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+            "$ref" : "#/components/schemas/MatrikkelUnikIdentifikator"
+          }
+        }
+      },
+      "Tekst" : {
+        "type" : "string",
+        "description" : "vilkårlig lang sekvens av tegn inkludert aksenter og spesielle tegn fra standardiserte tegnsett (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52af3-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "maxLength" : 4000
+      },
+      "UUID" : {
+        "type" : "string",
+        "format" : "uuid",
+        "description" : "universell unik identifikator - 128-bit tegnstreng til bruk for å identifisere noe unikt uavhengig av scope. Sannsynligheten for at samme UUID genereres to ganger uavhengig av hverandre er ikke lik 0, men er nære nok til å regnes som ubetydelig. Formatet er 32 hexadesimale tall (0-9 + a-f) separert med 4 bindestreker på formen 8-4-4-4-12 for totalt 36 tegn."
+      },
+      "Boolsk" : {
+        "type" : "boolean",
+        "description" : "angir verdien sann eller usann (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52aec-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)"
+      },
+      "Heltall" : {
+        "type" : "integer",
+        "description" : "hele tall, dvs. hele tall i mengden {..., -2, -1, 0, 1, 2, ...} (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52af0-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "format" : "int64"
+      },
+      "MatrikkelUnikIdentifikator" : {
+        "type" : "integer",
+        "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+        "format" : "int64"
+      },
+      "Matrikkelnummer" : {
+        "type" : "object",
+        "description" : "offisiell benevnelse for hver enkel matrikkelenhet (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e115-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "properties" : {
+          "kommunenummer" : {
+            "description" : "nummer for kommune (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e0f3-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Kommunenummer"
+          },
+          "gaardsnummer" : {
+            "description" : "nummer for gård (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e10f-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "bruksnummer" : {
+            "description" : "fortløpende nummerering innenfor gårdsnummeret (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e102-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "festenummer" : {
+            "description" : "tas i bruk når et bruksnummer skal deles opp i flere grunneiendommer (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e10a-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "seksjonsnummer" : {
+            "description" : "nummer på en seksjon (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e124-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          }
+        },
+        "required" : [ "kommunenummer", "gaardsnummer", "bruksnummer" ]
+      },
+      "BoenhetIBoligselskap" : {
+        "type" : "object",
+        "description" : "Boenhet som den skattepliktige eier og har bruksrett til i boligselskap (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/410ab745-9202-11e6-8b61-82ab1fa1f30b'>Begrepsreferanse</a>)",
+        "properties" : {
+          "boligselskap" : {
+            "description" : "Selskap med delt eller begrenset ansvar og med hovedformål å gi andelshaverne bolig eller fritidsbolig i hus eid av selskapet (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e17b-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Organisasjonsnummer"
+          },
+          "enhetsnummerForBoenhetIBoligselskap" : {
+            "description" : "Aksjeboenhetsnummer eller andelsnummer for en gitt boenhet i boligselskap (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097ca-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/EnhetsnummerForBoenhetIBoligselskap"
+          }
+        }
+      },
+      "Tinglysing" : {
+        "type" : "object",
+        "description" : "Offentlig registrering av en avtale mellom to parter om rettigheter og forpliktelser som angår fast eiendom (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/9c33fd5b-2964-11e6-b2bc-96405985e0fa'>Begrepsreferanse</a>)",
+        "properties" : {
+          "overdragelsesdato" : {
+            "description" : "Dato som tidfester når eiendomsrett, annen formuesrettighet og/eller forpliktelse går over til mottaker som følge av avtale eller annen rettshandel som berører to eller flere parter (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/f0649746-497b-11e9-9936-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Dato"
+          },
+          "tinglysningsdato" : {
+            "description" : "Dato som angir når dokument som spesifiserer rettigheter og/eller forpliktelser for en eller flere fysiske personer eller organisasjoner er registrert i Grunnboken, Løsøreregisteret eller tilsvarende myndighetsgodkjent offentlig register (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/f064974a-497b-11e9-9936-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Dato"
+          },
+          "omsetningstype" : {
+            "description" : "Skattemessig klassifisering av måte fast eiendom kan skifte eier på (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097cd-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Omsetningstype"
+          }
+        }
+      },
+      "Andel" : {
+        "type" : "object",
+        "description" : "del av noe, part. Eksempel: Hun eier en andel på en femtedel. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/24771890-b7e8-11e7-aa27-0050568351d2'>Begrepsreferanse</a>)",
+        "properties" : {
+          "teller" : {
+            "description" : "(<a href='https://data.skatteetaten.no/web/datakatalog/begrep/35727a40-b7e8-11e7-aa27-0050568351d2'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "nevner" : {
+            "description" : "(<a href='https://data.skatteetaten.no/web/datakatalog/begrep/4bc5cf40-b7e8-11e7-aa27-0050568351d2'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          }
+        },
+        "required" : [ "teller", "nevner" ]
+      },
+      "Eiernivaa" : {
+        "type" : "string",
+        "description" : "Uttømmende kodeliste  som beskriver hvilken grad av råderett en gitt rettighetshaver i utgangspunktet har over en bestemt andel av fast eiendom (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/46f4d712-4c6c-11e8-bb3e-005056821322'>Begrepsreferanse</a>)",
+        "enum" : [ "eiendomsrett", "feste", "framfeste1", "framfeste2", "framfeste3" ]
+      },
+      "Personidentifikator" : {
+        "type" : "object",
+        "description" : "Identifikator for å identifisere en fysisk person eller juridisk person (oganisasjon eller ligndende)",
+        "properties" : {
+          "organisasjonsnummer" : {
+            "description" : "Organisasjonsnummer brukes for å identifisere juridiske personer (enheter) i Norge, og tildeles ved registrering i Enhetsregisteret. Organisasjonsnummeret består av ni siffer og starter på tallet 8 eller 9. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e1a8-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Organisasjonsnummer"
+          },
+          "foedselsnummer" : {
+            "description" : "ellevesifret identifikasjonsnummer (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/5138da11-be20-11e6-8004-005056825ca0'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Foedselsnummer"
+          },
+          "dNummer" : {
+            "description" : "Identifikasjonsnummer som tildeles personer med midlertidig tilknytning til Norge, det vil si som ikke er bosatt i Norge (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/c2621880-e6fa-11e6-9f1a-0050568351d2'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Dnummer"
+          },
+          "loepenummer" : {
+            "description" : "Løpenummer Skatteetaten mottar fra grunnbok. Løpenummer fra grunnboka får Skatteetaten i de tilfellene Kartverket ikke hadde noen annen måte å identifisere eiere på. Dette er gamle omsetninger. I dag må kjøper ha fnr. dnr eller org.nr for å kjøpe eiendom i Norge. Skatteetaten oppretter ikke egne løpenummer på eiere i Skatteetatens eiendomsregister.",
+            "$ref" : "#/components/schemas/Tekst"
+          },
+          "ukjentRettighetshaver" : {
+            "description" : "Flagg (sann/usann) som ved sann indikerer at det er registrert en instans av en eier, men det finnes ikke en identifikator på eieren i dataene",
+            "$ref" : "#/components/schemas/Boolsk"
+          }
+        }
+      },
+      "Formuestype" : {
+        "type" : "string",
+        "description" : "Kodeliste over formuestyper som klassifiserer fast eiendom som formuesobjekt (<a href='https://data.skatteetaten.no/web/datakatalog/kodeliste/0f2f65cf-791d-4857-9012-1b7b3facc775'>Kodelistereferanse</a>)"
+      },
+      "Relasjonsidentifikator" : {
+        "type" : "object",
+        "description" : "Identifikator til fast eiendom som formuesobjekt denne eiendommen har en relasjon til (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/23a80822-fd47-4a9f-b265-29b98971892a'>Begrepsreferanse</a>)",
+        "properties" : {
+          "skatteetatensEiendomsidentifikator" : {
+            "description" : "Unik eiendomsidentifikator fastsatt av Skatteetaten for å identifisere hele eller en gitt del av fast eiendom som formuesobjekt (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/ce6d329d-98ef-11ea-8a84-005056828ed3'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/SkatteetatensEiendomsidentifikator"
+          },
+          "matrikkelUnikIdentifikator" : {
+            "description" : "Identifikator fra matrikkelen. Lokal matrikkelidentifkator (ikke UUID som realiserer lokal id)",
+            "$ref" : "#/components/schemas/MatrikkelUnikIdentifikator"
+          },
+          "formuestype" : {
+            "description" : "Klassifisering for hvordan en fast eiendom skal behandles i forbindelse med formuesbeskatning.",
+            "$ref" : "#/components/schemas/Formuestype"
+          }
+        }
+      },
+      "SkatteetatensEiendomsidentifikator" : {
+        "type" : "integer",
+        "description" : "Unik eiendomsidentifikator fastsatt av Skatteetaten for å identifisere hele eller en gitt del av fast eiendom som formuesobjekt (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/ce6d329d-98ef-11ea-8a84-005056828ed3'>Begrepsreferanse</a>)",
+        "format" : "int64"
+      },
+      "Kommunenummer" : {
+        "type" : "string",
+        "description" : "nummer for kommune (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e0f3-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "minLength" : 4,
+        "pattern" : "([0-9]){4}",
+        "maxLength" : 4
+      },
+      "Organisasjonsnummer" : {
+        "type" : "string",
+        "description" : "9 sifret nummer gitt de som er registrert i Enhetsregisteret. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e1a8-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "minLength" : 9,
+        "pattern" : "[0-9]+",
+        "maxLength" : 9
+      },
+      "EnhetsnummerForBoenhetIBoligselskap" : {
+        "type" : "object",
+        "description" : "aksjeboenhetsnummer eller andelsnummer for en gitt boenhet i boligselskap (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097ca-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)",
+        "properties" : {
+          "aksjeboenhetsnummer" : {
+            "description" : "Nummer som identifiserer en boenhet i et boligaksjeselskap og representerer bruksretten som aksjen gir (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e175-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          },
+          "andelsnummer" : {
+            "description" : "Nummer som identifiserer en boenhet i et borettslag (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b2e178-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+            "$ref" : "#/components/schemas/Heltall"
+          }
+        }
+      },
+      "Dato" : {
+        "type" : "string",
+        "description" : "gir verdier for år, måned og dag. Kodes som en tekststreng etter datoformatering spesifisert i  ISO 8601 (ISO 8601:2004 Data elements and interchange formats -- Information interchange -- Representation of dates and times). Eksempel : 1998-12-21 eller 19981221. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/20b52aed-9fe1-11e5-a9f8-e4115b280940'>Begrepsreferanse</a>)",
+        "format" : "date"
+      },
+      "Omsetningstype" : {
+        "type" : "string",
+        "description" : "Skattemessig klassifisering av måte fast eiendom kan skifte eier på (<a href='https://data.skatteetaten.no/web/datakatalog/kodeliste/4216691c-a011-485c-860b-208b97d961b2'>Kodelistereferanse</a>) (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/108097cd-25fc-11e9-85c0-005056821322'>Begrepsreferanse</a>)"
+      },
+      "Foedselsnummer" : {
+        "type" : "string",
+        "description" : "ellevesifret identifikasjonsnummer for personer bosatt i Norge, der de seks første sifrene angir fødselsdato og de fem siste personnummer. (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/5138da10-be20-11e6-8004-005056825ca0'>Begrepsreferanse</a>)",
+        "minLength" : 11,
+        "pattern" : "[0-9]+",
+        "maxLength" : 11
+      },
+      "Dnummer" : {
+        "type" : "string",
+        "description" : "'dummy nummer' som tildels av folkeregisteret for ikke norske personer (<a href='https://data.skatteetaten.no/web/datakatalog/begrep/c2621880-e6fa-11e6-9f1a-0050568351d2'>Begrepsreferanse</a>)",
+        "minLength" : 11,
+        "pattern" : "[0-9]+",
+        "maxLength" : 11
+      }
+    }
+  },
+  "paths" : {
+    "/{rettighetspakke}/{hendelseidentifikator}" : {
+      "get" : {
+        "summary" : "Hent formuesobjekt fast eiendom for en hendelseidentifikator",
+        "description" : "Hent formuesobjekt fast eiendom for en hendelseidentifikator.",
+        "operationId" : "hentFormuesobjektFastEiendom",
+        "tags" : [ "Formuesobjekt fast eiendom" ],
+        "parameters" : [ {
+          "name" : "rettighetspakke",
+          "in" : "path",
+          "description" : "Datakonsumenter plasseres i en rettighetspakke (per datasett) basert på en juridisk vurdering. Rettighetspakken styrer skjermingsregler, filtrering og detaljering som benyttes når det gis innsyn i data i datasett.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "hendelseidentifikator",
+          "in" : "path",
+          "description" : "Angir hvilken hendelse man ønsker å hente formuesobjektet for.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "984b6113-e5ee-4884-a456-073cb80633b3"
+        }, {
+          "name" : "Korrelasjonsid",
+          "in" : "header",
+          "description" : "Korrelasjonsid, unik identifikator for den tekniske forespørselen. Må være på UUID-format",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "example" : "123e4567-e89b-12d3-a456-426655440000"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Gyldig respons",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FastEiendomSomFormuesobjekt"
+                }
+              }
+            }
+          },
+          "default" : {
+            "description" : "Alle feil fra applikasjonen kommer på følgende format",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Feil"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

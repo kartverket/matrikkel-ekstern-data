@@ -1,7 +1,7 @@
-name: Build and deploy
+name: [serg-sync] Build and deploy
 
 on:
-  push:
+  push: # TODO add paths we care about
   workflow_dispatch:
 
 env:
@@ -36,7 +36,7 @@ jobs:
         run: |
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data:${version}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/serg-sync:${version}" >> "$GITHUB_OUTPUT"
 
   package-image:
     name: Build and (conditionally) Push Docker Image
@@ -63,6 +63,7 @@ jobs:
           image: ${{ needs.version.outputs.image }}
         with:
           context: .
+          file: apps/serg-sync/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ env.image }}
       - name: Tag commit med artifaktversjon
@@ -110,9 +111,10 @@ jobs:
         id: slack_notify
         uses: kartverket/matrikkel-actions/slack-approval-notifier/setup-octo@main
         with:
+          identity: 'matrikkel-ekstern-data'
           channel: ${{ env.SLACK_CHANNEL }}
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -134,9 +136,10 @@ jobs:
       - name: Notify slack (Update)
         uses: kartverket/matrikkel-actions/slack-approval-notifier/update-octo@main
         with:
+          identity: 'matrikkel-ekstern-data'
           channel: ${{ env.SLACK_CHANNEL }}
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
           messageId: ${{ needs.deploy-prod-notifier.outputs.messageId }}
           status: ${{ job.status }}
         env:
@@ -146,15 +149,16 @@ jobs:
       - name: Deploy matrikkel-proxy to production
         uses: kartverket/matrikkel-actions/apps-repo-deploy@main
         with:
+          identity: 'matrikkel-ekstern-data'
           apps: |
-            atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+            atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
       - name: Verify deployment to production
         if: false # Disabler sjekken her mens vi venter på at vi kan skru på auto-sync i argo
         uses: kartverket/matrikkel-actions/k8s-deployment-feedback@main
         with:
           cluster: ${{ env.PROD_CLUSTER_NAME }}
           apps: |
-            matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+            matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
           kubernetes_project_id: ${{ env.PROD_KUBERNETES_PROJECT_ID }}
           service_account: ${{ env.PROD_SERVICE_ACCOUNT }}
           workload_identity_provider: ${{ env.PROD_WORKLOAD_IDENTITY_PROVIDER }}

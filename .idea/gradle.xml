@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/buildSrc" name="buildSrc">
+                <projects>
+                  <project path="$PROJECT_DIR$/buildSrc" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleHome" value="" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/apps" />
+            <option value="$PROJECT_DIR$/apps/serg-mock" />
+            <option value="$PROJECT_DIR$/apps/serg-sync" />
+            <option value="$PROJECT_DIR$/buildSrc" />
+            <option value="$PROJECT_DIR$/libs" />
+            <option value="$PROJECT_DIR$/libs/kotlin-utils" />
+            <option value="$PROJECT_DIR$/libs/ktor-utils" />
+            <option value="$PROJECT_DIR$/libs/logging" />
+            <option value="$PROJECT_DIR$/libs/oidc-token-client" />
+            <option value="$PROJECT_DIR$/tjenestespesifikasjoner" />
+            <option value="$PROJECT_DIR$/tjenestespesifikasjoner/openapi-infrastructure" />
+            <option value="$PROJECT_DIR$/tjenestespesifikasjoner/serg" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
