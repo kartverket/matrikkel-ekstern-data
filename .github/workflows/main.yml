@@ -113,7 +113,7 @@ jobs:
         with:
           channel: ${{ env.SLACK_CHANNEL }}
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -137,7 +137,7 @@ jobs:
         with:
           channel: ${{ env.SLACK_CHANNEL }}
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
           messageId: ${{ needs.deploy-prod-notifier.outputs.messageId }}
           status: ${{ job.status }}
         env:
@@ -148,14 +148,14 @@ jobs:
         uses: kartverket/matrikkel-actions/apps-repo-deploy@main
         with:
           apps: |
-            atkv3-prod:matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+            atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
       - name: Verify deployment to production
         if: false # Disabler sjekken her mens vi venter på at vi kan skru på auto-sync i argo
         uses: kartverket/matrikkel-actions/k8s-deployment-feedback@main
         with:
           cluster: ${{ env.PROD_CLUSTER_NAME }}
           apps: |
-            matrikkel-main:matrikkel-ekstern-data:${{ needs.version.outputs.version }}
+            matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
           kubernetes_project_id: ${{ env.PROD_KUBERNETES_PROJECT_ID }}
           service_account: ${{ env.PROD_SERVICE_ACCOUNT }}
           workload_identity_provider: ${{ env.PROD_WORKLOAD_IDENTITY_PROVIDER }}
