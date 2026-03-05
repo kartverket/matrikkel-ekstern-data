@@ -17,6 +17,7 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -33,7 +34,7 @@ internal class FakeDataGenerator {
         val matrikkelUnikIdentifikator = 900_000_000_000L + sequence
         val kommunenummer = "%04d".format(3001 + (sequence % 350).toInt())
         val registreringstidspunkt =
-            OffsetDateTime.of(
+            LocalDateTime.of(
                 eventDate.year,
                 eventDate.monthValue,
                 eventDate.dayOfMonth,
@@ -41,7 +42,6 @@ internal class FakeDataGenerator {
                 ((sequence * 13) % 60).toInt(),
                 ((sequence * 17) % 60).toInt(),
                 0,
-                ZoneOffset.UTC,
             )
 
         val hendelse =
