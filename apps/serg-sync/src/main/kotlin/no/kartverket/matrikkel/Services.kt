@@ -3,6 +3,7 @@ package no.kartverket.matrikkel
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
+import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
@@ -55,5 +56,12 @@ class Services(val config: Configuration) {
     val formueobjektSyncService = FormuesobjektSyncService(
         dataSource = dataSource,
         formueobjektApi = formueobjektApi,
+    )
+    val formueobjektSyncJob = FormueobjektSyncJob(
+        syncService = formueobjektSyncService,
+        config = FormueobjektSyncJob.Config(
+            antall = 10,
+            interval = 60.seconds
+        )
     )
 }

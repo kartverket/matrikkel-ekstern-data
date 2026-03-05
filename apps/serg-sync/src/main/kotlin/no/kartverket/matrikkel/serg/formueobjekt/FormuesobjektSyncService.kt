@@ -17,8 +17,7 @@ class FormuesobjektSyncService(
     suspend fun sync(antall: Int = 10): Result<Int> {
         return runCatching {
             transactional(dataSource) { tx ->
-                val dokumenter =
-                    dokumentRepository.listEtterStatus(tx, SergDokumentStatus.KREVER_SYNKRONISERING, limit = antall)
+                val dokumenter = dokumentRepository.listEtterStatus(tx, SergDokumentStatus.KREVER_SYNKRONISERING, limit = antall)
 
                 for (dokument in dokumenter) {
                     val hendelseId = dokument.hendelse.hendelseidentifikator

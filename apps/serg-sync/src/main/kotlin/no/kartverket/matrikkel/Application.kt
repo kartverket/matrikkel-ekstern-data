@@ -31,9 +31,15 @@ fun runApplication() {
                 services.hendelserSyncJob.start()
             }
 
+            /*
+            val formueobjektSync = launch(Dispatchers.IO) {
+                services.formueobjektSyncJob.start()
+            }
+             */
 
             monitor.subscribe(ApplicationStopping) {
                 hendelserSync.cancel()
+                // formueobjektSync.cancel()
             }
         }.start(wait = true)
 }
