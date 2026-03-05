@@ -1,7 +1,7 @@
-name: Build and deploy
+name: [serg-sync] Build and deploy
 
 on:
-  push:
+  push: # TODO add paths we care about
   workflow_dispatch:
 
 env:
@@ -36,7 +36,7 @@ jobs:
         run: |
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data:${version}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/serg-sync:${version}" >> "$GITHUB_OUTPUT"
 
   package-image:
     name: Build and (conditionally) Push Docker Image
