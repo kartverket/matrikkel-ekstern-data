@@ -1,5 +1,7 @@
-package no.kartverket.matrikkel.serg
+package no.kartverket.matrikkel.serg.hendelser
 
+import kotlinx.coroutines.runBlocking
+import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
@@ -10,13 +12,20 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import java.util.*
 import javax.sql.DataSource
 
-class SyncHendelser(
+class HendelserSyncService(
     private val dataSource: DataSource,
     private val hendelserApi: HendelserApi,
 ) {
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
     private val dokumentRepository = SergDokumentRepository(dataSource)
+    init {
+        SelftestGenerator.Metadata(sekvensnummerKey) {
+            runBlocking {
+                keyValueRepository.getValue(sekvensnummerKey)
+            }
+        }
+    }
 
     suspend fun sync(antall: Int = 1000): Result<List<Hendelse>> {
         return runCatching {

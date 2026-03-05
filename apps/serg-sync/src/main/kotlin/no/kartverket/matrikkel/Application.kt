@@ -1,21 +1,15 @@
 package no.kartverket.matrikkel
 
 import io.ktor.server.application.*
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.netty.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import no.kartverket.ktor.KtorServer
 import no.kartverket.ktor.Selftest
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
-import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
-import no.kartverket.matrikkel.serg.SyncHendelser
-import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
-import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
-import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
-import kotlin.time.Duration.Companion.seconds
 
 val logger = LoggerFactory.getLogger("main")
 
@@ -25,55 +19,21 @@ fun runApplication() {
 
     dataSourceConfiguration.runFlyway()
 
+    val services = Services(config)
+
     KtorServer
         .create(Netty, port = 8090) {
-            install(Selftest.Plugin)
+            install(Selftest.Plugin) {
+                appname = "matrikkel-serg-sync"
+            }
 
-            val tokenClient = MaskinportenMachineToMachineTokenClient(
-                clientId = config.sergClientId,
-                privateJwk = config.sergPrivateJWK,
-                tokenEndpoint = config.sergTokenEndpoint,
-            ).bindTo("skatteetaten:formuesobjektfasteiendom")
-            val httpClient = OkHttpClient.Builder()
-                .addInterceptor(
-                    AuthorizationInterceptor {
-                        tokenClient.createToken().serialize()
-                    }
-                )
-                .build()
-            val hendelserSync =
-                launch(Dispatchers.IO) {
-                    val hendelserSync =
-                        SyncHendelser(
-                            dataSource = dataSourceConfiguration.createDatasource(),
-                            hendelserApi =
-                                HendelserApi(
-                                    basePath = config.sergHendelserUrl,
-                                    client = httpClient
-                                ),
-                        )
+            val hendelserSync = launch(Dispatchers.IO) {
+                services.hendelserSyncJob.start()
+            }
 
-                    do {
-                        logger.info("Henter ut hendelser")
-                        val hendelser = hendelserSync.sync(1000)
-                        val antallHentet =
-                            hendelser
-                                .map { it.size }
-                                .fold(
-                                    onFailure = {
-                                        logger.error("Feilet med henting av hendelser", it)
-                                        0
-                                    },
-                                    onSuccess = {
-                                        logger.info("Hentet $it hendelser fra SERG")
-                                        it
-                                    },
-                                )
 
-                        if (antallHentet != 1000) {
-                            delay(5.seconds)
-                        }
-                    } while (true)
-                }
+            monitor.subscribe(ApplicationStopping) {
+                hendelserSync.cancel()
+            }
         }.start(wait = true)
 }

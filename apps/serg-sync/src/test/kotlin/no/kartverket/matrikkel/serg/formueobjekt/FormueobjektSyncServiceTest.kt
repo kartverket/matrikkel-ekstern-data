@@ -1,4 +1,4 @@
-package no.kartverket.matrikkel.serg
+package no.kartverket.matrikkel.serg.formueobjekt
 
 import assertk.assertThat
 import assertk.assertions.hasMessage
@@ -24,12 +24,12 @@ import java.sql.SQLException
 import java.util.UUID
 import javax.sql.DataSource
 
-class SyncFormueobjektTest : WithDatabase {
+class FormueobjektSyncServiceTest : WithDatabase {
     @Test
     fun `ingen dokumenter å synkronisere`() = runBlocking {
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 0) {
@@ -62,7 +62,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", requireHendelseId.toString(), any())
         } returns formueobjekt(requireId, requireHendelseId)
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -86,7 +86,7 @@ class SyncFormueobjektTest : WithDatabase {
         upsertHendelse(repository, id, hendelseId = null)
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.FEIL)
@@ -107,7 +107,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } returns response
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -129,7 +129,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } throws RuntimeException("SERG formueobjekt utilgjengelig")
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -152,7 +152,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
         } returns formueobjekt(okId, okHendelseId)
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         assertThat(repository.hentData(failId)?.status).isEqualTo(SergDokumentStatus.FEIL)
@@ -176,7 +176,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         } returns formueobjekt(id, hendelseId)
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -200,7 +200,7 @@ class SyncFormueobjektTest : WithDatabase {
             formueobjekt(id, UUID.fromString(hid))
         }
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 10) {
@@ -228,7 +228,7 @@ class SyncFormueobjektTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", nyHendelseId.toString(), any())
         } returns formueobjekt(id, nyHendelseId)
 
-        val result = SyncFormuesobjekt(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -242,7 +242,7 @@ class SyncFormueobjektTest : WithDatabase {
         every { failingDataSource.connection } throws SQLException("db down")
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = SyncFormuesobjekt(failingDataSource, api).sync()
+        val result = FormuesobjektSyncService(failingDataSource, api).sync()
 
         assertThat(result).isFailure().isInstanceOf(SQLException::class).hasMessage("db down")
     }

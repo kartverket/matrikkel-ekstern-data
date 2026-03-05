@@ -1,4 +1,4 @@
-package no.kartverket.matrikkel.serg.repository
+package no.kartverket.matrikkel.serg
 
 import assertk.all
 import assertk.assertThat
@@ -10,8 +10,13 @@ import assertk.assertions.prop
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import no.kartverket.matrikkel.serg.SyncFormuesobjekt
-import no.kartverket.matrikkel.serg.SyncHendelser
+import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
+import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
+import no.kartverket.matrikkel.serg.repository.KeyValueRepository
+import no.kartverket.matrikkel.serg.repository.SergDokument
+import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
+import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
+import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
@@ -40,8 +45,8 @@ class SyncFullTest : WithDatabase {
 
         val kvRepo = KeyValueRepository(dataSource())
         val sergDokumentRepo = SergDokumentRepository(dataSource())
-        val hendelserSync = SyncHendelser(dataSource(), hendelseApi)
-        val formueobjektSync = SyncFormuesobjekt(dataSource(), formueobjektApi)
+        val hendelserSync = HendelserSyncService(dataSource(), hendelseApi)
+        val formueobjektSync = FormuesobjektSyncService(dataSource(), formueobjektApi)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1")
 
@@ -81,7 +86,7 @@ class SyncFullTest : WithDatabase {
     }
 }
 
-private suspend fun synchronizeFormueobjekt(formueobjektSync: SyncFormuesobjekt) {
+private suspend fun synchronizeFormueobjekt(formueobjektSync: FormuesobjektSyncService) {
     do {
         val result = formueobjektSync.sync()
         val antall = result.fold(
@@ -91,7 +96,7 @@ private suspend fun synchronizeFormueobjekt(formueobjektSync: SyncFormuesobjekt)
     } while (antall > 0)
 }
 
-private suspend fun synchronizeHendelser(hendelserSync: SyncHendelser) {
+private suspend fun synchronizeHendelser(hendelserSync: HendelserSyncService) {
     do {
         val result = hendelserSync.sync(500)
         val antall = result.fold(

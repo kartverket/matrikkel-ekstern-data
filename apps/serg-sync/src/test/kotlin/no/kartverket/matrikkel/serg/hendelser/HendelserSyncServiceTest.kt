@@ -1,4 +1,4 @@
-package no.kartverket.matrikkel.serg
+package no.kartverket.matrikkel.serg.hendelser
 
 import assertk.assertThat
 import assertk.assertions.hasMessage
@@ -22,14 +22,14 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-class SyncHendelserTest : WithDatabase {
+class HendelserSyncServiceTest : WithDatabase {
     @Test
     fun `start fra 1 om sekvensnumemr ikke er satt`() = runBlocking {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.delete("sekvensnummer")
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -43,7 +43,7 @@ class SyncHendelserTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -57,7 +57,7 @@ class SyncHendelserTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result)
             .isFailure()
@@ -79,7 +79,7 @@ class SyncHendelserTest : WithDatabase {
         )
         val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result)
             .isSuccess()
@@ -109,7 +109,7 @@ class SyncHendelserTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } throws RuntimeException("SERG unavailable")
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result)
             .isFailure()
@@ -135,7 +135,7 @@ class SyncHendelserTest : WithDatabase {
             )
         )
 
-        val result = SyncHendelser(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {

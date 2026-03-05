@@ -1,14 +1,14 @@
-package no.kartverket.matrikkel.serg
+package no.kartverket.matrikkel.serg.formueobjekt
 
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.transactional
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
-import java.util.*
+import java.util.UUID
 import javax.sql.DataSource
 
-class SyncFormuesobjekt(
+class FormuesobjektSyncService(
     private val dataSource: DataSource,
     private val formueobjektApi: FormuesobjektFastEiendomApi,
 ) {
