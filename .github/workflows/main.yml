@@ -48,7 +48,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - name: "Run Pharos"
-        uses: kartverket/pharos@v0.5.0
+        uses: kartverket/pharos@v0.6.2
         with:
           image_url: ${{ needs.version.outputs.image }}
           trivy: true
