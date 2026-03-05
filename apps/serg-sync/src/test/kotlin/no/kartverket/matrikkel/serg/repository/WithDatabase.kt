@@ -40,7 +40,7 @@ interface WithDatabase {
             connection.createStatement().use { stmt ->
                 stmt.execute(
                     """
-                    truncate table serg_dokument, keyvalue
+                    truncate table serg_dokument, keyvalue, hendelse
                     restart identity
                     ;
                     INSERT INTO keyvalue(key, value) VALUES ('sekvensnummer', '1')

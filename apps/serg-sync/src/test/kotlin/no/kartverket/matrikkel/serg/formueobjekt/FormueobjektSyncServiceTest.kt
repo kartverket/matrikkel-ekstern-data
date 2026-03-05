@@ -25,6 +25,8 @@ import java.util.UUID
 import javax.sql.DataSource
 
 class FormueobjektSyncServiceTest : WithDatabase {
+    private var nesteSekvensnummer = 0L
+
     @Test
     fun `ingen dokumenter å synkronisere`() = runBlocking {
         val api = mockk<FormuesobjektFastEiendomApi>()
@@ -214,12 +216,12 @@ class FormueobjektSyncServiceTest : WithDatabase {
     fun `tidligere kommentar nullstilles ved vellykket synk`() = runBlocking {
         val repository = SergDokumentRepository(dataSource())
         val id = 7001L
-        upsertHendelse(repository, id)
+        upsertHendelse(repository, id, sekvensnummer = 7001L)
         repository.settFormueobjektdata(
             id,
             Result.failure(RuntimeException("gammel feil"))
         )
-        val nyHendelseId = upsertHendelse(repository, id)
+        val nyHendelseId = upsertHendelse(repository, id, sekvensnummer = 7002L)
         assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
         assertThat(repository.hentData(id)?.kommentar).isEqualTo("gammel feil")
 
@@ -249,21 +251,24 @@ class FormueobjektSyncServiceTest : WithDatabase {
 
     private suspend fun upsertHendelse(
         repository: SergDokumentRepository,
-        id: Long,
+        matrikkelenhetId: Long,
         hendelseId: UUID? = UUID.randomUUID(),
         type: Hendelsestype = Hendelsestype.ny,
+        sekvensnummer: Long = nesteSekvensnummer(),
     ): UUID {
         repository.upsertFraHendelse(
             Hendelse(
-                sekvensnummer = id,
+                sekvensnummer = sekvensnummer,
                 hendelseidentifikator = hendelseId,
-                matrikkelUnikIdentifikator = id,
+                matrikkelUnikIdentifikator = matrikkelenhetId,
                 hendelsestype = type,
                 kommunenummer = "0301",
             )
         )
         return hendelseId ?: UUID.randomUUID()
     }
+
+    private fun nesteSekvensnummer(): Long = ++nesteSekvensnummer
 
     private fun formueobjekt(id: Long, hendelseId: UUID): FastEiendomSomFormuesobjekt {
         return FastEiendomSomFormuesobjekt(

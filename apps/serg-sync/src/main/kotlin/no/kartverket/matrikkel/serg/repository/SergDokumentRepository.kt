@@ -33,6 +33,7 @@ class SergDokumentRepository(
     private val dataSource: DataSource,
 ) {
     private val format = Serializer.jacksonObjectMapper
+    private val hendelseRepository = HendelseRepository(dataSource)
 
     @Language("TEXT")
     private val table: String = "serg_dokument"
@@ -61,15 +62,19 @@ class SergDokumentRepository(
         )
     }
 
-    suspend fun tellEtterStatus(status: SergDokumentStatus): Int = transactional(dataSource) { tx ->
-        tellEtterStatus(tx, status)
-    }
+    suspend fun tellEtterStatus(status: SergDokumentStatus): Int =
+        transactional(dataSource) { tx ->
+            tellEtterStatus(tx, status)
+        }
 
-    fun tellEtterStatus(tx: Session, status: SergDokumentStatus): Int {
+    fun tellEtterStatus(
+        tx: Session,
+        status: SergDokumentStatus,
+    ): Int {
         return tx.run(
             queryOf("SELECT COUNT(*) from $table WHERE status = :status", status.name)
                 .map { it.int(1) }
-                .asSingle
+                .asSingle,
         )
             ?: 0
     }
@@ -125,6 +130,8 @@ class SergDokumentRepository(
             Hendelsestype.slettet -> SergDokumentStatus.SLETTET
             null -> error("Cannot process Hendelse without a type")
         }
+
+        hendelseRepository.insert(tx, hendelse)
 
         @Language("SQL")
         val sql =
