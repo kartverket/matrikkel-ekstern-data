@@ -61,6 +61,19 @@ class SergDokumentRepository(
         )
     }
 
+    suspend fun tellEtterStatus(status: SergDokumentStatus): Int = transactional(dataSource) { tx ->
+        tellEtterStatus(tx, status)
+    }
+
+    fun tellEtterStatus(tx: Session, status: SergDokumentStatus): Int {
+        return tx.run(
+            queryOf("SELECT COUNT(*) from $table WHERE status = :status", status.name)
+                .map { it.int(1) }
+                .asSingle
+        )
+            ?: 0
+    }
+
     suspend fun listEtterStatus(
         status: SergDokumentStatus,
         limit: Int = 100,

@@ -7,6 +7,8 @@ import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
+import no.kartverket.matrikkel.serg.repository.KeyValueRepository
+import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
@@ -20,7 +22,10 @@ class Services(val config: Configuration) {
         tokenEndpoint = config.sergTokenEndpoint,
     )
 
-    private val dataSource = DataSourceConfiguration(config).createDatasource()
+    val dataSource = DataSourceConfiguration(config).createDatasource()
+    val keyValueRepository = KeyValueRepository(dataSource)
+    val sergDokumentRepository = SergDokumentRepository(dataSource)
+
     private val sergHttpClient = OkHttpClient.Builder()
         .addInterceptor(
             AuthorizationInterceptor {
