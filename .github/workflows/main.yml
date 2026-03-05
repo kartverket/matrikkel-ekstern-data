@@ -1,4 +1,4 @@
-name: [serg-sync] Build and deploy
+name: "[serg-sync] Build and deploy"
 
 on:
   push: # TODO add paths we care about
