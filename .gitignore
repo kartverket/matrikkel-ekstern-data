@@ -4,13 +4,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-*.iws
+# IntelliJ / Android Studio
+.idea/
 *.iml
+*.iws
 *.ipr
 out/
 !**/src/main/**/out/
