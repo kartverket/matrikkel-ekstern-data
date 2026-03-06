@@ -31,10 +31,14 @@ fun runApplication() {
                 appname = "matrikkel-serg-sync"
             }
 
-            val syncJobs = listOf<SyncJob>(
-                services.hendelserSyncJob::start,
-                // services.formueobjektSyncJob::start,
-            ).map { job ->
+            val syncJobs = buildList<SyncJob> {
+                if (config.runHendelseSync) {
+                    add(services.hendelserSyncJob::start)
+                }
+                if (config.runFormueobjektSync) {
+                    add(services.formueobjektSyncJob::start)
+                }
+            }.map { job ->
                 launch(Dispatchers.IO) {
                     job.invoke()
                 }

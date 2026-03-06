@@ -17,6 +17,8 @@ class Configuration(
         username = getRequiredConfig("POSTGRES_USER"),
         password = getRequiredConfig("POSTGRES_PASSWORD"),
     ),
+    val runHendelseSync: Boolean = getRequiredConfig("RUN_HENDELSE_SYNC").toBooleanStrictOrNull() ?: false,
+    val runFormueobjektSync: Boolean = getRequiredConfig("RUN_FORMUEOBJEKT_SYNC").toBooleanStrictOrNull() ?: false,
 )
 
 private fun getConfig(name: String): String? {
