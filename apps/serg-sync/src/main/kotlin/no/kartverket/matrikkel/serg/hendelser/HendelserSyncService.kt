@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.logger
+import no.kartverket.matrikkel.serg.repository.HendelseRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.transactional
@@ -19,6 +20,7 @@ class HendelserSyncService(
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
     private val dokumentRepository = SergDokumentRepository(dataSource)
+    private val hendelseRepository = HendelseRepository(dataSource)
 
     init {
         SelftestGenerator.Metadata(sekvensnummerKey) {
@@ -41,10 +43,23 @@ class HendelserSyncService(
             }
         }.mapCatching { result ->
             val hendelser = result.hendelser ?: emptyList()
+            // Lagrer hendelsene først for å sikre at disse er lagret før dokumentRepo
             transactional(dataSource) { tx ->
                 for (hendelse in hendelser) {
+                    hendelseRepository.insert(tx, hendelse)
+                }
+            }
+            transactional(dataSource) { tx ->
+                for (hendelse in hendelser) {
+                    val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
                     try {
-                        dokumentRepository.upsertFraHendelse(tx, hendelse)
+                        if (hendelse.matrikkelUnikIdentifikator == null) {
+                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")
+                        } else if (hendelse.hendelsestype == null) {
+                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
+                        } else {
+                            dokumentRepository.upsertFraHendelse(tx, hendelse)
+                        }
                     } catch (e: IllegalStateException) {
                         logger.error(
                             "Kunne ikke lagre hendelse: ${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}",

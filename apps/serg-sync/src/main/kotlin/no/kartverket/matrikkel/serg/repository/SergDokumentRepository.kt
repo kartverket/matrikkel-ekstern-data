@@ -33,7 +33,6 @@ class SergDokumentRepository(
     private val dataSource: DataSource,
 ) {
     private val format = Serializer.jacksonObjectMapper
-    private val hendelseRepository = HendelseRepository(dataSource)
 
     @Language("TEXT")
     private val table: String = "serg_dokument"
@@ -130,8 +129,6 @@ class SergDokumentRepository(
             Hendelsestype.slettet -> SergDokumentStatus.SLETTET
             null -> error("Cannot process Hendelse without a type")
         }
-
-        hendelseRepository.insert(tx, hendelse)
 
         @Language("SQL")
         val sql =
