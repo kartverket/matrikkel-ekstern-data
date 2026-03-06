@@ -38,11 +38,29 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/serg-sync:${version}" >> "$GITHUB_OUTPUT"
 
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '23'
+          cache: gradle
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+
   package-image:
     name: Build and (conditionally) Push Docker Image
     runs-on: ubuntu-latest
     needs:
       - version
+      - test
     permissions:
       contents: write
       packages: write
