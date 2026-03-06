@@ -22,6 +22,8 @@ class DataSourceConfiguration(
             Flyway
                 .configure()
                 .dataSource(it)
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
                 .load()
                 .migrate()
         }
