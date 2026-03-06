@@ -28,6 +28,7 @@ class HendelseRepository(
             """
             INSERT INTO hendelse (sekvensnummer, hendelse)
             VALUES (:sekvensnummer, :hendelse::jsonb)
+            ON CONFLICT (sekvensnummer) DO NOTHING;
             """.trimIndent()
 
         tx.run(
