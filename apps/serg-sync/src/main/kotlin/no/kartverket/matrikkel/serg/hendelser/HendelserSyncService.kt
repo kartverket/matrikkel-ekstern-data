@@ -32,26 +32,19 @@ class HendelserSyncService(
 
     suspend fun sync(antall: Int = 1000): Result<List<Hendelse>> {
         return runCatching {
-            keyValueRepository.getValueOrNull(sekvensnummerKey)?.toLong() ?: 1
-        }.mapCatching { sekvensnummer ->
-            retry(3) {
-                hendelserApi.hentHendelserFormuesobjektFastEiendom(
-                    fraSekvensnummer = sekvensnummer,
-                    antall = antall,
-                    korrelasjonsid = UUID.randomUUID(),
-                )
-            }
-        }.mapCatching { result ->
-            val hendelser = result.hendelser ?: emptyList()
-            // Lagrer hendelsene først for å sikre at disse er lagret før dokumentRepo
             transactional(dataSource) { tx ->
-                for (hendelse in hendelser) {
-                    hendelseRepository.insert(tx, hendelse)
-                }
-            }
-            transactional(dataSource) { tx ->
+                val sekvensnummer = keyValueRepository.getValueOrNull(tx, sekvensnummerKey)?.toLong() ?: 1
+                val hendelser = retry(3) {
+                    hendelserApi.hentHendelserFormuesobjektFastEiendom(
+                        fraSekvensnummer = sekvensnummer,
+                        antall = antall,
+                        korrelasjonsid = UUID.randomUUID(),
+                    )
+                }.hendelser ?: emptyList()
+
                 for (hendelse in hendelser) {
                     val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
+                    hendelseRepository.insert(tx, hendelse)
                     try {
                         if (hendelse.matrikkelUnikIdentifikator == null) {
                             logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")
@@ -67,14 +60,14 @@ class HendelserSyncService(
                         )
                     }
                 }
+
+                val maxSekvensnummer = hendelser.maxOfOrNull { it.sekvensnummer ?: -1 } ?: -1
+                if (maxSekvensnummer > -1) {
+                    keyValueRepository.setValue(tx, sekvensnummerKey, maxSekvensnummer.toString())
+                }
+
+                hendelser
             }
-            hendelser
-        }.map { hendelser ->
-            val maxSekvensnummer = hendelser.maxOfOrNull { it.sekvensnummer ?: -1 } ?: -1
-            if (maxSekvensnummer > -1) {
-                keyValueRepository.setValue(sekvensnummerKey, maxSekvensnummer.toString())
-            }
-            hendelser
         }
     }
 }
