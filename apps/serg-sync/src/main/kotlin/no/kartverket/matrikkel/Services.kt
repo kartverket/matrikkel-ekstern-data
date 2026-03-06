@@ -7,6 +7,7 @@ import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
 import kotliquery.sessionOf
+import kotliquery.using
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
@@ -97,8 +98,9 @@ class Services(
             period = 60.seconds.inWholeMilliseconds
         ) {
             dbReporter.ping {
-                sessionOf(dataSource)
-                    .run(queryOf("SELECT 1").asExecute)
+                using(sessionOf(dataSource)) { session ->
+                    session.run(queryOf("SELECT 1").asExecute)
+                }
             }
             sergReporter.ping {
                 hendelserApi.hentStart(
