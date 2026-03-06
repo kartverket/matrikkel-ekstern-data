@@ -20,9 +20,9 @@ class HendelserSyncJob(
         val interval: Duration = 60.seconds,
     )
 
-    private val probe = SelftestGenerator.Reporter("HendelserSyncJob", critical = false)
 
     suspend fun start() {
+        val probe = SelftestGenerator.Reporter("HendelserSyncJob", critical = false)
         val ctx = currentCoroutineContext()
         while (ctx.isActive) {
             val hendelser: Result<List<Hendelse>> = syncService.sync(config.antall)

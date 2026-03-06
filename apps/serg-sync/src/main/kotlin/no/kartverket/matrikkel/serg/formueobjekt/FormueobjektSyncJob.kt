@@ -21,9 +21,9 @@ class FormueobjektSyncJob(
         val interval: Duration = 60.seconds,
     )
 
-    private val probe = SelftestGenerator.Reporter("FormueobjektSyncJob", critical = false)
 
     suspend fun start() {
+        val probe = SelftestGenerator.Reporter("FormueobjektSyncJob", critical = false)
         val ctx = currentCoroutineContext()
         while (ctx.isActive) {
             val hendelser: Result<Int> = syncService.sync(config.antall)
@@ -45,7 +45,7 @@ class FormueobjektSyncJob(
             if (antallHentet != config.antall) {
                 delay(config.interval)
             } else {
-                yield() //
+                yield()
             }
         }
     }
