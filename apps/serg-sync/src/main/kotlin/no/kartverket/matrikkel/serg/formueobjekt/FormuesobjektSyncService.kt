@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
+import no.kartverket.kotlin.mapInParallell
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
@@ -19,23 +20,33 @@ class FormuesobjektSyncService(
             transactional(dataSource) { tx ->
                 val dokumenter = dokumentRepository.listEtterStatus(tx, SergDokumentStatus.KREVER_SYNKRONISERING, limit = antall)
 
-                for (dokument in dokumenter) {
+                val formueobjekter = dokumenter.mapInParallell(parallellism = 10) { dokument, index ->
                     val hendelseId = dokument.hendelse.hendelseidentifikator
                     val matrikkelenhetId = dokument.matrikkelenhetId
+
                     if (hendelseId == null) {
-                        dokumentRepository.settSomFeil(tx, matrikkelenhetId, "Mangler hendelseId")
+                        Pair(
+                            matrikkelenhetId,
+                            Result.failure(Exception("Mangler hendelseId"))
+                        )
                     } else {
-                        val result = runCatching {
-                            retry(3) {
-                                formueobjektApi.hentFormuesobjektFastEiendom(
-                                    rettighetspakke = "kartverketMatrikkel",
-                                    hendelseidentifikator = hendelseId.toString(),
-                                    korrelasjonsid = UUID.randomUUID(),
-                                )
+                        Pair(
+                            matrikkelenhetId,
+                            runCatching {
+                                retry(3) {
+                                    formueobjektApi.hentFormuesobjektFastEiendom(
+                                        rettighetspakke = "kartverketMatrikkel",
+                                        hendelseidentifikator = hendelseId.toString(),
+                                        korrelasjonsid = UUID.randomUUID(),
+                                    )
+                                }
                             }
-                        }
-                        dokumentRepository.settFormueobjektdata(tx, matrikkelenhetId, result)
+                        )
                     }
+                }
+
+                for ((matrikkelenhetId, formueobjekt) in formueobjekter) {
+                    dokumentRepository.settFormueobjektdata(tx, matrikkelenhetId, formueobjekt)
                 }
 
                 dokumenter.size // Return candidates processed
