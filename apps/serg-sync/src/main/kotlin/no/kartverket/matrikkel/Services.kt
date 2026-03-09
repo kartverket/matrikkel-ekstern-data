@@ -11,7 +11,9 @@ import kotliquery.using
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.okhttp.OkHttpUtils
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
+import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
@@ -43,6 +45,7 @@ class Services(
     val sergDokumentRepository = SergDokumentRepository(dataSource)
 
     private val sergHttpClient = OkHttpClient.Builder()
+        .addInterceptor(MetricsInterceptor(prometheusRegistry))
         .addInterceptor(
             AuthorizationInterceptor {
                 tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
