@@ -9,4 +9,5 @@ plugins {
 dependencies {
     implementation(libs.bundles.kotlinxEcosystem)
     testImplementation(libs.bundles.testEcosystem)
+    testRuntimeOnly(libs.junitPlatformLauncher)
 }
