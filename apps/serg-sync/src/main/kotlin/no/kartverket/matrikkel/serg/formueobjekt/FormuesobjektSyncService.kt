@@ -6,6 +6,8 @@ import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.transactional
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import org.openapitools.client.infrastructure.ClientError
+import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
 import javax.sql.DataSource
 
@@ -33,13 +35,33 @@ class FormuesobjektSyncService(
                         Pair(
                             matrikkelenhetId,
                             runCatching {
-                                retry(3) {
-                                    formueobjektApi.hentFormuesobjektFastEiendom(
-                                        rettighetspakke = "kartverketMatrikkel",
-                                        hendelseidentifikator = hendelseId.toString(),
-                                        korrelasjonsid = UUID.randomUUID(),
-                                    )
-                                }
+                                retry(
+                                    attempts = 3,
+                                    stopRetryIf = { exception ->
+                                        when (exception) {
+                                            is ClientException -> {
+                                                val statusCode = exception.statusCode
+                                                val body = when (val response = exception.response) {
+                                                    is ClientError<*> -> response.body.toString()
+                                                    else -> ""
+                                                }
+
+                                                val FFE005_generisk_feil = statusCode == 403 && body.contains("FFE-005")
+                                                val FFE007_mangler_data = statusCode == 404 && body.contains("FFE-007")
+
+                                                FFE005_generisk_feil || FFE007_mangler_data
+                                            }
+                                            else -> false
+                                        }
+                                    },
+                                    fn = {
+                                        formueobjektApi.hentFormuesobjektFastEiendom(
+                                            rettighetspakke = "kartverketMatrikkel",
+                                            hendelseidentifikator = hendelseId.toString(),
+                                            korrelasjonsid = UUID.randomUUID(),
+                                        )
+                                    }
+                                )
                             }
                         )
                     }
