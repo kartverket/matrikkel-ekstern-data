@@ -71,7 +71,7 @@ class SergDokumentRepository(
         status: SergDokumentStatus,
     ): Int {
         return tx.run(
-            queryOf("SELECT COUNT(*) from $table WHERE status = :status", status.name)
+            queryOf("SELECT COUNT(*) from $table WHERE status = ?", status.name)
                 .map { it.int(1) }
                 .asSingle,
         )
