@@ -6,6 +6,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.matrikkel.logger
+import no.kartverket.matrikkel.timed
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
@@ -25,7 +26,9 @@ class HendelserSyncJob(
         val probe = SelftestGenerator.Reporter("HendelserSyncJob", critical = false)
         val ctx = currentCoroutineContext()
         while (ctx.isActive) {
-            val hendelser: Result<List<Hendelse>> = syncService.sync(config.antall)
+            val hendelser: Result<List<Hendelse>> = timed("hendelser_sync_job_sync") {
+                syncService.sync(config.antall)
+            }
             val antallHentet = hendelser
                 .map { it.size }
                 .fold(
