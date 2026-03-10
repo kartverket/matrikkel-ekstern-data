@@ -45,7 +45,7 @@ fun runApplication() {
             }
 
             monitor.subscribe(ApplicationStopping) {
-                services.healthcheckTimer.cancel()
+                services.timers.forEach { it.cancel() }
                 syncJobs.forEach {
                     it.cancel(message = "Application is shutting down")
                 }

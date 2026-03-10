@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import io.micrometer.core.instrument.Gauge
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -9,9 +10,11 @@ import kotliquery.queryOf
 import kotliquery.sessionOf
 import kotliquery.using
 import no.kartverket.kotlin.SelftestGenerator
+import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
+import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
@@ -28,6 +31,7 @@ import java.util.UUID
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 class Services(
     val config: Configuration,
@@ -43,6 +47,7 @@ class Services(
     val sergDokumentRepository = SergDokumentRepository(dataSource)
 
     private val sergHttpClient = OkHttpClient.Builder()
+        .addInterceptor(MetricsInterceptor(prometheusRegistry))
         .addInterceptor(
             AuthorizationInterceptor {
                 tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
@@ -85,13 +90,74 @@ class Services(
         ),
     )
 
-    val healthcheckTimer: Timer
+    val timers = mutableListOf<Timer>()
+
+    fun <T : Number> refreshingGauge(
+        name: String,
+        initialValue: T,
+        fn: suspend () -> T
+    ): Timer {
+        var value: T = initialValue
+        Gauge.builder(name) { value }
+            .register(prometheusRegistry)
+
+        return fixedRateTimer(
+            name = "${name}_refresh",
+            daemon = true,
+            initialDelay = 0,
+            period = 60.seconds.inWholeMilliseconds
+        ) {
+            runBlocking {
+                value = fn()
+            }
+        }
+    }
+
+    private data class HendelserStatus(
+        val startIDag: Long,
+        val naverende: Long,
+    ) {
+        fun lag(): Long = startIDag - naverende
+    }
+
+    private suspend fun kalkulerHendelserStatus(): HendelserStatus {
+        val dagensDato = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.format(LocalDate.Formats.ISO)
+        val startIDag = hendelserApi.hentStart(
+            dato = dagensDato,
+            korrelasjonsid = UUID.randomUUID()
+        ).sekvensnummer ?: 0
+
+        val naverendeSekvensnummer = keyValueRepository.getValue("sekvensnummer").toLong()
+
+        return HendelserStatus(startIDag, naverendeSekvensnummer)
+    }
+
+    private suspend fun antallJobberMedStatus(status: SergDokumentStatus): Long {
+        return runCatching {
+            sergDokumentRepository.tellEtterStatus(status)
+        }.fold(
+            onSuccess = { it },
+            onFailure = { -99 },
+        )
+    }
 
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = true)
+        val hendelserStatus: HendelserStatus by cache(ttl = 10.seconds.toJavaDuration()) {
+            runBlocking {
+                kalkulerHendelserStatus()
+            }
+        }
 
-        healthcheckTimer = fixedRateTimer(
+        timers += refreshingGauge("sync_hendelser_lag", 0) {
+            hendelserStatus.lag()
+        }
+        timers += refreshingGauge("sync_hendeler_pending", 0) {
+            antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
+        }
+
+        timers += fixedRateTimer(
             name = "sjekk kritiske avhengigheter",
             daemon = true,
             initialDelay = 0,
@@ -102,6 +168,7 @@ class Services(
                     session.run(queryOf("SELECT 1").asExecute)
                 }
             }
+
             sergReporter.ping {
                 hendelserApi.hentStart(
                     dato = "2026-01-01",
@@ -110,28 +177,33 @@ class Services(
             }
         }
 
-        SelftestGenerator.Metadata("dagensSekvensnummer") {
-            val korrelasjonsId = UUID.randomUUID()
-            val dagensDato = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.format(LocalDate.Formats.ISO)
+        SelftestGenerator.Metadata("Nåværende sekvensnummer") {
             runBlocking {
-                runCatching {
-                    hendelserApi.hentStart(dato = dagensDato, korrelasjonsid = korrelasjonsId)
-                }.fold(
-                    onSuccess = { it.sekvensnummer ?: -1 },
-                    onFailure = { -99 },
-                ).toString()
+                hendelserStatus.naverende.toString()
+            }
+        }
+
+        SelftestGenerator.Metadata("Start sekvensnummer i dag") {
+            runBlocking {
+                hendelserStatus.startIDag.toString()
+            }
+        }
+
+        SelftestGenerator.Metadata("Sync hendeler lagg") {
+            runBlocking {
+                hendelserStatus.lag().toString()
             }
         }
 
         SelftestGenerator.Metadata("Antall som krever synkronisering") {
             runBlocking {
-                val antallSomKreverSunk = runCatching {
-                    sergDokumentRepository.tellEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
-                }.fold(
-                    onSuccess = { it },
-                    onFailure = { -99 },
-                )
-                antallSomKreverSunk.toString()
+                antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING).toString()
+            }
+        }
+
+        SelftestGenerator.Metadata("Antall som har feilet") {
+            runBlocking {
+                antallJobberMedStatus(SergDokumentStatus.FEIL).toString()
             }
         }
     }
