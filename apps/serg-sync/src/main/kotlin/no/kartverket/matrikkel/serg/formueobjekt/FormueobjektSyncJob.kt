@@ -6,8 +6,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.matrikkel.logger
-import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
-import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
+import no.kartverket.matrikkel.timed
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -26,7 +25,9 @@ class FormueobjektSyncJob(
         val probe = SelftestGenerator.Reporter("FormueobjektSyncJob", critical = false)
         val ctx = currentCoroutineContext()
         while (ctx.isActive) {
-            val hendelser: Result<Int> = syncService.sync(config.antall)
+            val hendelser: Result<Int> = timed("formueobjekt_sync_job_sync") {
+                syncService.sync(config.antall)
+            }
             val antallHentet = hendelser
                 .fold(
                     onFailure = {

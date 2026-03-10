@@ -1,6 +1,5 @@
 package no.kartverket.matrikkel
 
-import io.micrometer.core.instrument.Gauge
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -95,27 +94,6 @@ class Services(
     )
 
     val timers = mutableListOf<Timer>()
-
-    fun <T : Number> refreshingGauge(
-        name: String,
-        initialValue: T,
-        fn: suspend () -> T
-    ): Timer {
-        var value: T = initialValue
-        Gauge.builder(name) { value }
-            .register(prometheusRegistry)
-
-        return fixedRateTimer(
-            name = "${name}_refresh",
-            daemon = true,
-            initialDelay = 0,
-            period = 60.seconds.inWholeMilliseconds
-        ) {
-            runBlocking {
-                value = fn()
-            }
-        }
-    }
 
     private data class HendelserStatus(
         val startIDag: Long,
