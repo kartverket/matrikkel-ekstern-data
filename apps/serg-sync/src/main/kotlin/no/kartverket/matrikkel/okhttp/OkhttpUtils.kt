@@ -3,6 +3,7 @@ package no.kartverket.matrikkel.okhttp
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okio.IOException
@@ -12,6 +13,11 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
 object OkHttpUtils {
+    fun OkHttpClient.Builder.addInterceptorAtStart(interceptor: Interceptor): OkHttpClient.Builder {
+        this.interceptors().add(0, interceptor)
+        return this
+    }
+
     open class HeadersInterceptor(
         val headersProvider: () -> Map<String, String>,
     ) : Interceptor {
@@ -34,6 +40,7 @@ object OkHttpUtils {
     })
 
     class MetricsInterceptor(
+        private val name: String,
         private val registry: MeterRegistry
     ) : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
@@ -64,7 +71,7 @@ object OkHttpUtils {
 
         private fun Request.reportMetrics(block: Timer.Builder.() -> Unit): Timer {
             return Timer.builder("http_client_requests")
-                .tag("path", this.url.encodedPath)
+                .tag("name", name)
                 .tag("method", this.method)
                 .serviceLevelObjectives(
                     100.milliseconds.toJavaDuration(),
