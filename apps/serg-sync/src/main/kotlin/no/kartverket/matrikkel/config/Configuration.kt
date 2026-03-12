@@ -13,7 +13,7 @@ class Configuration(
     val sergPrivateJWK: String = getRequiredConfig("SERG_PRIVATE_JWK"),
     val sergTokenEndpoint: String = getRequiredConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
-        jdbcUrl = getRequiredConfig("POSTGRES_URL"),
+        jdbcUrl = getRequiredConfig("DB_URL"),
         userCredential = Credential.from("DB_USER"),
         adminCredential = Credential.from("DB_ADMIN"),
     ),
