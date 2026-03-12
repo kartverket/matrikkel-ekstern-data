@@ -4,28 +4,33 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 
-class DataSourceConfiguration(
-    val config: Configuration,
-) {
-    fun createDatasource(): HikariDataSource {
+object  DataSourceConfiguration{
+    fun createDatasource(
+        url: String,
+        credential: Credential
+    ): HikariDataSource {
         val config = HikariConfig().apply {
-            jdbcUrl = config.database.jdbcUrl
-            username = config.database.username
-            password = config.database.password
+            jdbcUrl = url
+            username = credential.username
+            password = credential.password
             maximumPoolSize = 10
         }
         return HikariDataSource(config)
     }
 
-    fun runFlyway() {
-        createDatasource().use {
-            Flyway
-                .configure()
-                .dataSource(it)
-                .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .load()
-                .migrate()
-        }
+    fun runFlyway(config: DatabaseConfiguration) {
+        createDatasource(
+            config.jdbcUrl,
+            config.adminCredential
+        )
+            .use {
+                Flyway
+                    .configure()
+                    .dataSource(it)
+                    .baselineOnMigrate(true)
+                    .baselineVersion("0")
+                    .load()
+                    .migrate()
+            }
     }
 }
