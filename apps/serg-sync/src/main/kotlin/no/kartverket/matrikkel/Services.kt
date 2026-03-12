@@ -26,8 +26,7 @@ import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenCl
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import okhttp3.OkHttpClient
-import java.util.Timer
-import java.util.UUID
+import java.util.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -41,8 +40,10 @@ class Services(
         privateJwk = config.sergPrivateJWK,
         tokenEndpoint = config.sergTokenEndpoint,
     )
-
-    val dataSource = DataSourceConfiguration(config).createDatasource()
+    val dataSource = DataSourceConfiguration.createDatasource(
+        config.database.jdbcUrl,
+        config.database.userCredential
+    )
     val keyValueRepository = KeyValueRepository(dataSource)
     val sergDokumentRepository = SergDokumentRepository(dataSource)
 
