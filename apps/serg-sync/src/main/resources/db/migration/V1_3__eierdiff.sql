@@ -1,5 +1,5 @@
 -- View som pakker ut formueobjekt-json til ett mer brukbart format
-CREATE OR REPLACE VIEW serg_eiere_normalized AS
+CREATE OR REPLACE VIEW serg_eiere_normalisert AS
 SELECT DISTINCT
     d.matrikkelenhetid AS id,
     COALESCE(
@@ -40,7 +40,7 @@ WHERE COALESCE(
   END IS NOT NULL
   AND d.status <> 'SLETTET';
 
-DROP MATERIALIZED VIEW IF EXISTS eierdiff;
+DROP MATERIALIZED VIEW IF EXISTS avvik;
 DROP MATERIALIZED VIEW IF EXISTS person_identer_local;
 DROP MATERIALIZED VIEW IF EXISTS matrikkel_eiere_local;
 
@@ -61,13 +61,13 @@ SELECT DISTINCT
 FROM person_identer_m22;
 
 -- Kalkuleringen av mismatch mellom serg_eiere og matrikkel_eiere
-CREATE MATERIALIZED VIEW eierdiff AS
+CREATE MATERIALIZED VIEW avvik AS
 WITH serg_eiere AS (
     SELECT DISTINCT
         id,
         nr,
         eierforholdkodeid
-    FROM serg_eiere_normalized
+    FROM serg_eiere_normalisert
     WHERE ident_type <> 'loepenummer'
 ),
      matrikkel_eiere AS (
@@ -106,39 +106,38 @@ WITH serg_eiere AS (
              s.eierforholdkodeid,
              'extra_in_matrikkelenhet_eiere'::text AS diff_type
          FROM serg_eiere s
+     ),
+     alle_avvik AS (
+         SELECT *
+         FROM missing_in_matrikkel
+         UNION ALL
+         SELECT *
+         FROM extra_in_matrikkel
      )
-SELECT *
-FROM missing_in_matrikkel
-UNION ALL
-SELECT *
-FROM extra_in_matrikkel;
+SELECT
+    a.id,
+    a.nr,
+    a.eierforholdkodeid,
+    a.diff_type
+FROM alle_avvik a
+WHERE a.diff_type <> 'missing_in_matrikkelenhet_eiere'
+   OR EXISTS (
+    SELECT 1
+    FROM person_identer_local p
+    WHERE p.nr = a.nr
+      AND p.class <> 'AnnenPerson'
+);
 
-CREATE OR REPLACE FUNCTION refresh_eierdiff()
+CREATE OR REPLACE FUNCTION refresh_avvik()
     RETURNS void
     LANGUAGE plpgsql
 AS $$
 BEGIN
     REFRESH MATERIALIZED VIEW person_identer_local;
     REFRESH MATERIALIZED VIEW matrikkel_eiere_local;
-    REFRESH MATERIALIZED VIEW eierdiff;
+    REFRESH MATERIALIZED VIEW avvik;
 END;
 $$;
 
--- Forretningsfiltrert view av eierdiff som skjuler SERG-endringer vi ikke forventer i matrikkelen.
-CREATE OR REPLACE VIEW eierdiff_filtered AS
-SELECT
-    e.id,
-    e.nr,
-    e.eierforholdkodeid,
-    e.diff_type
-FROM eierdiff e
-WHERE e.diff_type <> 'missing_in_matrikkelenhet_eiere'
-   OR EXISTS (
-    SELECT 1
-    FROM person_identer_local p
-    WHERE p.nr = e.nr
-      AND p.class <> 'AnnenPerson'
-);
-
 CREATE INDEX IF NOT EXISTS idx_person_identer_local_nr ON person_identer_local (nr);
-CREATE INDEX IF NOT EXISTS idx_eierdiff_nr ON eierdiff (nr);
+CREATE INDEX IF NOT EXISTS idx_avvik_nr ON avvik (nr);

@@ -22,9 +22,8 @@ import java.util.*
 class AvvikAnalyseTest : WithDatabase {
     @Test
     fun `tabeller og funksjoner for for avviksanalysen skal eksistere`() {
-        assertThat(regclass("eierdiff")).isNotNull()
-        assertThat(regclass("eierdiff_filtered")).isNotNull()
-        assertThat(functionExists("refresh_eierdiff")).isEqualTo(true)
+        assertThat(regclass("avvik")).isNotNull()
+        assertThat(functionExists("refresh_avvik")).isEqualTo(true)
     }
 
     @Test
@@ -45,10 +44,9 @@ class AvvikAnalyseTest : WithDatabase {
             nr = "01010112345",
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly()
-        assertThat(selectDiff("eierdiff_filtered")).containsExactly()
+        assertThat(selectDiff("avvik")).containsExactly()
     }
 
     @Test
@@ -64,9 +62,9 @@ class AvvikAnalyseTest : WithDatabase {
             nr = "02020212345",
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly(
+        assertThat(selectDiff("avvik")).containsExactly(
             DiffRow(1002L, "02020212345", 18, "missing_in_matrikkelenhet_eiere")
         )
     }
@@ -98,9 +96,9 @@ class AvvikAnalyseTest : WithDatabase {
             nr = "03030399999",
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly(
+        assertThat(selectDiff("avvik")).containsExactly(
             DiffRow(1003L, "03030399999", 18, "extra_in_matrikkelenhet_eiere")
         )
     }
@@ -114,9 +112,9 @@ class AvvikAnalyseTest : WithDatabase {
             eiernivaa = Eiernivaa.eiendomsrett,
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly()
+        assertThat(selectDiff("avvik")).containsExactly()
     }
 
     @Test
@@ -129,13 +127,13 @@ class AvvikAnalyseTest : WithDatabase {
             hendelsestype = Hendelsestype.slettet,
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly()
+        assertThat(selectDiff("avvik")).containsExactly()
     }
 
     @Test
-    fun `eksplisitt håndtering av eksluderings-regelen for AnnenPerson i eierdiff_filtered`() = runBlocking {
+    fun `eksplisitt håndtering av eksluderings-regelen for AnnenPerson i avvik`() = runBlocking {
         seedSergDocument(
             matrikkelenhetId = 1006L,
             identType = IdentType.Foedselsnummer,
@@ -147,12 +145,9 @@ class AvvikAnalyseTest : WithDatabase {
             nr = "06060612345",
         )
 
-        refreshEierdiff()
+        refreshAvvik()
 
-        assertThat(selectDiff("eierdiff")).containsExactly(
-            DiffRow(1006L, "06060612345", 18, "missing_in_matrikkelenhet_eiere")
-        )
-        assertThat(selectDiff("eierdiff_filtered")).containsExactly()
+        assertThat(selectDiff("avvik")).containsExactly()
     }
 
     private fun regclass(name: String): String? {
@@ -175,9 +170,9 @@ class AvvikAnalyseTest : WithDatabase {
         } == true
     }
 
-    private fun refreshEierdiff() {
+    private fun refreshAvvik() {
         runInSession {
-            run(queryOf("SELECT refresh_eierdiff()").asExecute)
+            run(queryOf("SELECT refresh_avvik()").asExecute)
         }
     }
 

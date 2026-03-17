@@ -46,7 +46,7 @@ interface WithDatabase {
                     ;
                     INSERT INTO keyvalue(key, value) VALUES ('sekvensnummer', '1')
                     ;
-                    SELECT refresh_eierdiff()
+                    SELECT refresh_avvik()
                     """.trimIndent()
                 )
             }
