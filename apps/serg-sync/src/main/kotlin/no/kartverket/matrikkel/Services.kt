@@ -105,12 +105,20 @@ class Services(
 
     private suspend fun kalkulerHendelserStatus(): HendelserStatus {
         val dagensDato = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.format(LocalDate.Formats.ISO)
-        val startIDag = hendelserApi.hentStart(
-            dato = dagensDato,
-            korrelasjonsid = UUID.randomUUID()
-        ).sekvensnummer ?: 0
+        val startIDag = runCatching {
+            hendelserApi.hentStart(
+                dato = dagensDato,
+                korrelasjonsid = UUID.randomUUID()
+            ).sekvensnummer ?: 0
+        }
+            .onFailure { logger.warn("Kall til SERG feilet ved kalkulering av selftest metadata") }
+            .getOrElse { -99 }
 
-        val naverendeSekvensnummer = keyValueRepository.getValue("sekvensnummer").toLong()
+        val naverendeSekvensnummer = runCatching {
+            keyValueRepository.getValue("sekvensnummer").toLong()
+        }
+            .onFailure { logger.warn("Henting fra keyvalue-repo feilet ved kalkulering av selftest metadata") }
+            .getOrElse { -99 }
 
         return HendelserStatus(startIDag, naverendeSekvensnummer)
     }
