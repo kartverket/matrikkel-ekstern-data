@@ -1,30 +1,12 @@
--- Kobling til M22, eget view der som bare eksponerer det vi trenger av data.
-create foreign table if not exists matrikkelenhet_eiere_m22(
-    id numeric(19),
-    class varchar(255),
-    eierforholdkodeid numeric(5),
-    nr varchar(255)
-) server mapr2prd
-  options (schema 'MATRIKKEL2', table 'SERG_SYNC_MATRIKKELENHET_EIERE');
-
-create foreign table if not exists person_identer_m22(
-    class varchar(255), -- AnnenPerson, FysiskPerson, JuridiskPerson
-    nr varchar(255)
-) server mapr2prd
-options (schema 'MATRIKKEL2', table 'SERG_SYNC_PERSON_IDENTER');
-
-grant select on matrikkelenhet_eiere_m22 to matrikkel_serg_sync_user;
-grant select on person_identer_m22 to matrikkel_serg_sync_user;
-
--- View som pakker ut formueobjekt-jsob til ett mer brukbart format
+-- View som pakker ut formueobjekt-json til ett mer brukbart format
 CREATE OR REPLACE VIEW serg_eiere_normalized AS
 SELECT DISTINCT
     d.matrikkelenhetid AS id,
     COALESCE(
-            pi ->> 'foedselsnummer',
-            pi ->> 'dNummer',
-            pi ->> 'organisasjonsnummer',
-            pi ->> 'loepenummer'
+        pi ->> 'foedselsnummer',
+        pi ->> 'dNummer',
+        pi ->> 'organisasjonsnummer',
+        pi ->> 'loepenummer'
     ) AS nr,
     CASE eo -> 'eierforhold' ->> 'eiernivaa'
         WHEN 'eiendomsrett' THEN 18
@@ -43,27 +25,26 @@ FROM serg_dokument d
 CROSS JOIN LATERAL jsonb_array_elements(d.formueobjekt::jsonb -> 'eieropplysninger') AS eo
 CROSS JOIN LATERAL (SELECT eo -> 'personidentifikator' AS pi) p
 WHERE COALESCE(
-        pi ->> 'foedselsnummer',
-        pi ->> 'dNummer',
-        pi ->> 'organisasjonsnummer',
-        pi ->> 'loepenummer'
-      ) IS NOT NULL
-AND COALESCE((pi ->> 'ukjentRettighetshaver')::boolean, false) = false
-AND CASE eo -> 'eierforhold' ->> 'eiernivaa'
+    pi ->> 'foedselsnummer',
+    pi ->> 'dNummer',
+    pi ->> 'organisasjonsnummer',
+    pi ->> 'loepenummer'
+) IS NOT NULL
+  AND COALESCE((pi ->> 'ukjentRettighetshaver')::boolean, false) = false
+  AND CASE eo -> 'eierforhold' ->> 'eiernivaa'
       WHEN 'eiendomsrett' THEN 18
       WHEN 'feste' THEN 19
       WHEN 'framfeste1' THEN 20
       WHEN 'framfeste2' THEN 21
       WHEN 'framfeste3' THEN 22
-END IS NOT NULL
-AND d.status <> 'SLETTET';
+  END IS NOT NULL
+  AND d.status <> 'SLETTET';
 
--- Bare i tilfelle noe er der fra før av
 DROP MATERIALIZED VIEW IF EXISTS eierdiff;
 DROP MATERIALIZED VIEW IF EXISTS person_identer_local;
 DROP MATERIALIZED VIEW IF EXISTS matrikkel_eiere_local;
 
--- Materalisering av M22 data for å unngå at masse data må streames senere
+-- Materialisering av M22 data for å unngå at masse data må streames senere
 CREATE MATERIALIZED VIEW matrikkel_eiere_local AS
 SELECT DISTINCT
     id,
@@ -72,7 +53,7 @@ SELECT DISTINCT
 FROM matrikkelenhet_eiere_m22
 WHERE eierforholdkodeid >= 18;
 
--- Materalisering av M22 data for å unngå at masse data må streames senere
+-- Materialisering av M22 data for å unngå at masse data må streames senere
 CREATE MATERIALIZED VIEW person_identer_local AS
 SELECT DISTINCT
     class,
@@ -132,7 +113,6 @@ UNION ALL
 SELECT *
 FROM extra_in_matrikkel;
 
--- Funksjon for å refreshe og rekalkulere diffen
 CREATE OR REPLACE FUNCTION refresh_eierdiff()
     RETURNS void
     LANGUAGE plpgsql
@@ -143,3 +123,22 @@ BEGIN
     REFRESH MATERIALIZED VIEW eierdiff;
 END;
 $$;
+
+-- Forretningsfiltrert view av eierdiff som skjuler SERG-endringer vi ikke forventer i matrikkelen.
+CREATE OR REPLACE VIEW eierdiff_filtered AS
+SELECT
+    e.id,
+    e.nr,
+    e.eierforholdkodeid,
+    e.diff_type
+FROM eierdiff e
+WHERE e.diff_type <> 'missing_in_matrikkelenhet_eiere'
+   OR EXISTS (
+    SELECT 1
+    FROM person_identer_local p
+    WHERE p.nr = e.nr
+      AND p.class <> 'AnnenPerson'
+);
+
+CREATE INDEX IF NOT EXISTS idx_person_identer_local_nr ON person_identer_local (nr);
+CREATE INDEX IF NOT EXISTS idx_eierdiff_nr ON eierdiff (nr);

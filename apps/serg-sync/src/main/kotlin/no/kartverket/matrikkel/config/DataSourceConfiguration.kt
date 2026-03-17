@@ -3,8 +3,9 @@ package no.kartverket.matrikkel.config
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
+import javax.sql.DataSource
 
-object  DataSourceConfiguration{
+object DataSourceConfiguration {
     fun createDatasource(
         url: String,
         credential: Credential
@@ -18,19 +19,28 @@ object  DataSourceConfiguration{
         return HikariDataSource(config)
     }
 
-    fun runFlyway(config: DatabaseConfiguration) {
+    fun migrate(config: DatabaseConfiguration) {
         createDatasource(
             config.jdbcUrl,
             config.adminCredential
         )
             .use {
-                Flyway
-                    .configure()
-                    .dataSource(it)
-                    .baselineOnMigrate(true)
-                    .baselineVersion("0")
-                    .load()
-                    .migrate()
+                migrate(it, config.env)
             }
+    }
+
+    fun migrate(dataSource: DataSource, env: MigrationEnv) = migrate(dataSource, *env.location)
+    fun migrate(
+        dataSource: DataSource,
+        vararg locations: String,
+    ) {
+        Flyway
+            .configure()
+            .dataSource(dataSource)
+            .locations(*locations)
+            .baselineOnMigrate(true)
+            .baselineVersion("0")
+            .load()
+            .migrate()
     }
 }
