@@ -6,8 +6,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
-import kotliquery.sessionOf
-import kotliquery.using
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
@@ -19,9 +17,11 @@ import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
+import no.kartverket.matrikkel.serg.repository.AvvikRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
+import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
@@ -44,8 +44,16 @@ class Services(
         config.database.jdbcUrl,
         config.database.userCredential
     )
+
     val keyValueRepository = KeyValueRepository(dataSource)
     val sergDokumentRepository = SergDokumentRepository(dataSource)
+    val avvikRepository = AvvikRepository(
+        dataSource = dataSource,
+        adminDataSource = DataSourceConfiguration.createDatasource(
+            config.database.jdbcUrl,
+            config.database.adminCredential
+        )
+    )
 
     private val sergHttpClient = OkHttpClient.Builder()
         .addInterceptor(
@@ -155,7 +163,7 @@ class Services(
             period = 60.seconds.inWholeMilliseconds
         ) {
             dbReporter.ping {
-                using(sessionOf(dataSource)) { session ->
+                dataSource.runSql { session ->
                     session.run(queryOf("SELECT 1").asExecute)
                 }
             }
