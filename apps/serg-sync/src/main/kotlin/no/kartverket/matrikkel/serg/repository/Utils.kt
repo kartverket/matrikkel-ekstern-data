@@ -9,21 +9,6 @@ import kotliquery.sessionOf
 import kotliquery.using
 import javax.sql.DataSource
 
-suspend fun <A> transactional(
-    dataSource: DataSource,
-    operation: suspend (TransactionalSession) -> A,
-): A {
-    return withContext(Dispatchers.IO) {
-        using(sessionOf(dataSource)) { session ->
-            session.transaction {
-                runBlocking(Dispatchers.IO) {
-                    operation(it)
-                }
-            }
-        }
-    }
-}
-
 suspend fun <A> DataSource.withTransaction(operation: suspend (TransactionalSession) -> A): A {
     return withContext(Dispatchers.IO) {
         using(sessionOf(this@withTransaction)) { session ->

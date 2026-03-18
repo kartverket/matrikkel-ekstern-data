@@ -38,7 +38,7 @@ class SergDokumentRepository(
     private val table: String = "serg_dokument"
 
     suspend fun hentData(matrikkelenhetId: Long): SergDokument? =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             hentData(tx, matrikkelenhetId)
         }
 
@@ -62,7 +62,7 @@ class SergDokumentRepository(
     }
 
     suspend fun tellEtterStatus(status: SergDokumentStatus): Long =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             tellEtterStatus(tx, status)
         }
 
@@ -82,7 +82,7 @@ class SergDokumentRepository(
         status: SergDokumentStatus,
         limit: Int = 100,
     ): List<SergDokument> =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             listEtterStatus(tx, status, limit)
         }
 
@@ -113,7 +113,9 @@ class SergDokumentRepository(
         )
     }
 
-    suspend fun upsertFraHendelse(hendelse: Hendelse) = transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
+    suspend fun upsertFraHendelse(hendelse: Hendelse) = dataSource.withTransaction { tx ->
+        upsertFraHendelse(tx, hendelse)
+    }
 
     fun upsertFraHendelse(
         tx: Session,
@@ -157,7 +159,9 @@ class SergDokumentRepository(
     suspend fun settFormueobjektdata(
         matrikkelenhetId: Long,
         formueobjekt: Result<FastEiendomSomFormuesobjekt>,
-    ) = transactional(dataSource) { tx -> settFormueobjektdata(tx, matrikkelenhetId, formueobjekt) }
+    ) = dataSource.withTransaction { tx ->
+        settFormueobjektdata(tx, matrikkelenhetId, formueobjekt)
+    }
 
     fun settFormueobjektdata(
         tx: Session,
