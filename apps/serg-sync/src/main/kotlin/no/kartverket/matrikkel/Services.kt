@@ -29,6 +29,7 @@ import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -143,17 +144,20 @@ class Services(
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = true)
-        val hendelserStatus: HendelserStatus by cache(ttl = 10.seconds.toJavaDuration()) {
+        val hendelserStatus: HendelserStatus by cache(ttl = 1.minutes.toJavaDuration()) {
             runBlocking {
                 kalkulerHendelserStatus()
             }
         }
 
-        timers += refreshingGauge("sync_hendelser_lag", 0) {
+        timers += refreshingGauge("sync_hendelser_lag", period = 1.minutes) {
             hendelserStatus.lag()
         }
-        timers += refreshingGauge("sync_hendeler_pending", 0) {
+        timers += refreshingGauge("sync_hendeler_pending", period = 1.minutes) {
             antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
+        }
+        timers += refreshingGauge("antall_avvik", period = 5.minutes) {
+            avvikRepository.antallAvvik()
         }
 
         timers += fixedRateTimer(

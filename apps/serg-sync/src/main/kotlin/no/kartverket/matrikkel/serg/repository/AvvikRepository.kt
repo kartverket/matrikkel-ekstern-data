@@ -29,6 +29,18 @@ class AvvikRepository(
         }
     }
 
+    suspend fun antallAvvik(): Long = dataSource.withTransaction { tx ->
+        antallAvvik(tx)
+    }
+
+    fun antallAvvik(tx: Session): Long {
+        val query = queryOf("SELECT COUNT(*) from $table")
+            .map { it.long(1) }
+            .asSingle
+
+        return tx.run(query) ?: -1
+    }
+
     suspend fun hentAvvik(): List<Avvik> = dataSource.withTransaction { tx ->
         hentAvvik(tx)
     }

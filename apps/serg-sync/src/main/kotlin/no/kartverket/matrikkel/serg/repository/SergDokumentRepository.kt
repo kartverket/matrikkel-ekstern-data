@@ -70,12 +70,11 @@ class SergDokumentRepository(
         tx: Session,
         status: SergDokumentStatus,
     ): Long {
-        return tx.run(
-            queryOf("SELECT COUNT(*) from $table WHERE status = ?", status.name)
-                .map { it.long(1) }
-                .asSingle,
-        )
-            ?: 0
+        val query = queryOf("SELECT COUNT(*) from $table WHERE status = ?", status.name)
+            .map { it.long(1) }
+            .asSingle
+
+        return tx.run(query) ?: 0
     }
 
     suspend fun listEtterStatus(
