@@ -60,6 +60,8 @@ SELECT DISTINCT
     nr::text AS nr
 FROM person_identer_m22;
 
+CREATE INDEX IF NOT EXISTS idx_person_identer_local_nr ON person_identer_local (nr);
+
 -- Kalkuleringen av mismatch mellom serg_eiere og matrikkel_eiere
 CREATE MATERIALIZED VIEW avvik AS
 WITH serg_eiere AS (
@@ -128,6 +130,8 @@ WHERE a.diff_type <> 'missing_in_matrikkelenhet_eiere'
       AND p.class <> 'AnnenPerson'
 );
 
+CREATE INDEX IF NOT EXISTS idx_avvik_nr ON avvik (nr);
+
 CREATE OR REPLACE FUNCTION refresh_avvik()
     RETURNS void
     LANGUAGE plpgsql
@@ -138,6 +142,3 @@ BEGIN
     REFRESH MATERIALIZED VIEW avvik;
 END;
 $$;
-
-CREATE INDEX IF NOT EXISTS idx_person_identer_local_nr ON person_identer_local (nr);
-CREATE INDEX IF NOT EXISTS idx_avvik_nr ON avvik (nr);
