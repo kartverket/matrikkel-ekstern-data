@@ -12,10 +12,9 @@ class HendelseRepository(
 ) {
     private val format = Serializer.jacksonObjectMapper
 
-    suspend fun insert(hendelse: Hendelse) =
-        transactional(dataSource) { tx ->
-            insert(tx, hendelse)
-        }
+    suspend fun insert(hendelse: Hendelse) = dataSource.withTransaction { tx ->
+        insert(tx, hendelse)
+    }
 
     fun insert(
         tx: Session,

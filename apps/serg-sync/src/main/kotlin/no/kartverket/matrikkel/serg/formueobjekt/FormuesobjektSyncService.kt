@@ -4,7 +4,7 @@ import no.kartverket.kotlin.mapInParallell
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
-import no.kartverket.matrikkel.serg.repository.transactional
+import no.kartverket.matrikkel.serg.repository.withTransaction
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import org.openapitools.client.infrastructure.ClientError
 import org.openapitools.client.infrastructure.ClientException
@@ -19,7 +19,7 @@ class FormuesobjektSyncService(
 
     suspend fun sync(antall: Int = 10): Result<Int> {
         return runCatching {
-            transactional(dataSource) { tx ->
+            dataSource.withTransaction { tx ->
                 val dokumenter = dokumentRepository.listEtterStatus(tx, SergDokumentStatus.KREVER_SYNKRONISERING, limit = antall)
 
                 val formueobjekter = dokumenter.mapInParallell(parallellism = 10) { dokument, index ->
