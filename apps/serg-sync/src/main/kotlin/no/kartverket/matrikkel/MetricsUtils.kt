@@ -9,13 +9,15 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+
+private class GuageState(@Volatile var value: Double? = null)
 fun <T : Number> refreshingGauge(
     name: String,
     period: Duration = 60.seconds,
     fn: suspend () -> T
 ): Timer {
-    var value: T = runBlocking { fn() }
-    Gauge.builder(name) { value }
+    val state = GuageState()
+    Gauge.builder(name) { state.value ?: 0.0 }
         .register(prometheusRegistry)
 
     return fixedRateTimer(
@@ -24,8 +26,12 @@ fun <T : Number> refreshingGauge(
         initialDelay = 0,
         period = period.inWholeMilliseconds
     ) {
-        runBlocking {
-            value = fn()
+        runCatching {
+            runBlocking {
+                fn().toDouble()
+            }
+        }.onSuccess {
+            state.value = it
         }
     }
 }
