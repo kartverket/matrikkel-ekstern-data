@@ -16,7 +16,7 @@ typealias SyncJob = KSuspendFunction0<Unit>
 
 fun runApplication() {
     val config = Configuration()
-    DataSourceConfiguration.runFlyway(config.database)
+    DataSourceConfiguration.migrate(config.database)
 
     val services = Services(config)
 

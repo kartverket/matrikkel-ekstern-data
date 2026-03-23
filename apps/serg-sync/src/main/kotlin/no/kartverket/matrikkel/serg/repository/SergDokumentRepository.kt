@@ -38,7 +38,7 @@ class SergDokumentRepository(
     private val table: String = "serg_dokument"
 
     suspend fun hentData(matrikkelenhetId: Long): SergDokument? =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             hentData(tx, matrikkelenhetId)
         }
 
@@ -62,7 +62,7 @@ class SergDokumentRepository(
     }
 
     suspend fun tellEtterStatus(status: SergDokumentStatus): Long =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             tellEtterStatus(tx, status)
         }
 
@@ -70,19 +70,18 @@ class SergDokumentRepository(
         tx: Session,
         status: SergDokumentStatus,
     ): Long {
-        return tx.run(
-            queryOf("SELECT COUNT(*) from $table WHERE status = ?", status.name)
-                .map { it.long(1) }
-                .asSingle,
-        )
-            ?: 0
+        val query = queryOf("SELECT COUNT(*) from $table WHERE status = ?", status.name)
+            .map { it.long(1) }
+            .asSingle
+
+        return tx.run(query) ?: 0
     }
 
     suspend fun listEtterStatus(
         status: SergDokumentStatus,
         limit: Int = 100,
     ): List<SergDokument> =
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             listEtterStatus(tx, status, limit)
         }
 
@@ -113,7 +112,9 @@ class SergDokumentRepository(
         )
     }
 
-    suspend fun upsertFraHendelse(hendelse: Hendelse) = transactional(dataSource) { tx -> upsertFraHendelse(tx, hendelse) }
+    suspend fun upsertFraHendelse(hendelse: Hendelse) = dataSource.withTransaction { tx ->
+        upsertFraHendelse(tx, hendelse)
+    }
 
     fun upsertFraHendelse(
         tx: Session,
@@ -157,7 +158,9 @@ class SergDokumentRepository(
     suspend fun settFormueobjektdata(
         matrikkelenhetId: Long,
         formueobjekt: Result<FastEiendomSomFormuesobjekt>,
-    ) = transactional(dataSource) { tx -> settFormueobjektdata(tx, matrikkelenhetId, formueobjekt) }
+    ) = dataSource.withTransaction { tx ->
+        settFormueobjektdata(tx, matrikkelenhetId, formueobjekt)
+    }
 
     fun settFormueobjektdata(
         tx: Session,

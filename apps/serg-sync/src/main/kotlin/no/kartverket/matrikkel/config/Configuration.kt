@@ -1,10 +1,18 @@
 package no.kartverket.matrikkel.config
 
 class DatabaseConfiguration(
+    val env: MigrationEnv,
     val jdbcUrl: String,
     val userCredential: Credential,
     val adminCredential: Credential,
 )
+
+enum class MigrationEnv(
+    val location: Array<String>
+) {
+    LOCAL(arrayOf("db/migration", "db/migration-test")),
+    PROD(arrayOf("db/migration", "db/migration-prod"))
+}
 
 class Configuration(
     val sergHendelserUrl: String = getRequiredConfig("SERG_HENDELSER_URL"),
@@ -13,6 +21,7 @@ class Configuration(
     val sergPrivateJWK: String = getRequiredConfig("SERG_PRIVATE_JWK"),
     val sergTokenEndpoint: String = getRequiredConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
+        env = MigrationEnv.valueOf(getConfig("DB_ENV") ?: MigrationEnv.PROD.name),
         jdbcUrl = getRequiredConfig("DB_URL"),
         userCredential = Credential.from("DB_USER"),
         adminCredential = Credential.from("DB_ADMIN"),

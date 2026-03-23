@@ -12,9 +12,10 @@ class KeyValueRepository(
 
     suspend fun getValue(key: String): String = requireNotNull(getValueOrNull(key))
 
-    suspend fun getValueOrNull(key: String): String? = transactional(dataSource) { tx ->
+    suspend fun getValueOrNull(key: String): String? = dataSource.withTransaction { tx ->
         getValueOrNull(tx, key)
     }
+
     fun getValueOrNull(tx: Session, key: String): String? {
         return tx.run(
             queryOf("SELECT * FROM $table WHERE key = :key", mapOf("key" to key))
@@ -27,8 +28,10 @@ class KeyValueRepository(
     suspend fun setValue(
         key: String,
         value: String,
-    ) = transactional(dataSource) { tx -> setValue(tx, key, value)
+    ) = dataSource.withTransaction { tx ->
+        setValue(tx, key, value)
     }
+
     fun setValue(
         tx: Session,
         key: String,
@@ -61,7 +64,7 @@ class KeyValueRepository(
             DELETE FROM $table where key = :key
             """.trimIndent()
 
-        transactional(dataSource) { tx ->
+        dataSource.withTransaction { tx ->
             tx.run(
                 queryOf(
                     sql,

@@ -6,8 +6,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
-import kotliquery.sessionOf
-import kotliquery.using
 import no.kartverket.kotlin.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
@@ -19,9 +17,11 @@ import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
+import no.kartverket.matrikkel.serg.repository.AvvikRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
+import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
@@ -29,6 +29,7 @@ import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -44,8 +45,16 @@ class Services(
         config.database.jdbcUrl,
         config.database.userCredential
     )
+
     val keyValueRepository = KeyValueRepository(dataSource)
     val sergDokumentRepository = SergDokumentRepository(dataSource)
+    val avvikRepository = AvvikRepository(
+        dataSource = dataSource,
+        adminDataSource = DataSourceConfiguration.createDatasource(
+            config.database.jdbcUrl,
+            config.database.adminCredential
+        )
+    )
 
     private val sergHttpClient = OkHttpClient.Builder()
         .addInterceptor(
@@ -105,12 +114,20 @@ class Services(
 
     private suspend fun kalkulerHendelserStatus(): HendelserStatus {
         val dagensDato = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.format(LocalDate.Formats.ISO)
-        val startIDag = hendelserApi.hentStart(
-            dato = dagensDato,
-            korrelasjonsid = UUID.randomUUID()
-        ).sekvensnummer ?: 0
+        val startIDag = runCatching {
+            hendelserApi.hentStart(
+                dato = dagensDato,
+                korrelasjonsid = UUID.randomUUID()
+            ).sekvensnummer ?: 0
+        }
+            .onFailure { logger.warn("Kall til SERG feilet ved kalkulering av selftest metadata") }
+            .getOrElse { -99 }
 
-        val naverendeSekvensnummer = keyValueRepository.getValue("sekvensnummer").toLong()
+        val naverendeSekvensnummer = runCatching {
+            keyValueRepository.getValue("sekvensnummer").toLong()
+        }
+            .onFailure { logger.warn("Henting fra keyvalue-repo feilet ved kalkulering av selftest metadata") }
+            .getOrElse { -99 }
 
         return HendelserStatus(startIDag, naverendeSekvensnummer)
     }
@@ -127,17 +144,20 @@ class Services(
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = true)
-        val hendelserStatus: HendelserStatus by cache(ttl = 10.seconds.toJavaDuration()) {
+        val hendelserStatus: HendelserStatus by cache(ttl = 1.minutes.toJavaDuration()) {
             runBlocking {
                 kalkulerHendelserStatus()
             }
         }
 
-        timers += refreshingGauge("sync_hendelser_lag", 0) {
+        timers += refreshingGauge("sync_hendelser_lag", period = 1.minutes) {
             hendelserStatus.lag()
         }
-        timers += refreshingGauge("sync_hendeler_pending", 0) {
+        timers += refreshingGauge("sync_hendeler_pending", period = 1.minutes) {
             antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
+        }
+        timers += refreshingGauge("antall_avvik", period = 5.minutes) {
+            avvikRepository.antallAvvik()
         }
 
         timers += fixedRateTimer(
@@ -147,7 +167,7 @@ class Services(
             period = 60.seconds.inWholeMilliseconds
         ) {
             dbReporter.ping {
-                using(sessionOf(dataSource)) { session ->
+                dataSource.runSql { session ->
                     session.run(queryOf("SELECT 1").asExecute)
                 }
             }

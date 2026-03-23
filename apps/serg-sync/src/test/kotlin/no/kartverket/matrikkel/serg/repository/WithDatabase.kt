@@ -2,7 +2,8 @@ package no.kartverket.matrikkel.serg.repository
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import org.flywaydb.core.Flyway
+import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.MigrationEnv
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.containers.PostgreSQLContainer
@@ -29,7 +30,7 @@ interface WithDatabase {
         @BeforeAll
         @JvmStatic
         fun setup(): Unit {
-            Flyway.configure().dataSource(dataSource).load().migrate()
+            DataSourceConfiguration.migrate(dataSource, MigrationEnv.LOCAL)
         }
     }
 
@@ -40,10 +41,12 @@ interface WithDatabase {
             connection.createStatement().use { stmt ->
                 stmt.execute(
                     """
-                    truncate table serg_dokument, keyvalue, hendelse
+                    truncate table serg_dokument, keyvalue, hendelse, matrikkelenhet_eiere_m22, person_identer_m22
                     restart identity
                     ;
                     INSERT INTO keyvalue(key, value) VALUES ('sekvensnummer', '1')
+                    ;
+                    SELECT refresh_avvik()
                     """.trimIndent()
                 )
             }
