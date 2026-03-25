@@ -160,6 +160,14 @@ class Services(
         timers += refreshingGauge("antall_avvik", period = 5.minutes) {
             avvikRepository.antallAvvik()
         }
+        timers += fixedRateTimer(
+            name = "rekalkulerer avvik",
+            daemon = true,
+            initialDelay = 1.minutes.inWholeMilliseconds,
+            period = 60.minutes.inWholeMilliseconds
+        ) {
+            avvikRepository.oppdaterAvvik()
+        }
 
         timers += fixedRateTimer(
             name = "sjekk kritiske avhengigheter",
