@@ -57,6 +57,7 @@ class Services(
     )
 
     private val sergHttpClient = OkHttpClient.Builder()
+        .readTimeout(30.seconds)
         .addInterceptor(
             AuthorizationInterceptor {
                 tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
@@ -158,6 +159,14 @@ class Services(
         }
         timers += refreshingGauge("antall_avvik", period = 5.minutes) {
             avvikRepository.antallAvvik()
+        }
+        timers += fixedRateTimer(
+            name = "rekalkulerer avvik",
+            daemon = true,
+            initialDelay = 1.minutes.inWholeMilliseconds,
+            period = 60.minutes.inWholeMilliseconds
+        ) {
+            avvikRepository.oppdaterAvvik()
         }
 
         timers += fixedRateTimer(
