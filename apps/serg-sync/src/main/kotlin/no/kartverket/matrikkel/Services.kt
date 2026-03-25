@@ -57,6 +57,7 @@ class Services(
     )
 
     private val sergHttpClient = OkHttpClient.Builder()
+        .readTimeout(30.seconds)
         .addInterceptor(
             AuthorizationInterceptor {
                 tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
