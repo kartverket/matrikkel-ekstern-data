@@ -2,19 +2,17 @@ package no.kartverket.matrikkel.serg.repository
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.toJavaLocalDateTime
 import kotliquery.Session
 import kotliquery.queryOf
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
-import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.*
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.time.LocalDateTime
+import java.util.*
 
 class AvvikRepositoryOgAnalyseTest : WithDatabase {
     @Test
@@ -63,6 +61,25 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
                 type = AvvikRepository.AvvikType.MANGLER_I_M22
             )
         )
+    }
+
+    @Test
+    fun `rapporterer ikke avvik om endringen er forårsaket av nylig endring i SERG`() = runBlocking {
+        val repository = AvvikRepository(dataSource(), dataSource())
+
+        seedSergDocument(
+            matrikkelenhetId = 1002L,
+            eier = fnr("02020212345") som Eiernivaa.eiendomsrett,
+        )
+        settSistOppdatertForSergDokument(1002L, LocalDateTime.now())
+        insertPersonIdent(
+            klass = "FysiskPerson",
+            nr = "02020212345",
+        )
+
+        repository.oppdaterAvvik()
+
+        assertThat(repository.hentAvvik()).isEmpty()
     }
 
     @Test
@@ -225,11 +242,31 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
                 )
             )
         )
+        settSistOppdatertForSergDokument(matrikkelenhetId, LocalDateTime.now().minusDays(2))
 
         if (hendelsestype == Hendelsestype.slettet) {
             dataSource().withTransaction { tx ->
                 repository.settStatus(tx, matrikkelenhetId, SergDokumentStatus.SLETTET)
             }
+        }
+    }
+
+    fun settSistOppdatertForSergDokument(
+        matrikkelenhetId: Long,
+        sistOppdatert: LocalDateTime,
+    ) {
+        dataSource().runSql {
+            val query = queryOf(
+                """
+                UPDATE serg_dokument 
+                SET sistOppdatert = :sistOppdatert
+                WHERE matrikkelenhetId = :matrikkelenhetId
+            """.trimIndent(), mapOf(
+                    "matrikkelenhetId" to matrikkelenhetId,
+                    "sistOppdatert" to sistOppdatert,
+                )
+            ).asExecute
+            it.run(query)
         }
     }
 

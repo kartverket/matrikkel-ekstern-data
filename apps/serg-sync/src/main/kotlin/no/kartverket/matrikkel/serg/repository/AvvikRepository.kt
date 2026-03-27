@@ -9,7 +9,11 @@ class AvvikRepository(
     private val dataSource: DataSource,
     private val adminDataSource: DataSource,
 ) {
-    private val table: String = "avvik"
+    companion object {
+        private val table: String = "avvik"
+        // Avvik innenfor perioden antas å være pga lag i synkroniseringen, og telles ikke med.
+        private val gracePeriod: String = "INTERVAL '1 day'"
+    }
 
     data class Avvik(
         val matrikkelenhetId: Long,
@@ -34,7 +38,11 @@ class AvvikRepository(
     }
 
     fun antallAvvik(tx: Session): Long {
-        val query = queryOf("SELECT COUNT(*) from $table")
+        val query = queryOf("""
+            SELECT COUNT(*) FROM $table a
+            LEFT JOIN serg_dokument s ON a.id::bigint = s.matrikkelenhetid
+            WHERE s.sistoppdatert IS NULL OR s.sistoppdatert < NOW() - $gracePeriod
+        """.trimIndent())
             .map { it.long(1) }
             .asSingle
 
@@ -46,7 +54,11 @@ class AvvikRepository(
     }
 
     fun hentAvvik(tx: Session): List<Avvik> {
-        val query = queryOf("SELECT * FROM $table")
+        val query = queryOf("""
+            SELECT * FROM $table a
+            LEFT JOIN serg_dokument s ON a.id::bigint = s.matrikkelenhetid
+            WHERE s.sistoppdatert IS NULL OR s.sistoppdatert < NOW() - $gracePeriod
+        """.trimIndent())
             .map(Avvik::fromRow)
             .asList
 
