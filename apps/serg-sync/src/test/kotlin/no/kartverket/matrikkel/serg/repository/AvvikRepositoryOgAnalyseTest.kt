@@ -2,9 +2,10 @@ package no.kartverket.matrikkel.serg.repository
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.containsExactlyInAnyOrder
+import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.toJavaLocalDateTime
 import kotliquery.Session
 import kotliquery.queryOf
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.*
@@ -35,7 +36,7 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
 
         repository.oppdaterAvvik()
 
-        assertThat(repository.hentAvvik()).containsExactly()
+        assertThat(repository.hentAvvik()).isEmpty()
     }
 
     @Test
@@ -57,6 +58,7 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
             AvvikRepository.Avvik(
                 matrikkelenhetId = 1002L,
                 nr = "02020212345",
+                identType = AvvikRepository.IdentType.FYSISK_PERSON,
                 eierforholdKodeId = 18,
                 type = AvvikRepository.AvvikType.MANGLER_I_M22
             )
@@ -115,6 +117,7 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
             AvvikRepository.Avvik(
                 matrikkelenhetId = 1003L,
                 nr = "03030399999",
+                identType = AvvikRepository.IdentType.FYSISK_PERSON,
                 eierforholdKodeId = 18,
                 type = AvvikRepository.AvvikType.EKSTRA_I_M22
             )
@@ -132,7 +135,7 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
 
         repository.oppdaterAvvik()
 
-        assertThat(repository.hentAvvik()).containsExactly()
+        assertThat(repository.hentAvvik()).isEmpty()
     }
 
     @Test
@@ -147,7 +150,7 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
 
         repository.oppdaterAvvik()
 
-        assertThat(repository.hentAvvik()).containsExactly()
+        assertThat(repository.hentAvvik()).isEmpty()
     }
 
     @Test
@@ -165,7 +168,54 @@ class AvvikRepositoryOgAnalyseTest : WithDatabase {
 
         repository.oppdaterAvvik()
 
-        assertThat(repository.hentAvvik()).containsExactly()
+        assertThat(repository.hentAvvik()).isEmpty()
+    }
+
+    @Test
+    fun `skal kunne lese alle typer ident typer`() = runBlocking {
+        val repository = AvvikRepository(dataSource(), dataSource())
+
+        insertPersonIdent(
+            klass = "AnnenPerson",
+            nr = "123"
+        )
+        insertPersonIdent(
+            klass = "FysiskPerson",
+            nr = "456"
+        )
+        insertPersonIdent(
+            klass = "JuridiskPerson",
+            nr = "789"
+        )
+        insertM22Owner(id = 1, eierforholdkodeid = 18, nr = "123")
+        insertM22Owner(id = 1, eierforholdkodeid = 18, nr = "456")
+        insertM22Owner(id = 1, eierforholdkodeid = 18, nr = "789")
+
+        repository.oppdaterAvvik()
+
+        assertThat(repository.hentAvvik()).containsExactlyInAnyOrder(
+            AvvikRepository.Avvik(
+                matrikkelenhetId = 1L,
+                nr = "123",
+                identType = AvvikRepository.IdentType.ANNEN_PERSON,
+                eierforholdKodeId = 18,
+                type = AvvikRepository.AvvikType.EKSTRA_I_M22
+            ),
+            AvvikRepository.Avvik(
+                matrikkelenhetId = 1L,
+                nr = "456",
+                identType = AvvikRepository.IdentType.FYSISK_PERSON,
+                eierforholdKodeId = 18,
+                type = AvvikRepository.AvvikType.EKSTRA_I_M22
+            ),
+            AvvikRepository.Avvik(
+                matrikkelenhetId = 1L,
+                nr = "789",
+                identType = AvvikRepository.IdentType.JURIDISK_PERSON,
+                eierforholdKodeId = 18,
+                type = AvvikRepository.AvvikType.EKSTRA_I_M22
+            )
+        )
     }
 
     fun <A> runInSession(fn: Session.() -> A): A {
