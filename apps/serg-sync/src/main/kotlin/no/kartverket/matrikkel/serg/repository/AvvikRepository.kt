@@ -18,8 +18,9 @@ class AvvikRepository(
     data class Avvik(
         val matrikkelenhetId: Long,
         val nr: String,
+        val identType: IdentType,
         val eierforholdKodeId: Int,
-        val type: AvvikType
+        val type: AvvikType,
     ) {
         companion object
     }
@@ -29,7 +30,17 @@ class AvvikRepository(
 
         companion object {
             private val map = entries.associateBy { it.value }
-            fun fromDbValue(value: String): AvvikType = map.getValue(value)
+            fun fromDbValue(value: String) = map.getValue(value)
+        }
+    }
+    enum class IdentType(val value: String) {
+        FYSISK_PERSON("FysiskPerson"),
+        JURIDISK_PERSON("JuridiskPerson"),
+        ANNEN_PERSON("AnnenPerson");
+
+        companion object {
+            private val map = entries.associateBy { it.value }
+            fun fromDbValue(value: String) = map.getValue(value)
         }
     }
 
@@ -77,8 +88,9 @@ private fun AvvikRepository.Avvik.Companion.fromRow(row: Row): AvvikRepository.A
     return AvvikRepository.Avvik(
         matrikkelenhetId = row.long("id"),
         nr = row.string("nr"),
+        identType = AvvikRepository.IdentType.fromDbValue(row.string("ident_type")),
         eierforholdKodeId = row.int("eierforholdkodeid"),
-        type = AvvikRepository.AvvikType.fromDbValue(row.string("diff_type"))
+        type = AvvikRepository.AvvikType.fromDbValue(row.string("diff_type")),
     )
 }
 
