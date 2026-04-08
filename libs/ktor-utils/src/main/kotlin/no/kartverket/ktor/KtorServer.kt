@@ -40,7 +40,7 @@ object KtorServer {
         Runtime.getRuntime().addShutdownHook(
             Thread {
                 logger.info("Shutdown hook called, shutting down gracefully")
-                server.stop(5000, 5000)
+                server.stop(5000, 30000)
             },
         )
 
