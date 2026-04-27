@@ -57,7 +57,7 @@ jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", versi
 jacksonJSR310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref="jacksonVersion" }
 micrometerPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheusVersion"}
 
-nimbusOidcSDK = { module = "com.nimbusds:oauth2-oidc-sdk", version = "11.33" }
+nimbusOidcSDK = { module = "com.nimbusds:oauth2-oidc-sdk", version = "11.37" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version = "3.2.3" }
 
 flyway = { module = "org.flywaydb:flyway-core", version.ref = "flywayVersion" }
