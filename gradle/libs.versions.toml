@@ -3,11 +3,11 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kotlinxDatetime = "0.7.1"
 kotlinxSerializationJSON = "1.9.0"
 kotlinxCoroutines = "1.10.2"
-ktorVersion = "3.4.2"
+ktorVersion = "3.4.3"
 kotliQueryVersion = "1.9.1"
 openapi = "7.18.0"
 jacksonVersion = "2.21.2"
@@ -18,7 +18,7 @@ junitVersion = "6.0.3"
 assertkVersion = "0.28.1"
 mockk="1.14.9"
 testcontainersVersion = "1.21.4"
-prometheusVersion = "1.6.2"
+prometheusVersion = "1.16.5"
 hikariVersion = "7.0.2"
 
 [libraries]
@@ -57,7 +57,7 @@ jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", versi
 jacksonJSR310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref="jacksonVersion" }
 micrometerPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheusVersion"}
 
-nimbusOidcSDK = { module = "com.nimbusds:oauth2-oidc-sdk", version = "11.33" }
+nimbusOidcSDK = { module = "com.nimbusds:oauth2-oidc-sdk", version = "11.37" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version = "3.2.3" }
 
 flyway = { module = "org.flywaydb:flyway-core", version.ref = "flywayVersion" }
