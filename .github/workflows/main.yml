@@ -178,7 +178,6 @@ jobs:
           apps: |
             atkv3-prod:matrikkel-main:matrikkel-serg-sync:${{ needs.version.outputs.version }}
       - name: Verify deployment to production
-        if: false # Disabler sjekken her mens vi venter på at vi kan skru på auto-sync i argo
         uses: kartverket/matrikkel-actions/k8s-deployment-feedback@main
         with:
           cluster: ${{ env.PROD_CLUSTER_NAME }}
