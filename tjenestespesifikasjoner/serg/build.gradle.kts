@@ -16,12 +16,12 @@ dependencies {
 
 tasks.register<GenerateTask>("generateForHendelser") {
     val specFile = file("openapi-hendelser.json")
-    inputSpec = specFile.toURI().toString()
+    inputSpec = specFile
     outputDir =
         layout.buildDirectory
             .dir("generated/hendelser")
             .get()
-            .asFile.path
+            .asFile
     skipValidateSpec = true
     generateModelDocumentation = false
     generateModelTests = false
@@ -43,12 +43,12 @@ tasks.register<GenerateTask>("generateForHendelser") {
 
 tasks.register<GenerateTask>("generateForFormueobjekt") {
     val specFile = file("openapi-formueobjekt.json")
-    inputSpec = specFile.toURI().toString()
+    inputSpec = specFile
     outputDir =
         layout.buildDirectory
             .dir("generated/formueobjekt")
             .get()
-            .asFile.path
+            .asFile
     skipValidateSpec = true
     generateModelDocumentation = false
     generateModelTests = false
