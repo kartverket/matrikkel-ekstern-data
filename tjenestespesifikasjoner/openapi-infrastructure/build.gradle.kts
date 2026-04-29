@@ -13,8 +13,8 @@ dependencies {
 val generatedDir = layout.buildDirectory.dir("generated/infra")
 openApiGenerate {
     val specFile = file("placeholder.yaml")
-    inputSpec = specFile.toURI().toString()
-    outputDir = generatedDir.get().asFile.path
+    inputSpec = specFile
+    outputDir = generatedDir.get().asFile
     skipValidateSpec = true
     generateModelDocumentation = false
     generateModelTests = false
