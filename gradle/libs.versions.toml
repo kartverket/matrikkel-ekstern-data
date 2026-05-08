@@ -6,7 +6,7 @@
 kotlin = "2.3.21"
 kotlinxDatetime = "0.7.1"
 kotlinxSerializationJSON = "1.11.0"
-kotlinxCoroutines = "1.10.2"
+kotlinxCoroutines = "1.11.0"
 ktorVersion = "3.4.3"
 kotliQueryVersion = "1.9.1"
 openapi = "7.22.0"
