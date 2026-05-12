@@ -22,7 +22,7 @@ prometheusVersion = "1.16.5"
 hikariVersion = "7.0.2"
 
 [libraries]
-slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
+slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.18" }
 logbackClassic = { module = "ch.qos.logback:logback-classic", version = "1.5.32" }
 logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 
