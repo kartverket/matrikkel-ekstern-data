@@ -6,9 +6,11 @@ import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.ApplicationEngineFactory
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.EngineConnectorBuilder
+import io.ktor.server.engine.addShutdownHook
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration.Companion.seconds
 
 object KtorServer {
     private val logger = LoggerFactory.getLogger(KtorServer::class.java)
@@ -33,16 +35,15 @@ object KtorServer {
                             this.port = port
                         },
                     )
+                    shutdownGracePeriod = 5.seconds.inWholeMilliseconds
+                    shutdownTimeout = 30.seconds.inWholeMilliseconds
                     configure()
                 },
             )
 
-        Runtime.getRuntime().addShutdownHook(
-            Thread {
-                logger.info("Shutdown hook called, shutting down gracefully")
-                server.stop(5000, 30000)
-            },
-        )
+        server.addShutdownHook {
+            logger.info("Shutdown hook called, shutting down gracefully")
+        }
 
         return server
     }
