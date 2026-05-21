@@ -2,11 +2,32 @@
 apiVersion: "backstage.io/v1alpha1"
 kind: "Component"
 metadata:
+  name: "matrikkel-ekstern-data"
+  title: "Matrikkel ekstern data sync Repo"
+  description: "Repo for sync apper"
+  annotations:
+    github.com/project-slug: "kartverket/matrikkel-ekstern-data"
+    backstage.io/source-location: "url:https://github.com/kartverket/matrikkel-ekstern-data"
+
+spec:
+  type: "application-group"
+  lifecycle: "production"
+  owner: "heimdall"
+  system: "m22"
+---
+apiVersion: "backstage.io/v1alpha1"
+kind: "Component"
+metadata:
   name: "matrikkel-serg-sync"
+  title: "matrikkel-serg-sync"
   tags:
     - "public"
+  annotations:
+    github.com/project-slug: "kartverket/matrikkel-ekstern-data"
+    backstage.io/source-location: "url:https://github.com/kartverket/matrikkel-ekstern-data/tree/main/apps/serg-sync"
 spec:
   type: "service"
   lifecycle: "production"
   owner: "heimdall"
   system: "m22"
+  subcomponentOf: "matrikkel-ekstern-data"
