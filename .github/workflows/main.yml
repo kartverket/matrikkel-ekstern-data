@@ -166,7 +166,7 @@ jobs:
       - name: Deploy to production
         uses: kartverket/matrikkel-actions/heimdall-deploy@skip-deploy
         with:
-          cluster: 'atkv3-prod-user-cluster'
+          cluster: 'atkv3-prod'
           resource: '.skip/matrikkel-serg-sync.yaml'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
