@@ -1,0 +1,63 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: matrikkel-serg-sync
+  namespace: matrikkel-main
+spec:
+  image: "{{image}}"
+  port: 8090
+  ingresses:
+    - matrikkel-serg-sync.atkv3-prod.kartverket-intern.cloud
+  replicas: 1
+
+  liveness:
+    port: 8090
+    path: /internal/isAlive
+    initialDelay: 10      # default: 0
+    failureThreshold: 6   # default: 3
+  readiness:
+    port: 8090
+    path: /internal/isReady
+    initialDelay: 10      # default: 0
+    failureThreshold: 6   # default: 3
+  prometheus:
+    port: 8090
+    path: /internal/metrics
+    allowAllMetrics: true
+
+  accessPolicy:
+    outbound:
+      external:
+        - host: formuesobjektfasteiendomhendelser.api.skatteetaten.no
+        - host: formuesobjektfasteiendom.api.skatteetaten.no
+        - host: maskinporten.no
+
+  databases:
+    - name: matrikkel-serg-sync
+      envName: DB_URL
+
+  env:
+    - name: DB_USER_USERNAME
+      value: "matrikkel_serg_sync_user"
+    - name: DB_USER_PASSWORD
+      gsmSecretName: "prod-matrikkel-serg-sync-db-user-password"
+    - name: DB_ADMIN_USERNAME
+      value: "matrikkel_serg_sync_admin"
+    - name: DB_ADMIN_PASSWORD
+      gsmSecretName: "prod-matrikkel-serg-sync-db-admin-password"
+    - name: SERG_HENDELSER_URL
+      value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten.no/v1"
+    - name: SERG_FORMUEOBJEKT_URL
+      value: "https://formuesobjektfasteiendom.api.skatteetaten.no/v1"
+    - name: SERG_CLIENT_ID
+      value: "024f247e-3b41-4325-8811-cfc81e852c11"
+    - name: SERG_PRIVATE_JWK
+      gsmSecretName: "prod-ekstern-data-serg-private-jwk"
+    - name: SERG_TOKEN_ENDPOINT
+      value: "https://maskinporten.no/token"
+    - name: RUN_HENDELSE_SYNC
+      value: "true"
+    - name: RUN_FORMUEOBJEKT_SYNC
+      value: "true"
+    - name: VERSION
+      value: "{{version}}"
