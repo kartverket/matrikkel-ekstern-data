@@ -27,6 +27,7 @@ fun runApplication() {
             }
             install(Selftest.Plugin) {
                 appname = "matrikkel-serg-sync"
+                version = config.version
             }
 
             val syncJobs = buildList<SyncJob> {

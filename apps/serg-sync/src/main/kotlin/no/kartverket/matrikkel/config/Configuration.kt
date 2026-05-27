@@ -28,6 +28,7 @@ class Configuration(
     ),
     val runHendelseSync: Boolean = getConfig("RUN_HENDELSE_SYNC")?.toBooleanStrictOrNull() ?: false,
     val runFormueobjektSync: Boolean = getConfig("RUN_FORMUEOBJEKT_SYNC")?.toBooleanStrictOrNull() ?: false,
+    val version: String = getConfig("VERSION") ?: "N/A"
 )
 
 class Credential(
