@@ -163,11 +163,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-      - name: Deploy matrikkel-proxy to production
+      - name: Deploy to production
         uses: kartverket/matrikkel-actions/heimdall-deploy@skip-deploy
         with:
           cluster: 'atkv3-prod-user-cluster'
           resource: '.skip/matrikkel-serg-sync.yaml'
-          print_payload: 'false'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
