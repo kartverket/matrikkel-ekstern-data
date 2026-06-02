@@ -28,7 +28,7 @@ jobs:
         run: |
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/serg-sync:${version}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/matrikkel-serg-sync:${version}" >> "$GITHUB_OUTPUT"
 
   test:
     name: Run tests
