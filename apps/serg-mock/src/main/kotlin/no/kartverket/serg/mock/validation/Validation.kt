@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalContracts::class)
 
-package no.kartverket.validation
+package no.kartverket.serg.mock.validation
 
 import kotlin.contracts.ExperimentalContracts
 

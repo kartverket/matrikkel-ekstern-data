@@ -6,7 +6,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
-import no.kartverket.kotlin.SelftestGenerator
+import no.kartverket.heimdall.common.ktor.plugins.Metrics
+import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
@@ -68,7 +69,7 @@ class Services(
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
         client = sergHttpClient.newBuilder()
-            .addInterceptorAtStart(MetricsInterceptor("HendelserApi", prometheusRegistry))
+            .addInterceptorAtStart(MetricsInterceptor("HendelserApi", Metrics.Registry))
             .build(),
     )
 
@@ -88,7 +89,7 @@ class Services(
     val formueobjektApi = FormuesobjektFastEiendomApi(
         basePath = config.sergFormueobjektUrl,
         client = sergHttpClient.newBuilder()
-            .addInterceptorAtStart(MetricsInterceptor("FormuesobjektFastEiendomApi", prometheusRegistry))
+            .addInterceptorAtStart(MetricsInterceptor("FormuesobjektFastEiendomApi", Metrics.Registry))
             .build(),
     )
 

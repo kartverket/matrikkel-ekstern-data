@@ -5,9 +5,9 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import no.kartverket.ktor.KtorServer
-import no.kartverket.ktor.Metrics
-import no.kartverket.ktor.Selftest
+import no.kartverket.heimdall.common.ktor.utils.KtorServer
+import no.kartverket.heimdall.common.ktor.plugins.Metrics
+import no.kartverket.heimdall.common.ktor.plugins.selftest.Selftest
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import kotlin.reflect.KSuspendFunction0
@@ -22,9 +22,7 @@ fun runApplication() {
 
     KtorServer
         .create(Netty, port = 8090) {
-            install(Metrics.Plugin) {
-                registry = prometheusRegistry
-            }
+            install(Metrics.Plugin)
             install(Selftest.Plugin) {
                 appname = "matrikkel-serg-sync"
                 version = config.version
