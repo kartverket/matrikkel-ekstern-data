@@ -8,6 +8,14 @@ dependencyResolutionManagement {
     @Suppress("UnstableApiUsage")
     repositories {
         mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/kartverket/matrikkel")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: System.getenv("GITHUB_USER") ?: "token"
+                password = System.getenv("PACKAGES_TOKEN") ?: System.getenv("KV_PACKAGES_PAT") ?: System.getenv("GH_PACKAGES_PAT")
+            }
+        }
     }
 }
 
@@ -22,7 +30,6 @@ plugins {
 include(":apps:serg-sync")
 include(":apps:serg-mock")
 include(":libs:kotlin-utils")
-include(":libs:ktor-utils")
 include(":libs:logging")
 include(":libs:oidc-token-client")
 include(":tjenestespesifikasjoner:openapi-infrastructure")

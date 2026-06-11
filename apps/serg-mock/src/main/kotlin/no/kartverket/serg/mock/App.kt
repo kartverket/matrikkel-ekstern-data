@@ -17,9 +17,9 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.kartverket.ktor.KtorServer
-import no.kartverket.ktor.Metrics
-import no.kartverket.ktor.Selftest
+import no.kartverket.heimdall.common.ktor.plugins.Metrics
+import no.kartverket.heimdall.common.ktor.plugins.selftest.Selftest
+import no.kartverket.heimdall.common.ktor.utils.KtorServer
 import no.kartverket.serg.mock.infrastructure.ErrorHandler
 import org.openapitools.client.infrastructure.Serializer
 import org.slf4j.Logger

@@ -3,6 +3,7 @@ package no.kartverket.matrikkel
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Timer as MetricsTimer
 import kotlinx.coroutines.runBlocking
+import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import java.util.Timer
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.fixedRateTimer
@@ -18,7 +19,7 @@ fun <T : Number> refreshingGauge(
 ): Timer {
     val state = GuageState()
     Gauge.builder(name) { state.value ?: 0.0 }
-        .register(prometheusRegistry)
+        .register(Metrics.Registry)
 
     return fixedRateTimer(
         name = "${name}_refresh",
@@ -37,7 +38,7 @@ fun <T : Number> refreshingGauge(
 }
 
 suspend fun <T> timed(name: String, fn: suspend () -> T): T {
-    val timer = MetricsTimer.builder(name).register(prometheusRegistry)
+    val timer = MetricsTimer.builder(name).register(Metrics.Registry)
     val start = System.nanoTime()
 
     return try {

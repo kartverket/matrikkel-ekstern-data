@@ -1,4 +1,4 @@
-package no.kartverket.validation
+package no.kartverket.serg.mock.validation
 
 // INT validators
 @JvmName("intInRange")

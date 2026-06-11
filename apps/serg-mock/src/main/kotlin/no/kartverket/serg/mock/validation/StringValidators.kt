@@ -1,4 +1,4 @@
-package no.kartverket.validation
+package no.kartverket.serg.mock.validation
 
 fun Field<String>.nonBlank(error: ValidationError) =
     refine(

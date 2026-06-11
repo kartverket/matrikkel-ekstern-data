@@ -4,7 +4,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
-import no.kartverket.kotlin.SelftestGenerator
+import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.timed
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse

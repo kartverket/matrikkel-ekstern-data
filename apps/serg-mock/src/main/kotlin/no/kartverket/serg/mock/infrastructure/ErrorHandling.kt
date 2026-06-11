@@ -9,7 +9,7 @@ import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import no.kartverket.serg.mock.AdminErrorResponse
 import no.kartverket.serg.mock.logger
-import no.kartverket.validation.ValidationException
+import no.kartverket.serg.mock.validation.ValidationException
 import java.util.UUID
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Feil as HendelserFeil
 
