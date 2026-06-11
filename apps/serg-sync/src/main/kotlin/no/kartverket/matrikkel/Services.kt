@@ -144,7 +144,7 @@ class Services(
 
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
-        val sergReporter = SelftestGenerator.Reporter("serg-register", critical = true)
+        val sergReporter = SelftestGenerator.Reporter("serg-register", critical = false)
         val hendelserStatus: HendelserStatus by cache(ttl = 1.minutes.toJavaDuration()) {
             runBlocking {
                 kalkulerHendelserStatus()
