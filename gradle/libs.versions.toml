@@ -19,7 +19,7 @@ assertkVersion = "0.28.1"
 mockk="1.14.11"
 testcontainersVersion = "1.21.4"
 prometheusVersion = "1.17.0"
-hikariVersion = "7.0.2"
+hikariVersion = "7.1.0"
 
 [libraries]
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.18" }
