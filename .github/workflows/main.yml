@@ -46,6 +46,8 @@ jobs:
 
       - name: Run tests
         run: ./gradlew test --no-daemon
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   package-image:
     name: Build and (conditionally) Push Docker Image
@@ -60,6 +62,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -70,6 +79,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build app
+        run: ./gradlew :apps:serg-sync:installDist --no-daemon
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Docker image
         uses: docker/build-push-action@v7
         env:

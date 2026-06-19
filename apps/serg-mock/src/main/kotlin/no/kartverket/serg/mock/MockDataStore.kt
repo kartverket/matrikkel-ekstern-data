@@ -2,8 +2,8 @@ package no.kartverket.serg.mock
 
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
-import no.kartverket.validation.V
-import no.kartverket.validation.inRange
+import no.kartverket.serg.mock.validation.V
+import no.kartverket.serg.mock.validation.inRange
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock

@@ -1,7 +1,7 @@
 package no.kartverket.matrikkel.serg.hendelser
 
 import kotlinx.coroutines.runBlocking
-import no.kartverket.kotlin.SelftestGenerator
+import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.serg.repository.HendelseRepository

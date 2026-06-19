@@ -1,8 +1,8 @@
-package no.kartverket.ktor.validation
+package no.kartverket.serg.mock
 
 import io.ktor.server.application.ApplicationCall
-import no.kartverket.validation.Field
-import no.kartverket.validation.V
+import no.kartverket.serg.mock.validation.Field
+import no.kartverket.serg.mock.validation.V
 
 fun ApplicationCall.queryField(name: String): Field<String?> = V.field(name = name, value = request.queryParameters[name])
 

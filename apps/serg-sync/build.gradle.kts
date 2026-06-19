@@ -6,8 +6,9 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.bundles.ktorEcosystem)
     implementation(project(":tjenestespesifikasjoner:serg"))
-    implementation(project(":libs:ktor-utils"))
+    implementation(libs.ktorUtils)
     implementation(project(":libs:kotlin-utils"))
     implementation(project(":libs:oidc-token-client"))
     implementation(project(":libs:logging"))
