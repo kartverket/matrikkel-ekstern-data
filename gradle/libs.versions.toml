@@ -19,7 +19,7 @@ assertkVersion = "0.28.1"
 mockk="1.14.11"
 testcontainersVersion = "1.21.4"
 prometheusVersion = "1.17.0"
-hikariVersion = "7.0.2"
+hikariVersion = "7.1.0"
 heimdallCommonVersion = "1.2026.06.11-12.57-9522e1e"
 
 [libraries]
