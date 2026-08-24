@@ -18,7 +18,7 @@ junitVersion = "6.1.3"
 assertkVersion = "0.28.1"
 mockk="1.14.11"
 testcontainersVersion = "1.21.4"
-prometheusVersion = "1.17.0"
+prometheusVersion = "1.17.1"
 hikariVersion = "7.1.0"
 heimdallCommonVersion = "1.2026.06.22-10.39-385bd25"
 
