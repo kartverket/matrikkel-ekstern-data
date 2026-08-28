@@ -14,7 +14,14 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "docker"
-    directory: "/apps"
+    directory: "/apps/serg-sync"
+    schedule:
+      interval: "daily"
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "docker"
+    directory: "/apps/serg-mock"
     schedule:
       interval: "daily"
     ignore:
