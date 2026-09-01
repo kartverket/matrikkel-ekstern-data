@@ -27,7 +27,7 @@ metadata:
     backstage.io/source-location: "url:https://github.com/kartverket/matrikkel-ekstern-data/tree/main/apps/serg-sync"
 spec:
   type: "service"
-  lifecycle: "production"
+  lifecycle: "development"
   owner: "heimdall"
   system: "m22"
   subcomponentOf: "matrikkel-ekstern-data"
