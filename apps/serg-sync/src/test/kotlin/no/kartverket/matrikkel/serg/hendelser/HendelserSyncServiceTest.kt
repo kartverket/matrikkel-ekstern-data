@@ -7,10 +7,13 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isSuccess
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
@@ -23,13 +26,15 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class HendelserSyncServiceTest : WithDatabase {
+
     @Test
     fun `start fra 1 om sekvensnumemr ikke er satt`() = runBlocking {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.delete("sekvensnummer")
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -42,8 +47,9 @@ class HendelserSyncServiceTest : WithDatabase {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -56,8 +62,9 @@ class HendelserSyncServiceTest : WithDatabase {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
 
         assertThat(result)
             .isFailure()
@@ -78,8 +85,11 @@ class HendelserSyncServiceTest : WithDatabase {
             hendelse(id = 1002L, type = Hendelsestype.slettet, seq = 11L),
         )
         val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        coEvery { messageProducer.send(any()) } returns CompletableDeferred(Unit)
+
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
 
         assertThat(result)
             .isSuccess()
@@ -108,9 +118,9 @@ class HendelserSyncServiceTest : WithDatabase {
         every {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } throws RuntimeException("SERG unavailable")
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
-
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
         assertThat(result)
             .isFailure()
             .isInstanceOf(RuntimeException::class)
@@ -134,8 +144,9 @@ class HendelserSyncServiceTest : WithDatabase {
                 hendelse(id = 2002L, type = Hendelsestype.slettet, seq = 14L)
             )
         )
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, messageProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {

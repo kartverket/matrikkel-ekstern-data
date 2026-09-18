@@ -3,8 +3,9 @@ package no.kartverket.matrikkel.serg.hendelser
 import kotlinx.coroutines.runBlocking
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.retry
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.logger
-import no.kartverket.matrikkel.serg.repository.HendelseRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.withTransaction
@@ -16,11 +17,11 @@ import javax.sql.DataSource
 class HendelserSyncService(
     private val dataSource: DataSource,
     private val hendelserApi: HendelserApi,
+    private val messageProducer : MessageProducer<UUID, Hendelse>
 ) {
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
     private val dokumentRepository = SergDokumentRepository(dataSource)
-    private val hendelseRepository = HendelseRepository(dataSource)
 
     init {
         SelftestGenerator.Metadata(sekvensnummerKey) {
@@ -44,7 +45,7 @@ class HendelserSyncService(
 
                 for (hendelse in hendelser) {
                     val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
-                    hendelseRepository.insert(tx, hendelse)
+                    messageProducer.send(ProducerRecord(hendelse.hendelseidentifikator!!, hendelse))
                     try {
                         if (hendelse.matrikkelUnikIdentifikator == null) {
                             logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")

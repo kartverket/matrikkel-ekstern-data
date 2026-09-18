@@ -7,9 +7,12 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.prop
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
@@ -32,9 +35,12 @@ import java.util.UUID
 import kotlin.random.Random
 
 class SyncFullTest : WithDatabase {
+
     @Test
     fun `should read all data`() = runBlocking {
         val (ctrl, hendelseApi, formueobjektApi) = SergMock().build()
+        val messageProducer = mockk<MessageProducer<UUID, Hendelse>>()
+        coEvery { messageProducer.send(any()) } returns CompletableDeferred(Unit)
 
         ctrl
             .lagFormueobjekt(1000)
@@ -45,7 +51,7 @@ class SyncFullTest : WithDatabase {
 
         val kvRepo = KeyValueRepository(dataSource())
         val sergDokumentRepo = SergDokumentRepository(dataSource())
-        val hendelserSync = HendelserSyncService(dataSource(), hendelseApi)
+        val hendelserSync = HendelserSyncService(dataSource(), hendelseApi, messageProducer)
         val formueobjektSync = FormuesobjektSyncService(dataSource(), formueobjektApi)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1")
@@ -70,7 +76,6 @@ class SyncFullTest : WithDatabase {
         }
         assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(0)
         assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SYNKRONISERT, limit = 3000)).hasSize(900)
-
 
         ctrl
             .slettFormueobjekt(100)
