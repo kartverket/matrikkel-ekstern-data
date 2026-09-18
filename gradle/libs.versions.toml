@@ -21,12 +21,14 @@ testcontainersVersion = "1.21.4"
 prometheusVersion = "1.17.1"
 hikariVersion = "7.1.0"
 heimdallCommonVersion = "1.2026.09.14-06.39-8d9c917"
+kafkaLightVersion = "2026.09.17-10.20-7f2a52b"
 
 [libraries]
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.19" }
 logbackClassic = { module = "ch.qos.logback:logback-classic", version = "1.6.3" }
 logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 ktorUtils = { module = "no.kartverket.heimdall.common:ktor-utils", version.ref = "heimdallCommonVersion"}
+kafkaLight = { module = "no.kartverket.kafkalight:client", version.ref = "kafkaLightVersion"}
 
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }

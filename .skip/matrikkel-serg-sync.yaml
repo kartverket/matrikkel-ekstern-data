@@ -68,3 +68,5 @@ spec:
       value: "true"
     - name: VERSION
       value: "{{version}}"
+    - name: KAFKA_LIGHT_URL
+      gsmSecretName: "https://matrikkel-kafka-light"

@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -11,6 +12,9 @@ import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.HendelseSerde
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.UUIDSerde
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
@@ -66,6 +70,18 @@ class Services(
         )
         .build()
 
+    val clientConfig =
+        MessageProducer.Config(
+            server = Url(config.kafkaLightUrl),
+            authentication = null,
+            topic = "SERG_HENDELSER_FOR_FORMUESOBJEKT_FAST_EIENDOM_THIN",
+            keySerializer = UUIDSerde,
+            valueSerializer = HendelseSerde,
+            correlationIdProvider = { UUID.randomUUID().toString() }
+        )
+
+    val producer = MessageProducer.Impl(clientConfig)
+
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
         client = sergHttpClient.newBuilder()
@@ -76,6 +92,7 @@ class Services(
     val hendelserSyncService = HendelserSyncService(
         dataSource = dataSource,
         hendelserApi = hendelserApi,
+        messageProducer = producer
     )
 
     val hendelserSyncJob = HendelserSyncJob(
