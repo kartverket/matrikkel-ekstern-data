@@ -12,9 +12,13 @@ import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.FastEiendomSomFormuesobjektSerde
 import no.kartverket.matrikkel.config.HendelseSerde
+import no.kartverket.matrikkel.config.KafkaClientAuthentication
+import no.kartverket.matrikkel.kafkaclient.InitialOffsetPolicy
+import no.kartverket.matrikkel.kafkaclient.LongSerde
+import no.kartverket.matrikkel.kafkaclient.MessageConsumer
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
-import no.kartverket.matrikkel.kafkaclient.UUIDSerde
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
@@ -24,8 +28,6 @@ import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
 import no.kartverket.matrikkel.serg.repository.AvvikRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
@@ -52,8 +54,7 @@ class Services(
     )
 
     val keyValueRepository = KeyValueRepository(dataSource)
-    val sergDokumentRepository = SergDokumentRepository(dataSource)
-    val avvikRepository = AvvikRepository(
+    val avvikRepository = AvvikRepository( //@TODO: Skal avvik fortsatt lagres i egen tabell?
         dataSource = dataSource,
         adminDataSource = DataSourceConfiguration.createDatasource(
             config.database.jdbcUrl,
@@ -70,17 +71,44 @@ class Services(
         )
         .build()
 
-    val clientConfig =
-        MessageProducer.Config(
-            server = Url(config.kafkaLightUrl),
-            authentication = null,
-            topic = "SERG_HENDELSER_FOR_FORMUESOBJEKT_FAST_EIENDOM_THIN",
-            keySerializer = UUIDSerde,
-            valueSerializer = HendelseSerde,
-            correlationIdProvider = { UUID.randomUUID().toString() }
+    val kafkaSergThinFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication, //@TODO: Var det noe fra m22 repo som kan gjennbrukes her?
+                topic = "SERG_HENDELSER_FOR_FORMUESOBJEKT_FAST_EIENDOM_THIN",
+                keySerializer = LongSerde,
+                valueSerializer = HendelseSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
         )
 
-    val producer = MessageProducer.Impl(clientConfig)
+    val kafkaSergThickFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication,
+                topic = "SERG_HENDELSER_FOR_FORMUESOBJEKT_FAST_EIENDOM_THICK",
+                keySerializer = LongSerde,
+                valueSerializer = FastEiendomSomFormuesobjektSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
+        )
+
+    val kafkaSergThinFeedConsumer =
+        MessageConsumer.Impl(
+            config = MessageConsumer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication,
+                topic = "SERG_HENDELSER_FOR_FORMUESOBJEKT_FAST_EIENDOM_THIN",
+                keySerializer = LongSerde,
+                valueSerializer = HendelseSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                consumerGroup = "serg-sync",
+                instanceId = "test-instance-id",
+                initialOffsetPolicy = InitialOffsetPolicy.EARLIEST
+            )
+        )
 
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
@@ -92,7 +120,7 @@ class Services(
     val hendelserSyncService = HendelserSyncService(
         dataSource = dataSource,
         hendelserApi = hendelserApi,
-        messageProducer = producer
+        messageProducer = kafkaSergThinFeedProducer
     )
 
     val hendelserSyncJob = HendelserSyncJob(
@@ -111,9 +139,11 @@ class Services(
     )
 
     val formueobjektSyncService = FormuesobjektSyncService(
-        dataSource = dataSource,
         formueobjektApi = formueobjektApi,
+        messageConsumer = kafkaSergThinFeedConsumer,
+        messageProducer = kafkaSergThickFeedProducer
     )
+
     val formueobjektSyncJob = FormueobjektSyncJob(
         syncService = formueobjektSyncService,
         config = FormueobjektSyncJob.Config(
@@ -151,15 +181,6 @@ class Services(
         return HendelserStatus(startIDag, naverendeSekvensnummer)
     }
 
-    private suspend fun antallJobberMedStatus(status: SergDokumentStatus): Long {
-        return runCatching {
-            sergDokumentRepository.tellEtterStatus(status)
-        }.fold(
-            onSuccess = { it },
-            onFailure = { -99 },
-        )
-    }
-
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = false)
@@ -171,9 +192,6 @@ class Services(
 
         timers += refreshingGauge("sync_hendelser_lag", period = 1.minutes) {
             hendelserStatus.lag()
-        }
-        timers += refreshingGauge("sync_hendeler_pending", period = 1.minutes) {
-            antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
         }
         timers += refreshingGauge("antall_avvik", period = 5.minutes) {
             avvikRepository.antallAvvik()
@@ -222,18 +240,6 @@ class Services(
         SelftestGenerator.Metadata("Sync hendeler lagg") {
             runBlocking {
                 hendelserStatus.lag().toString()
-            }
-        }
-
-        SelftestGenerator.Metadata("Antall som krever synkronisering") {
-            runBlocking {
-                antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING).toString()
-            }
-        }
-
-        SelftestGenerator.Metadata("Antall som har feilet") {
-            runBlocking {
-                antallJobberMedStatus(SergDokumentStatus.FEIL).toString()
             }
         }
     }

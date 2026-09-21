@@ -1,5 +1,7 @@
 package no.kartverket.matrikkel.serg.hendelser
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.retry
@@ -7,7 +9,6 @@ import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.logger
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.withTransaction
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
@@ -17,11 +18,10 @@ import javax.sql.DataSource
 class HendelserSyncService(
     private val dataSource: DataSource,
     private val hendelserApi: HendelserApi,
-    private val messageProducer : MessageProducer<UUID, Hendelse>
+    private val messageProducer : MessageProducer<Long, Hendelse>
 ) {
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
-    private val dokumentRepository = SergDokumentRepository(dataSource)
 
     init {
         SelftestGenerator.Metadata(sekvensnummerKey) {
@@ -43,17 +43,24 @@ class HendelserSyncService(
                     )
                 }.hendelser ?: emptyList()
 
+                val pendingSends: MutableList<CompletableDeferred<Unit>> = mutableListOf()
+
                 for (hendelse in hendelser) {
                     val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
-                    messageProducer.send(ProducerRecord(hendelse.hendelseidentifikator!!, hendelse))
                     try {
                         if (hendelse.matrikkelUnikIdentifikator == null) {
                             logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")
-                        } else if (hendelse.hendelsestype == null) {
-                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
-                        } else {
-                            dokumentRepository.upsertFraHendelse(tx, hendelse)
+                            continue
                         }
+                        if (hendelse.hendelsestype == null) {
+                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
+                            continue
+                        }
+                        pendingSends.add(messageProducer.send(ProducerRecord(
+                                key = hendelse.matrikkelUnikIdentifikator!!,
+                                value = hendelse
+                            )
+                        ))
                     } catch (e: IllegalStateException) {
                         logger.error(
                             "Kunne ikke lagre hendelse: ${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}",
@@ -61,6 +68,8 @@ class HendelserSyncService(
                         )
                     }
                 }
+
+                pendingSends.awaitAll()
 
                 val maxSekvensnummer = hendelser.maxOfOrNull { it.sekvensnummer ?: -1 } ?: -1
                 if (maxSekvensnummer > -1) {
