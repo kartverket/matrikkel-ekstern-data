@@ -31,11 +31,6 @@ jobs:
         uses: gradle/actions/dependency-submission@v6.3.0
         env:
           PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          # Exclude the Gradle plugin/buildscript classpath ("classpath" configuration).
-          # Dependencies are not part of compile/runtime classpath, and shouldn't block build.
-          # Added due to Ktor Gradle plugin which bundles jib-gradle-plugin which pins jackson-core
-          dependency-graph-exclude-configurations: '^classpath$' #
 
       - name: Perform dependency review
         if: github.event_name == 'pull_request'
