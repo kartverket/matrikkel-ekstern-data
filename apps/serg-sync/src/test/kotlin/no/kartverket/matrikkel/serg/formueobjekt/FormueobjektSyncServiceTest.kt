@@ -8,6 +8,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isSuccess
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -47,6 +48,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
         verify(exactly = 0) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 0) { kafkaSergFormuesobjektFastEiendomFeedProducer.send(any()) }
     }
 
     @Test
@@ -83,6 +85,9 @@ class FormueobjektSyncServiceTest : WithDatabase {
         verify(exactly = 1) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 1) {
+            kafkaSergFormuesobjektFastEiendomFeedProducer.send(any())
+        }
 
         assertThat(repository.hentData(requireId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
         assertThat(repository.hentData(syncedId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
@@ -106,6 +111,9 @@ class FormueobjektSyncServiceTest : WithDatabase {
         verify(exactly = 0) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 0) {
+            kafkaSergFormuesobjektFastEiendomFeedProducer.send(any())
+        }
     }
 
     @Test
@@ -128,6 +136,9 @@ class FormueobjektSyncServiceTest : WithDatabase {
         assertThat(data?.kommentar).isNull()
         verify(exactly = 1) {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
+        }
+        coVerify(exactly = 1) {
+            kafkaSergFormuesobjektFastEiendomFeedProducer.send(any())
         }
     }
 
@@ -175,6 +186,9 @@ class FormueobjektSyncServiceTest : WithDatabase {
         }
         verify(exactly = 1) {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
+        }
+        coVerify(exactly = 1) {
+            kafkaSergFormuesobjektFastEiendomFeedProducer.send(any())
         }
     }
 

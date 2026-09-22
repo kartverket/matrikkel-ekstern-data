@@ -8,6 +8,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isSuccess
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -43,6 +44,8 @@ class HendelserSyncServiceTest : WithDatabase {
 
         val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
+
         assertThat(result).isSuccess()
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
@@ -57,6 +60,8 @@ class HendelserSyncServiceTest : WithDatabase {
 
         val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
+
         assertThat(result).isSuccess()
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(123L, 1000, any())
@@ -70,6 +75,8 @@ class HendelserSyncServiceTest : WithDatabase {
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
 
         val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
+
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
 
         assertThat(result)
             .isFailure()
@@ -97,6 +104,12 @@ class HendelserSyncServiceTest : WithDatabase {
             .isSuccess()
             .isEqualTo(hendelser)
 
+        hendelser.forEach { hendelse ->
+            coVerify(exactly = 1) {
+                kafkaSergHendelserFeedProducer.send(match { it.value == hendelse })
+            }
+        }
+
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
         }
@@ -123,6 +136,8 @@ class HendelserSyncServiceTest : WithDatabase {
 
         val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
+
         assertThat(result)
             .isFailure()
             .isInstanceOf(RuntimeException::class)
@@ -135,21 +150,28 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `lagrer alle hendelser og rapporterer om eventuelle ugyldige data`() = runBlocking {
+    fun `lagrer alle hendelser og rapporterer om eventuelle ugyldige data`(): Unit = runBlocking {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
         val dokumentRepository = SergDokumentRepository(dataSource())
-        val hendelserApi = gittHendelseApiSomReturnerer(
-            listOf(
-                hendelse(id = 2001L, type = Hendelsestype.ny, seq = 12L),
-                hendelse(id = null, type = Hendelsestype.endret, seq = 13L), // Invalid, missing ID
-                hendelse(id = 2002L, type = Hendelsestype.slettet, seq = 14L)
-            )
+        val hendelser = listOf(
+            hendelse(id = 2001L, type = Hendelsestype.ny, seq = 12L),
+            hendelse(id = null, type = Hendelsestype.endret, seq = 13L), // Invalid, missing ID
+            hendelse(id = 2002L, type = Hendelsestype.slettet, seq = 14L)
         )
+        val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
 
         val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
+
+        hendelser.forEach { hendelse ->
+            val antall: Int = if (hendelse.matrikkelUnikIdentifikator != null) 1 else 0
+            coVerify(exactly = antall) {
+                kafkaSergHendelserFeedProducer.send(match { it.value == hendelse })
+            }
+        }
+
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
         }
