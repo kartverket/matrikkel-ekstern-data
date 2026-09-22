@@ -7,9 +7,12 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.prop
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
@@ -36,6 +39,11 @@ class SyncFullTest : WithDatabase {
     fun `should read all data`() = runBlocking {
         val (ctrl, hendelseApi, formueobjektApi) = SergMock().build()
 
+        val kafkaSergHendelserFeedProducer = mockk<MessageProducer<Long, Hendelse>>()
+        coEvery { kafkaSergHendelserFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+        val kafkaSergFormuesobjektFastEiendomFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesobjekt>>()
+        coEvery { kafkaSergFormuesobjektFastEiendomFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+
         ctrl
             .lagFormueobjekt(1000)
             .randomEndringer(500)
@@ -45,8 +53,8 @@ class SyncFullTest : WithDatabase {
 
         val kvRepo = KeyValueRepository(dataSource())
         val sergDokumentRepo = SergDokumentRepository(dataSource())
-        val hendelserSync = HendelserSyncService(dataSource(), hendelseApi)
-        val formueobjektSync = FormuesobjektSyncService(dataSource(), formueobjektApi)
+        val hendelserSync = HendelserSyncService(dataSource(), hendelseApi, kafkaSergHendelserFeedProducer)
+        val formueobjektSync = FormuesobjektSyncService(dataSource(), formueobjektApi,kafkaSergFormuesobjektFastEiendomFeedProducer)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1")
 

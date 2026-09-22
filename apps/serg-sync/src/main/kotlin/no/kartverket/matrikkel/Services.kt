@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -11,6 +12,13 @@ import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.FastEiendomSomFormuesobjektSerde
+import no.kartverket.matrikkel.config.HendelseSerde
+import no.kartverket.matrikkel.config.KafkaClientAuthentication
+import no.kartverket.matrikkel.kafkaclient.InitialOffsetPolicy
+import no.kartverket.matrikkel.kafkaclient.LongSerde
+import no.kartverket.matrikkel.kafkaclient.MessageConsumer
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
@@ -66,6 +74,45 @@ class Services(
         )
         .build()
 
+    val kafkaSergHendelserFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication, //@TODO: Var det noe fra m22 repo som kan gjennbrukes her?
+                topic = "SERG_HENDELSER",
+                keySerializer = LongSerde,
+                valueSerializer = HendelseSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
+        )
+
+    val kafkaSergFormuesobjektFastEiendomFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication,
+                topic = "SERG_FORMUESOBJEKT_FAST_EIENDOM",
+                keySerializer = LongSerde,
+                valueSerializer = FastEiendomSomFormuesobjektSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
+        )
+
+    /*val kafkaSergThinFeedConsumer =  @TODO: Implementasjon av consumer for hendelser som skal synkroniseres til formuesobjekt-fast-eiendom topic. Foreløpig leses hendelser fra hendelseRepository
+        MessageConsumer.Impl(
+            config = MessageConsumer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication,
+                topic = "SERG_HENDELSER",
+                keySerializer = LongSerde,
+                valueSerializer = HendelseSerde,
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                consumerGroup = "serg-sync",
+                instanceId = "test-instance-id",
+                initialOffsetPolicy = InitialOffsetPolicy.EARLIEST
+            )
+        ) */
+
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
         client = sergHttpClient.newBuilder()
@@ -76,6 +123,7 @@ class Services(
     val hendelserSyncService = HendelserSyncService(
         dataSource = dataSource,
         hendelserApi = hendelserApi,
+        messageProducer = kafkaSergHendelserFeedProducer
     )
 
     val hendelserSyncJob = HendelserSyncJob(
@@ -96,6 +144,7 @@ class Services(
     val formueobjektSyncService = FormuesobjektSyncService(
         dataSource = dataSource,
         formueobjektApi = formueobjektApi,
+        messageProducer = kafkaSergFormuesobjektFastEiendomFeedProducer
     )
     val formueobjektSyncJob = FormueobjektSyncJob(
         syncService = formueobjektSyncService,

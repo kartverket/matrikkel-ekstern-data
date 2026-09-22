@@ -15,6 +15,7 @@ enum class MigrationEnv(
 }
 
 class Configuration(
+    val kafkaLightUrl: String = getRequiredConfig("KAFKA_LIGHT_URL"),
     val sergHendelserUrl: String = getRequiredConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getRequiredConfig("SERG_FORMUEOBJEKT_URL"),
     val sergClientId: String = getRequiredConfig("SERG_CLIENT_ID"),

@@ -1,19 +1,26 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitAll
 import no.kartverket.kotlin.mapInParallell
 import no.kartverket.kotlin.retry
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.withTransaction
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import org.openapitools.client.infrastructure.ClientError
 import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
 import javax.sql.DataSource
+import no.kartverket.matrikkel.logger
 
 class FormuesobjektSyncService(
     private val dataSource: DataSource,
     private val formueobjektApi: FormuesobjektFastEiendomApi,
+    private val messageProducer : MessageProducer<Long, FastEiendomSomFormuesobjekt>
 ) {
     private val dokumentRepository = SergDokumentRepository(dataSource)
 
@@ -67,9 +74,24 @@ class FormuesobjektSyncService(
                     }
                 }
 
+                val pendingSends: MutableList<CompletableDeferred<Unit>> = mutableListOf()
+
                 for ((matrikkelenhetId, formueobjekt) in formueobjekter) {
+                    if (formueobjekt.isSuccess) {
+                        if (formueobjekt.getOrNull() == null) {
+                            logger.warn("Formuesobjekt for matrikkelenhetId: $matrikkelenhetId er null.")
+                        } else {
+                            pendingSends.add(messageProducer.send(ProducerRecord(
+                                key = matrikkelenhetId,
+                                value = formueobjekt.getOrNull()
+                            )))
+                        }
+                    } else {
+                        logger.error("Feil ved henting av formuesobjekt for matrikkelenhetId: $matrikkelenhetId", formueobjekt.exceptionOrNull())
+                    }
                     dokumentRepository.settFormueobjektdata(tx, matrikkelenhetId, formueobjekt)
                 }
+                pendingSends.awaitAll()
 
                 dokumenter.size // Return candidates processed
             }

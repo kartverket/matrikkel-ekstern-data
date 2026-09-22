@@ -7,10 +7,13 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isSuccess
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
@@ -19,17 +22,26 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelser
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class HendelserSyncServiceTest : WithDatabase {
+
+    private val kafkaSergHendelserFeedProducer = mockk<MessageProducer<Long, Hendelse>>()
+
+    @BeforeEach
+    fun setup() {
+        coEvery { kafkaSergHendelserFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+    }
+
     @Test
     fun `start fra 1 om sekvensnumemr ikke er satt`() = runBlocking {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.delete("sekvensnummer")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -43,7 +55,7 @@ class HendelserSyncServiceTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -57,7 +69,7 @@ class HendelserSyncServiceTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isFailure()
@@ -79,7 +91,7 @@ class HendelserSyncServiceTest : WithDatabase {
         )
         val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isSuccess()
@@ -109,7 +121,7 @@ class HendelserSyncServiceTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } throws RuntimeException("SERG unavailable")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isFailure()
@@ -135,7 +147,7 @@ class HendelserSyncServiceTest : WithDatabase {
             )
         )
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {

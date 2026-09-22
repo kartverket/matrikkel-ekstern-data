@@ -7,10 +7,13 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isSuccess
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
@@ -19,6 +22,7 @@ import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendo
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.sql.SQLException
 import java.util.UUID
@@ -26,12 +30,18 @@ import javax.sql.DataSource
 
 class FormueobjektSyncServiceTest : WithDatabase {
     private var nesteSekvensnummer = 0L
+    private val kafkaSergFormuesobjektFastEiendomFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesobjekt>>()
+
+    @BeforeEach
+    fun setup() {
+        coEvery { kafkaSergFormuesobjektFastEiendomFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+    }
 
     @Test
     fun `ingen dokumenter å synkronisere`() = runBlocking {
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 0) {
@@ -64,7 +74,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", requireHendelseId.toString(), any())
         } returns formueobjekt(requireId, requireHendelseId)
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -88,7 +98,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
         upsertHendelse(repository, id, hendelseId = null)
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.FEIL)
@@ -109,7 +119,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } returns response
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -131,7 +141,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
         } throws RuntimeException("SERG formueobjekt utilgjengelig")
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -154,7 +164,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
         } returns formueobjekt(okId, okHendelseId)
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         assertThat(repository.hentData(failId)?.status).isEqualTo(SergDokumentStatus.FEIL)
@@ -178,7 +188,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         } returns formueobjekt(id, hendelseId)
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -202,7 +212,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             formueobjekt(id, UUID.fromString(hid))
         }
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 10) {
@@ -230,7 +240,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
             api.hentFormuesobjektFastEiendom("kartverketMatrikkel", nyHendelseId.toString(), any())
         } returns formueobjekt(id, nyHendelseId)
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(dataSource(), api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isSuccess()
         val data = repository.hentData(id)
@@ -244,7 +254,7 @@ class FormueobjektSyncServiceTest : WithDatabase {
         every { failingDataSource.connection } throws SQLException("db down")
         val api = mockk<FormuesobjektFastEiendomApi>()
 
-        val result = FormuesobjektSyncService(failingDataSource, api).sync()
+        val result = FormuesobjektSyncService(failingDataSource, api, kafkaSergFormuesobjektFastEiendomFeedProducer).sync()
 
         assertThat(result).isFailure().isInstanceOf(SQLException::class).hasMessage("db down")
     }
