@@ -53,7 +53,9 @@ spec:
     - name: DB_ADMIN_PASSWORD
       gsmSecretName: "prod-matrikkel-serg-sync-db-admin-password"
     - name: KAFKA_LIGHT_URL
-      value: "https://matrikkel-kafka-light.atkv3-prod.kartverket-intern.cloud"
+      value: "http://matrikkel-kafka-light:8081"
+    - name: KAFKA_LIGHT_SCOPE
+      value: "atkv3-prod:matrikkel-main:matrikkel-kafka-light"
     - name: SERG_HENDELSER_URL
       value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten.no/v1"
     - name: SERG_FORMUEOBJEKT_URL

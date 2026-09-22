@@ -12,8 +12,7 @@ import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
-import no.kartverket.matrikkel.config.FastEiendomSomFormuesobjektSerde
-import no.kartverket.matrikkel.config.HendelseSerde
+import no.kartverket.matrikkel.config.JsonSerde
 import no.kartverket.matrikkel.config.KafkaClientAuthentication
 import no.kartverket.matrikkel.kafkaclient.InitialOffsetPolicy
 import no.kartverket.matrikkel.kafkaclient.LongSerde
@@ -33,7 +32,9 @@ import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
@@ -78,10 +79,10 @@ class Services(
         MessageProducer.Impl(
             config = MessageProducer.Config(
                 server = Url(config.kafkaLightUrl),
-                authentication = KafkaClientAuthentication, //@TODO: Var det noe fra m22 repo som kan gjennbrukes her?
+                authentication = KafkaClientAuthentication(config.kafkaLightScope), //@TODO: Var det noe fra m22 repo som kan gjennbrukes her?
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
-                valueSerializer = HendelseSerde,
+                valueSerializer = JsonSerde<Hendelse>(),
                 correlationIdProvider = { UUID.randomUUID().toString() }
             )
         )
@@ -90,10 +91,10 @@ class Services(
         MessageProducer.Impl(
             config = MessageProducer.Config(
                 server = Url(config.kafkaLightUrl),
-                authentication = KafkaClientAuthentication,
+                authentication = KafkaClientAuthentication(config.kafkaLightScope),
                 topic = "SERG_FORMUESOBJEKT_FAST_EIENDOM",
                 keySerializer = LongSerde,
-                valueSerializer = FastEiendomSomFormuesobjektSerde,
+                valueSerializer = JsonSerde<FastEiendomSomFormuesobjekt>(),
                 correlationIdProvider = { UUID.randomUUID().toString() }
             )
         )
@@ -102,10 +103,10 @@ class Services(
         MessageConsumer.Impl(
             config = MessageConsumer.Config(
                 server = Url(config.kafkaLightUrl),
-                authentication = KafkaClientAuthentication,
+                authentication = KafkaClientAuthentication(config.kafkaLightScope),
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
-                valueSerializer = HendelseSerde,
+                valueSerializer = JsonSerde<Hendelse>(),
                 correlationIdProvider = { UUID.randomUUID().toString() },
                 consumerGroup = "serg-sync",
                 instanceId = "test-instance-id",
