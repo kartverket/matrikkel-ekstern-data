@@ -58,14 +58,10 @@ class HendelserSyncService(
                         } else if (hendelse.hendelsestype == null) {
                             logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
                         } else {
-                            try {
-                                pendingSends.add(messageProducer.send(ProducerRecord(
-                                    key = hendelse.matrikkelUnikIdentifikator!!,
-                                    value = hendelse
-                                )))
-                            } catch (e: Exception) {
-                                logger.error("Kunne ikke sende hendelse til Kafka: $hendelseId", e,)
-                            }
+                            pendingSends.add(messageProducer.send(ProducerRecord(
+                                key = hendelse.matrikkelUnikIdentifikator!!,
+                                value = hendelse
+                            )))
                             dokumentRepository.upsertFraHendelse(tx, hendelse)
                         }
                     } catch (e: IllegalStateException) {
