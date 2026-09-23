@@ -1,5 +1,7 @@
 package no.kartverket.matrikkel.config
 
+import no.kartverket.oidc.tokenclient.client.DownstreamApi
+
 class DatabaseConfiguration(
     val env: MigrationEnv,
     val jdbcUrl: String,
@@ -15,6 +17,8 @@ enum class MigrationEnv(
 }
 
 class Configuration(
+    val kafkaLightUrl: String = getRequiredConfig("KAFKA_LIGHT_URL"),
+    val kafkaLightScope: DownstreamApi = DownstreamApi.parse(getRequiredConfig("KAFKA_LIGHT_SCOPE")),
     val sergHendelserUrl: String = getRequiredConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getRequiredConfig("SERG_FORMUEOBJEKT_URL"),
     val sergClientId: String = getRequiredConfig("SERG_CLIENT_ID"),

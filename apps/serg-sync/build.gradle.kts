@@ -6,6 +6,7 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.kafkaLight)
     implementation(libs.bundles.ktorEcosystem)
     implementation(project(":tjenestespesifikasjoner:serg"))
     implementation(libs.ktorUtils)

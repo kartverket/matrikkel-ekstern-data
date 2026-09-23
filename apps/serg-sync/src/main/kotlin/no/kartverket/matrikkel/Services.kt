@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -11,6 +12,10 @@ import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.JsonSerde
+import no.kartverket.matrikkel.config.KafkaClientAuthentication
+import no.kartverket.matrikkel.kafkaclient.LongSerde
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
@@ -26,6 +31,7 @@ import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
@@ -66,6 +72,18 @@ class Services(
         )
         .build()
 
+    val kafkaSergHendelserFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaLightUrl),
+                authentication = KafkaClientAuthentication(config.kafkaLightScope),
+                topic = "SERG_HENDELSER",
+                keySerializer = LongSerde,
+                valueSerializer = JsonSerde<Hendelse>(),
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
+        )
+
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
         client = sergHttpClient.newBuilder()
@@ -76,6 +94,7 @@ class Services(
     val hendelserSyncService = HendelserSyncService(
         dataSource = dataSource,
         hendelserApi = hendelserApi,
+        messageProducer = kafkaSergHendelserFeedProducer
     )
 
     val hendelserSyncJob = HendelserSyncJob(
