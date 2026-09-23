@@ -9,6 +9,8 @@ import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
+import no.kartverket.heimdall.common.tokenclient.CaffeineTokenCache
+import no.kartverket.heimdall.common.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
@@ -28,7 +30,6 @@ import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.runSql
-import no.kartverket.oidc.tokenclient.client.MaskinportenMachineToMachineTokenClient
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
@@ -47,6 +48,7 @@ class Services(
         clientId = config.sergClientId,
         privateJwk = config.sergPrivateJWK,
         tokenEndpoint = config.sergTokenEndpoint,
+        tokenCache = CaffeineTokenCache(),
     )
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
@@ -67,7 +69,7 @@ class Services(
         .readTimeout(30.seconds)
         .addInterceptor(
             AuthorizationInterceptor {
-                tokenClient.createMachineToMachineToken("skatteetaten:formuesobjektfasteiendom").serialize()
+                tokenClient.createToken("skatteetaten:formuesobjektfasteiendom").serialize()
             },
         )
         .build()

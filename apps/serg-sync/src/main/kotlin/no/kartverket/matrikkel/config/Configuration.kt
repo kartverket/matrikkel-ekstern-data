@@ -1,5 +1,8 @@
 package no.kartverket.matrikkel.config
 
+import no.kartverket.heimdall.common.kotlin.EnvUtils.getConfig
+import no.kartverket.heimdall.common.kotlin.EnvUtils.getConfigOrNull
+
 import no.kartverket.oidc.tokenclient.client.DownstreamApi
 
 class DatabaseConfiguration(
@@ -19,20 +22,20 @@ enum class MigrationEnv(
 class Configuration(
     val kafkaLightUrl: String = getRequiredConfig("KAFKA_LIGHT_URL"),
     val kafkaLightScope: DownstreamApi = DownstreamApi.parse(getRequiredConfig("KAFKA_LIGHT_SCOPE")),
-    val sergHendelserUrl: String = getRequiredConfig("SERG_HENDELSER_URL"),
-    val sergFormueobjektUrl: String = getRequiredConfig("SERG_FORMUEOBJEKT_URL"),
-    val sergClientId: String = getRequiredConfig("SERG_CLIENT_ID"),
-    val sergPrivateJWK: String = getRequiredConfig("SERG_PRIVATE_JWK"),
-    val sergTokenEndpoint: String = getRequiredConfig("SERG_TOKEN_ENDPOINT"),
+    val sergHendelserUrl: String = getConfig("SERG_HENDELSER_URL"),
+    val sergFormueobjektUrl: String = getConfig("SERG_FORMUEOBJEKT_URL"),
+    val sergClientId: String = getConfig("SERG_CLIENT_ID"),
+    val sergPrivateJWK: String = getConfig("SERG_PRIVATE_JWK"),
+    val sergTokenEndpoint: String = getConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
-        env = MigrationEnv.valueOf(getConfig("DB_ENV") ?: MigrationEnv.PROD.name),
-        jdbcUrl = getRequiredConfig("DB_URL"),
+        env = MigrationEnv.valueOf(getConfigOrNull("DB_ENV") ?: MigrationEnv.PROD.name),
+        jdbcUrl = getConfig("DB_URL"),
         userCredential = Credential.from("DB_USER"),
         adminCredential = Credential.from("DB_ADMIN"),
     ),
-    val runHendelseSync: Boolean = getConfig("RUN_HENDELSE_SYNC")?.toBooleanStrictOrNull() ?: false,
-    val runFormueobjektSync: Boolean = getConfig("RUN_FORMUEOBJEKT_SYNC")?.toBooleanStrictOrNull() ?: false,
-    val version: String = getConfig("VERSION") ?: "N/A"
+    val runHendelseSync: Boolean = getConfigOrNull("RUN_HENDELSE_SYNC")?.toBooleanStrictOrNull() ?: false,
+    val runFormueobjektSync: Boolean = getConfigOrNull("RUN_FORMUEOBJEKT_SYNC")?.toBooleanStrictOrNull() ?: false,
+    val version: String = getConfigOrNull("VERSION") ?: "N/A"
 )
 
 class Credential(
@@ -47,16 +50,6 @@ class Credential(
     }
 }
 
-private fun getConfig(name: String): String? {
-    return System.getProperty(name, System.getenv(name))
-}
-
-private fun getRequiredConfig(name: String): String {
-    return requireNotNull(getConfig(name)) {
-        "$name must be defined in java properties or environment"
-    }
-}
-
 private fun firstNonNullOf(vararg name: String): String {
-    return name.firstNotNullOf { getConfig(it) }
+    return name.firstNotNullOf { getConfigOrNull(it) }
 }
