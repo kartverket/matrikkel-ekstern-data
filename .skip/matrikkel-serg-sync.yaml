@@ -34,10 +34,16 @@ spec:
 
   accessPolicy:
     outbound:
+      rules:
+        - application: matrikkel-kafka-light
       external:
         - host: formuesobjektfasteiendomhendelser.api.skatteetaten.no
         - host: formuesobjektfasteiendom.api.skatteetaten.no
         - host: maskinporten.no
+
+  azure:
+    application:
+      enabled: true
 
   databases:
     - name: matrikkel-serg-sync
