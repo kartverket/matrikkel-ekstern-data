@@ -7,7 +7,7 @@ spec:
   image: "{{image}}"
   port: 8090
   ingresses:
-    - matrikkel-serg-sync.atkv3-prod.kartverket-intern.cloud
+    - matrikkel-serg-sync.atkv3-dev.kartverket-intern.cloud
   replicas: 1
 
   resources:
@@ -37,8 +37,8 @@ spec:
       rules:
         - application: matrikkel-kafka-light
       external:
-        - host: formuesobjektfasteiendomhendelser.api.skatteetaten.no
-        - host: formuesobjektfasteiendom.api.skatteetaten.no
+        - host: formuesobjektfasteiendomhendelser.api.skatteetaten-test.no
+        - host: formuesobjektfasteiendom.api.skatteetaten-test.no
         - host: maskinporten.no
 
   azure:
@@ -49,27 +49,29 @@ spec:
     - name: matrikkel-serg-sync
       envName: DB_URL
 
+  maskinporten:
+    enabled: true
+    scopes:
+      consumes:
+        - name: "skatteetaten:formuesobjektfasteiendom"
+
   env:
     - name: DB_USER_USERNAME
       value: "matrikkel_serg_sync_user"
     - name: DB_USER_PASSWORD
-      gsmSecretName: "prod-matrikkel-serg-sync-db-user-password"
+      gsmSecretName: "dev-matrikkel-serg-sync-db-user-password"
     - name: DB_ADMIN_USERNAME
       value: "matrikkel_serg_sync_admin"
     - name: DB_ADMIN_PASSWORD
-      gsmSecretName: "prod-matrikkel-serg-sync-db-admin-password"
+      gsmSecretName: "dev-matrikkel-serg-sync-db-admin-password"
     - name: KAFKA_LIGHT_URL
       value: "http://matrikkel-kafka-light:8081"
     - name: KAFKA_LIGHT_SCOPE
-      value: "atkv3-prod:matrikkel-main:matrikkel-kafka-light"
+      value: "atkv3-dev:matrikkel-main:matrikkel-kafka-light"
     - name: SERG_HENDELSER_URL
-      value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten.no/v1"
+      value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten-test.no/v1"
     - name: SERG_FORMUEOBJEKT_URL
-      value: "https://formuesobjektfasteiendom.api.skatteetaten.no/v1"
-    - name: SERG_CLIENT_ID
-      value: "024f247e-3b41-4325-8811-cfc81e852c11"
-    - name: SERG_PRIVATE_JWK
-      gsmSecretName: "prod-ekstern-data-serg-private-jwk"
+      value: "https://formuesobjektfasteiendom.api.skatteetaten-test.no/v1"
     - name: SERG_TOKEN_ENDPOINT
       value: "https://maskinporten.no/token"
     - name: RUN_HENDELSE_SYNC
