@@ -2,6 +2,7 @@ package no.kartverket.matrikkel.config
 
 import no.kartverket.heimdall.common.kotlin.EnvUtils.getConfig
 import no.kartverket.heimdall.common.kotlin.EnvUtils.getConfigOrNull
+import no.kartverket.heimdall.common.tokenclient.client.DownstreamApi
 
 class DatabaseConfiguration(
     val env: MigrationEnv,
@@ -18,11 +19,10 @@ enum class MigrationEnv(
 }
 
 class Configuration(
+    val kafkaBrokerUrl: String = getConfig("KAFKA_BROKER_URL"),
+    val kafkaBrokerScope: DownstreamApi = DownstreamApi.parse(getConfig("KAFKA_BROKER_SCOPE")),
     val sergHendelserUrl: String = getConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getConfig("SERG_FORMUEOBJEKT_URL"),
-    val sergClientId: String = getConfig("SERG_CLIENT_ID"),
-    val sergPrivateJWK: String = getConfig("SERG_PRIVATE_JWK"),
-    val sergTokenEndpoint: String = getConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
         env = MigrationEnv.valueOf(getConfigOrNull("DB_ENV") ?: MigrationEnv.PROD.name),
         jdbcUrl = getConfig("DB_URL"),
