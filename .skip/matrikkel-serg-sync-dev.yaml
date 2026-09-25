@@ -56,6 +56,8 @@ spec:
         - name: "skatteetaten:formuesobjektfasteiendom"
 
   env:
+    - name: DB_ENV
+      value: "LOCAL"
     - name: DB_USER_USERNAME
       value: "matrikkel_serg_sync_user"
     - name: DB_USER_PASSWORD
