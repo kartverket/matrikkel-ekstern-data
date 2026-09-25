@@ -23,9 +23,6 @@ class Configuration(
     val kafkaLightScope: DownstreamApi = DownstreamApi.parse(getConfig("KAFKA_LIGHT_SCOPE")),
     val sergHendelserUrl: String = getConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getConfig("SERG_FORMUEOBJEKT_URL"),
-    val sergClientId: String = getConfig("MASKINPORTEN_CLIENT_ID"),
-    val sergPrivateJWK: String = getConfig("MASKINPORTEN_CLIENT_JWK"),
-    val sergTokenEndpoint: String = getConfig("SERG_TOKEN_ENDPOINT"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
         env = MigrationEnv.valueOf(getConfigOrNull("DB_ENV") ?: MigrationEnv.PROD.name),
         jdbcUrl = getConfig("DB_URL"),

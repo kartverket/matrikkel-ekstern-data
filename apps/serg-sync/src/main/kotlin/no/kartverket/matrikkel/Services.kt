@@ -9,8 +9,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
-import no.kartverket.heimdall.common.tokenclient.CaffeineTokenCache
-import no.kartverket.heimdall.common.tokenclient.client.MaskinportenMachineToMachineTokenClient
+import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
@@ -44,12 +43,7 @@ import kotlin.time.toJavaDuration
 class Services(
     val config: Configuration,
 ) {
-    val tokenClient = MaskinportenMachineToMachineTokenClient(
-        clientId = config.sergClientId,
-        privateJwk = config.sergPrivateJWK,
-        tokenEndpoint = config.sergTokenEndpoint,
-        tokenCache = CaffeineTokenCache(),
-    )
+    val tokenClient = TokenClientFactory.MachineToMachine.maskinporten()
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
         config.database.userCredential
