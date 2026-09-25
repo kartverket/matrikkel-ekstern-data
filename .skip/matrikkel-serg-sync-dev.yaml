@@ -66,9 +66,9 @@ spec:
       value: "matrikkel_serg_sync_admin"
     - name: DB_ADMIN_PASSWORD
       gsmSecretName: "dev-matrikkel-serg-sync-db-admin-password"
-    - name: KAFKA_LIGHT_URL
+    - name: KAFKA_BROKER_URL
       value: "http://matrikkel-kafka-light:8081"
-    - name: KAFKA_LIGHT_SCOPE
+    - name: KAFKA_BROKER_SCOPE
       value: "atkv3-dev:matrikkel-main:matrikkel-kafka-light"
     - name: SERG_HENDELSER_URL
       value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten-test.no/v1"

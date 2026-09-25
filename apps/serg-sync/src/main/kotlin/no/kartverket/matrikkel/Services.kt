@@ -14,7 +14,7 @@ import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.config.JsonSerde
-import no.kartverket.matrikkel.config.KafkaClientAuthentication
+import no.kartverket.matrikkel.kafka.asKafkaAuth
 import no.kartverket.matrikkel.kafkaclient.LongSerde
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
@@ -71,8 +71,9 @@ class Services(
     val kafkaSergHendelserFeedProducer =
         MessageProducer.Impl(
             config = MessageProducer.Config(
-                server = Url(config.kafkaLightUrl),
-                authentication = KafkaClientAuthentication(config.kafkaLightScope),
+                server = Url(config.kafkaBrokerUrl),
+                authentication = TokenClientFactory.MachineToMachine.azureAd()
+                    .asKafkaAuth(config.kafkaBrokerScope),
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),

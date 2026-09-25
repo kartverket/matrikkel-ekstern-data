@@ -19,8 +19,8 @@ enum class MigrationEnv(
 }
 
 class Configuration(
-    val kafkaLightUrl: String = getConfig("KAFKA_LIGHT_URL"),
-    val kafkaLightScope: DownstreamApi = DownstreamApi.parse(getConfig("KAFKA_LIGHT_SCOPE")),
+    val kafkaBrokerUrl: String = getConfig("KAFKA_BROKER_URL"),
+    val kafkaBrokerScope: DownstreamApi = DownstreamApi.parse(getConfig("KAFKA_BROKER_SCOPE")),
     val sergHendelserUrl: String = getConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getConfig("SERG_FORMUEOBJEKT_URL"),
     val database: DatabaseConfiguration = DatabaseConfiguration(
