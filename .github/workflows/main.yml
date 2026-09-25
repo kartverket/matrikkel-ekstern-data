@@ -91,7 +91,7 @@ jobs:
         with:
           context: .
           file: apps/serg-sync/Dockerfile
-#          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: ${{ env.image }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
