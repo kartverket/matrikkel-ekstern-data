@@ -126,7 +126,7 @@ jobs:
   deploy-dev:
     name: "Deploy Dev"
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+#    if: github.ref == 'refs/heads/main'
     needs:
       - version
       - package-image
