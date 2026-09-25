@@ -75,8 +75,8 @@ spec:
     - name: SERG_TOKEN_ENDPOINT
       value: "https://maskinporten.no/token"
     - name: RUN_HENDELSE_SYNC
-      value: "true"
+      value: "false"
     - name: RUN_FORMUEOBJEKT_SYNC
-      value: "true"
+      value: "false"
     - name: VERSION
       value: "{{version}}"
