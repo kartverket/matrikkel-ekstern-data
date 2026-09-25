@@ -21,7 +21,7 @@ testcontainersVersion = "1.21.4"
 prometheusVersion = "1.17.1"
 hikariVersion = "7.1.0"
 heimdallCommonVersion = "1.2026.09.23-07.21-211005a"
-kafkaLightVersion = "2026.09.17-10.20-7f2a52b"
+kafkaLightVersion = "2026.09.25-07.29-ec47b3d"
 
 [libraries]
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.19" }

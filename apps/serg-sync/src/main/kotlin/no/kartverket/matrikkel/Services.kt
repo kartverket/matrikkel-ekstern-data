@@ -161,6 +161,7 @@ class Services(
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = false)
+        val kafkaReporter = SelftestGenerator.Reporter("kafka-broker-integrasjon", critical = false)
         val hendelserStatus: HendelserStatus by cache(ttl = 1.minutes.toJavaDuration()) {
             runBlocking {
                 kalkulerHendelserStatus()
@@ -202,6 +203,13 @@ class Services(
                     dato = "2026-01-01",
                     korrelasjonsid = UUID.randomUUID()
                 )
+            }
+
+            kafkaReporter.ping {
+                val metadata = kafkaSergHendelserFeedProducer.metadata()
+                require(metadata.canPublish) {
+                    "Kafka producer kan ikke publisere til topic ${metadata.topic}"
+                }
             }
         }
 
