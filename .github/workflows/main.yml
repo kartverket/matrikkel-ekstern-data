@@ -123,6 +123,26 @@ jobs:
           tfsec: true
           disable_severity_check: true
 
+  deploy-dev:
+    name: "Deploy Dev"
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - version
+      - package-image
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - name: Deploy to Dev
+        uses: kartverket/matrikkel-actions/heimdall-deploy@main
+        with:
+          cluster: 'atkv3-dev'
+          resource: '.skip/matrikkel-serg-sync-dev.yaml'
+          var: |
+            image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
+
   deploy-prod-notifier:
     name: Slack Notify; Deploy to Production
     runs-on: ubuntu-latest
@@ -130,6 +150,7 @@ jobs:
     needs:
       - version
       - pharos
+      - deploy-dev
       - package-image
     outputs:
       messageId: ${{ steps.slack_notify.outputs.messageId }}
@@ -179,6 +200,6 @@ jobs:
         uses: kartverket/matrikkel-actions/heimdall-deploy@main
         with:
           cluster: 'atkv3-prod'
-          resource: '.skip/matrikkel-serg-sync.yaml'
+          resource: '.skip/matrikkel-serg-sync-prod.yaml'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}

@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -8,11 +9,14 @@ import kotlinx.datetime.toLocalDateTime
 import kotliquery.queryOf
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
-import no.kartverket.heimdall.common.tokenclient.CaffeineTokenCache
-import no.kartverket.heimdall.common.tokenclient.client.MaskinportenMachineToMachineTokenClient
+import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
 import no.kartverket.kotlin.cache
 import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.config.JsonSerde
+import no.kartverket.matrikkel.kafka.asKafkaAuth
+import no.kartverket.matrikkel.kafkaclient.LongSerde
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
@@ -27,6 +31,7 @@ import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.runSql
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
+import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
@@ -38,12 +43,7 @@ import kotlin.time.toJavaDuration
 class Services(
     val config: Configuration,
 ) {
-    val tokenClient = MaskinportenMachineToMachineTokenClient(
-        clientId = config.sergClientId,
-        privateJwk = config.sergPrivateJWK,
-        tokenEndpoint = config.sergTokenEndpoint,
-        tokenCache = CaffeineTokenCache(),
-    )
+    val tokenClient = TokenClientFactory.MachineToMachine.maskinporten()
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
         config.database.userCredential
@@ -68,6 +68,19 @@ class Services(
         )
         .build()
 
+    val kafkaSergHendelserFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaBrokerUrl),
+                authentication = TokenClientFactory.MachineToMachine.azureAd()
+                    .asKafkaAuth(config.kafkaBrokerScope),
+                topic = "SERG_HENDELSER",
+                keySerializer = LongSerde,
+                valueSerializer = JsonSerde<Hendelse>(),
+                correlationIdProvider = { UUID.randomUUID().toString() }
+            )
+        )
+
     val hendelserApi = HendelserApi(
         basePath = config.sergHendelserUrl,
         client = sergHttpClient.newBuilder()
@@ -78,6 +91,7 @@ class Services(
     val hendelserSyncService = HendelserSyncService(
         dataSource = dataSource,
         hendelserApi = hendelserApi,
+        messageProducer = kafkaSergHendelserFeedProducer
     )
 
     val hendelserSyncJob = HendelserSyncJob(
@@ -148,6 +162,7 @@ class Services(
     init {
         val dbReporter = SelftestGenerator.Reporter("database", critical = true)
         val sergReporter = SelftestGenerator.Reporter("serg-register", critical = false)
+        val kafkaReporter = SelftestGenerator.Reporter("kafka-broker-integrasjon", critical = false)
         val hendelserStatus: HendelserStatus by cache(ttl = 1.minutes.toJavaDuration()) {
             runBlocking {
                 kalkulerHendelserStatus()
@@ -189,6 +204,13 @@ class Services(
                     dato = "2026-01-01",
                     korrelasjonsid = UUID.randomUUID()
                 )
+            }
+
+            kafkaReporter.ping {
+                val metadata = kafkaSergHendelserFeedProducer.metadata()
+                require(metadata.canPublish) {
+                    "Kafka producer kan ikke publisere til topic ${metadata.topic}"
+                }
             }
         }
 

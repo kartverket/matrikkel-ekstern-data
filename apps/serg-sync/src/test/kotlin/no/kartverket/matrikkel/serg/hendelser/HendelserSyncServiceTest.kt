@@ -7,10 +7,14 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isSuccess
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
@@ -19,22 +23,32 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelser
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class HendelserSyncServiceTest : WithDatabase {
+
+    private val kafkaSergHendelserFeedProducer = mockk<MessageProducer<Long, Hendelse>>()
+
+    @BeforeEach
+    fun setup() {
+        coEvery { kafkaSergHendelserFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+    }
+
     @Test
     fun `start fra 1 om sekvensnumemr ikke er satt`() = runBlocking {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.delete("sekvensnummer")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
         }
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
     }
 
     @Test
@@ -43,12 +57,13 @@ class HendelserSyncServiceTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(123L, 1000, any())
         }
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
     }
 
     @Test
@@ -57,7 +72,7 @@ class HendelserSyncServiceTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isFailure()
@@ -66,6 +81,7 @@ class HendelserSyncServiceTest : WithDatabase {
         verify(exactly = 0) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
     }
 
     @Test
@@ -79,7 +95,7 @@ class HendelserSyncServiceTest : WithDatabase {
         )
         val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isSuccess()
@@ -87,6 +103,12 @@ class HendelserSyncServiceTest : WithDatabase {
 
         verify(exactly = 1) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(1L, 1000, any())
+        }
+
+        hendelser.forEach { hendelse ->
+            coVerify(exactly = 1) {
+                kafkaSergHendelserFeedProducer.send(match { it.value == hendelse })
+            }
         }
 
         val nyHendelseData = dokumentRepository.hentData(1001L)
@@ -109,7 +131,7 @@ class HendelserSyncServiceTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } throws RuntimeException("SERG unavailable")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result)
             .isFailure()
@@ -119,6 +141,7 @@ class HendelserSyncServiceTest : WithDatabase {
         verify(exactly = 3) {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(123L, 1000, any())
         }
+        coVerify(exactly = 0) { kafkaSergHendelserFeedProducer.send(any()) }
         assertThat(keyValueRepository.getValue("sekvensnummer")).isEqualTo("123")
     }
 
@@ -127,15 +150,14 @@ class HendelserSyncServiceTest : WithDatabase {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
         val dokumentRepository = SergDokumentRepository(dataSource())
-        val hendelserApi = gittHendelseApiSomReturnerer(
-            listOf(
-                hendelse(id = 2001L, type = Hendelsestype.ny, seq = 12L),
-                hendelse(id = null, type = Hendelsestype.endret, seq = 13L), // Invalid, missing ID
-                hendelse(id = 2002L, type = Hendelsestype.slettet, seq = 14L)
-            )
+        val hendelser = listOf(
+            hendelse(id = 2001L, type = Hendelsestype.ny, seq = 12L),
+            hendelse(id = null, type = Hendelsestype.endret, seq = 13L), // Invalid, missing ID
+            hendelse(id = 2002L, type = Hendelsestype.slettet, seq = 14L)
         )
+        val hendelserApi = gittHendelseApiSomReturnerer(hendelser)
 
-        val result = HendelserSyncService(dataSource(), hendelserApi).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 1) {
@@ -143,6 +165,14 @@ class HendelserSyncServiceTest : WithDatabase {
         }
         assertThat(dokumentRepository.hentData(2001L)).isNotNull()
         assertThat(dokumentRepository.hentData(2002L)).isNotNull()
+
+        hendelser.forEach { hendelse ->
+            val antall: Int = if (hendelse.matrikkelUnikIdentifikator != null) 1 else 0
+            coVerify(exactly = antall) {
+                kafkaSergHendelserFeedProducer.send(match { it.value == hendelse })
+            }
+        }
+
     }
 
     private fun hendelse(id: Long?, type: Hendelsestype, seq: Long = 1L): Hendelse {

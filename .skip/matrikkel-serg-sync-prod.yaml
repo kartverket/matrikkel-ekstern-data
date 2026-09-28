@@ -1,0 +1,80 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: matrikkel-serg-sync
+  namespace: matrikkel-main
+spec:
+  image: "{{image}}"
+  port: 8090
+  ingresses:
+    - matrikkel-serg-sync.atkv3-prod.kartverket-intern.cloud
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  liveness:
+    port: 8090
+    path: /internal/isAlive
+    initialDelay: 10      # default: 0
+    failureThreshold: 6   # default: 3
+  readiness:
+    port: 8090
+    path: /internal/isReady
+    initialDelay: 10      # default: 0
+    failureThreshold: 6   # default: 3
+  prometheus:
+    port: 8090
+    path: /internal/metrics
+    allowAllMetrics: true
+
+  accessPolicy:
+    outbound:
+      rules:
+        - application: matrikkel-kafka-light
+      external:
+        - host: formuesobjektfasteiendomhendelser.api.skatteetaten.no
+        - host: formuesobjektfasteiendom.api.skatteetaten.no
+        - host: maskinporten.no
+
+  azure:
+    application:
+      enabled: true
+
+  databases:
+    - name: matrikkel-serg-sync
+      envName: DB_URL
+
+  maskinporten:
+    enabled: true
+    scopes:
+      consumes:
+        - name: "skatteetaten:formuesobjektfasteiendom"
+
+  env:
+    - name: DB_USER_USERNAME
+      value: "matrikkel_serg_sync_user"
+    - name: DB_USER_PASSWORD
+      gsmSecretName: "prod-matrikkel-serg-sync-db-user-password"
+    - name: DB_ADMIN_USERNAME
+      value: "matrikkel_serg_sync_admin"
+    - name: DB_ADMIN_PASSWORD
+      gsmSecretName: "prod-matrikkel-serg-sync-db-admin-password"
+    - name: KAFKA_BROKER_URL
+      value: "http://matrikkel-kafka-light:8081"
+    - name: KAFKA_BROKER_SCOPE
+      value: "atkv3-prod:matrikkel-main:matrikkel-kafka-light"
+    - name: SERG_HENDELSER_URL
+      value: "https://formuesobjektfasteiendomhendelser.api.skatteetaten.no/v1"
+    - name: SERG_FORMUEOBJEKT_URL
+      value: "https://formuesobjektfasteiendom.api.skatteetaten.no/v1"
+    - name: RUN_HENDELSE_SYNC
+      value: "true"
+    - name: RUN_FORMUEOBJEKT_SYNC
+      value: "true"
+    - name: VERSION
+      value: "{{version}}"
