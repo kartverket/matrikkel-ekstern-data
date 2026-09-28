@@ -6,6 +6,6 @@ RUN addgroup -g 150 -S apprunner \
 COPY --chown=150:150 apps/serg-sync/build/install/serg-sync /app
 
 USER apprunner
-EXPOSE 8081
+EXPOSE 8090
 
 ENTRYPOINT ["/app/bin/serg-sync"]

@@ -32,13 +32,15 @@ This repository includes a Docker Compose setup for local integration testing wi
 
 ### Start
 
+* Run `./gradlew apps:serg-sync:installDist`
+
 ```bash
 docker compose up --build
 ```
 
 ### Seed mock data
 
-After services are up, generate sample events in `serg-mock`:
+After services are up, generate sample events in `serg-mock` by using http://127.0.0.1:8094/admin or:
 
 ```bash
 curl -X POST http://localhost:8094/admin/api/generate \

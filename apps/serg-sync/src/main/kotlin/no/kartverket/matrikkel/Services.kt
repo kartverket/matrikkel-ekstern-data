@@ -15,6 +15,7 @@ import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.config.JsonSerde
 import no.kartverket.matrikkel.kafka.asKafkaAuth
+import no.kartverket.matrikkel.kafkaclient.ClientAuthentication
 import no.kartverket.matrikkel.kafkaclient.LongSerde
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
@@ -43,7 +44,11 @@ import kotlin.time.toJavaDuration
 class Services(
     val config: Configuration,
 ) {
-    val tokenClient = TokenClientFactory.MachineToMachine.maskinporten()
+    val tokenClient =  if (config.sergAuthEnabled) {
+        TokenClientFactory.MachineToMachine.maskinporten()
+    } else {
+        null
+    }
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
         config.database.userCredential
@@ -61,19 +66,37 @@ class Services(
 
     private val sergHttpClient = OkHttpClient.Builder()
         .readTimeout(30.seconds)
-        .addInterceptor(
-            AuthorizationInterceptor {
-                tokenClient.createToken("skatteetaten:formuesobjektfasteiendom").serialize()
-            },
-        )
+        .apply {
+            tokenClient?.let { client ->
+                addInterceptor(
+                    AuthorizationInterceptor {
+                        client
+                            .createToken("skatteetaten:formuesobjektfasteiendom")
+                            .serialize()
+                    },
+                )
+            }
+        }
         .build()
+
+    private val kafkaAuthentication: ClientAuthentication? =
+        if (config.kafkaBrokerAuthEnabled) {
+            TokenClientFactory.MachineToMachine
+                .azureAd()
+                .asKafkaAuth(
+                    requireNotNull(config.kafkaBrokerScope) {
+                        "KAFKA_BROKER_SCOPE må være satt når Kafka-auth er aktivert"
+                    },
+                )
+        } else {
+           null
+        }
 
     val kafkaSergHendelserFeedProducer =
         MessageProducer.Impl(
             config = MessageProducer.Config(
                 server = Url(config.kafkaBrokerUrl),
-                authentication = TokenClientFactory.MachineToMachine.azureAd()
-                    .asKafkaAuth(config.kafkaBrokerScope),
+                authentication = kafkaAuthentication,
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),

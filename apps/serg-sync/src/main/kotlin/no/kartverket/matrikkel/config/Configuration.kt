@@ -19,8 +19,22 @@ enum class MigrationEnv(
 }
 
 class Configuration(
+    val sergAuthEnabled: Boolean =
+        getConfigOrNull("SERG_AUTH_ENABLED")
+            ?.toBooleanStrictOrNull()
+            ?: true,
+
+    val kafkaBrokerAuthEnabled: Boolean =
+        getConfigOrNull("KAFKA_BROKER_AUTH_ENABLED")
+            ?.toBooleanStrictOrNull()
+            ?: true,
     val kafkaBrokerUrl: String = getConfig("KAFKA_BROKER_URL"),
-    val kafkaBrokerScope: DownstreamApi = DownstreamApi.parse(getConfig("KAFKA_BROKER_SCOPE")),
+    val kafkaBrokerScope:  DownstreamApi? =
+        if (kafkaBrokerAuthEnabled) {
+            DownstreamApi.parse(getConfig("KAFKA_BROKER_SCOPE"))
+        } else {
+            null
+        },
     val sergHendelserUrl: String = getConfig("SERG_HENDELSER_URL"),
     val sergFormueobjektUrl: String = getConfig("SERG_FORMUEOBJEKT_URL"),
     val database: DatabaseConfiguration = DatabaseConfiguration(

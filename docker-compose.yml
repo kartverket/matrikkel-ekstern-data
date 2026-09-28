@@ -4,7 +4,7 @@ services:
     env_file:
       - docker/local-compose.env
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
       interval: 10s
@@ -14,6 +14,9 @@ services:
     build:
       context: .
       dockerfile: apps/serg-mock/Dockerfile
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        KV_PACKAGES_PAT: ${KV_PACKAGES_PAT}
     env_file:
       - docker/local-compose.env
     ports:
@@ -29,7 +32,7 @@ services:
     env_file:
       - docker/local-compose.env
     ports:
-      - "8090:8080"
+      - "8090:8090"
     restart: unless-stopped
     depends_on:
       postgres:
