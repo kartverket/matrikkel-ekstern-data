@@ -1,8 +1,8 @@
 package no.kartverket.matrikkel.serg.hendelser
 
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
@@ -16,6 +16,7 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import java.util.*
 import javax.sql.DataSource
+import kotlin.time.Duration.Companion.seconds
 
 class HendelserSyncService(
     private val dataSource: DataSource,
@@ -47,32 +48,29 @@ class HendelserSyncService(
                     )
                 }.hendelser ?: emptyList()
 
-                val pendingSends: MutableList<CompletableDeferred<Unit>> = mutableListOf()
-
-                for (hendelse in hendelser) {
-                    val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
-                    hendelseRepository.insert(tx, hendelse)
-                    try {
-                        if (hendelse.matrikkelUnikIdentifikator == null) {
-                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")
-                        } else if (hendelse.hendelsestype == null) {
-                            logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
-                        } else {
-                            pendingSends.add(messageProducer.send(ProducerRecord(
-                                key = hendelse.matrikkelUnikIdentifikator!!,
-                                value = hendelse
-                            )))
-                            dokumentRepository.upsertFraHendelse(tx, hendelse)
+                val innsatteHendelser = buildList {
+                    for (hendelse in hendelser) {
+                        val hendelseId = "${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}"
+                        hendelseRepository.insert(tx, hendelse)
+                        try {
+                            if (hendelse.matrikkelUnikIdentifikator == null) {
+                                logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet matrikkelUnikIdentifikator")
+                            } else if (hendelse.hendelsestype == null) {
+                                logger.warn("Ignorerer hendelse: ${hendelseId}. Manglet hendelsetype")
+                            } else {
+                                dokumentRepository.upsertFraHendelse(tx, hendelse)
+                                add(hendelse)
+                            }
+                        } catch (e: IllegalStateException) {
+                            logger.error(
+                                "Kunne ikke lagre hendelse: ${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}",
+                                e,
+                            )
                         }
-                    } catch (e: IllegalStateException) {
-                        logger.error(
-                            "Kunne ikke lagre hendelse: ${hendelse.sekvensnummer}/${hendelse.hendelseidentifikator}",
-                            e,
-                        )
                     }
                 }
 
-                pendingSends.awaitAll()
+                publishToKafka(innsatteHendelser)
 
                 val maxSekvensnummer = hendelser.maxOfOrNull { it.sekvensnummer ?: -1 } ?: -1
                 if (maxSekvensnummer > -1) {
@@ -81,6 +79,25 @@ class HendelserSyncService(
 
                 hendelser
             }
+        }
+    }
+
+    private suspend fun publishToKafka(hendelser: List<Hendelse>) {
+        val pendingSends = buildList {
+            for (hendelse in hendelser) {
+                add(
+                    messageProducer.send(
+                        ProducerRecord(
+                            key = requireNotNull(hendelse.matrikkelUnikIdentifikator),
+                            value = hendelse
+                        )
+                    )
+                )
+            }
+        }
+
+        withTimeout(10.seconds) {
+            pendingSends.awaitAll()
         }
     }
 }
