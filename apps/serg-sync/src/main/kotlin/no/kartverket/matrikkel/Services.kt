@@ -36,6 +36,7 @@ import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
@@ -77,7 +78,9 @@ class Services(
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),
-                correlationIdProvider = { UUID.randomUUID().toString() }
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                bufferSize = 1000,
+                linger = 20.milliseconds,
             )
         )
 
