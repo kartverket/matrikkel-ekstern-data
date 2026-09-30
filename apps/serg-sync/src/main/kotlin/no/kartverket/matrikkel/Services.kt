@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel
 
+import FastEiendomSomFormuesObjektHendelse
 import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -15,12 +16,16 @@ import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.config.JsonSerde
 import no.kartverket.matrikkel.kafka.asKafkaAuth
+import no.kartverket.matrikkel.kafkaclient.InitialOffsetPolicy
 import no.kartverket.matrikkel.kafkaclient.LongSerde
+import no.kartverket.matrikkel.kafkaclient.MessageConsumer
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.MetricsInterceptor
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.addInterceptorAtStart
 import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJob
+import no.kartverket.matrikkel.serg.formueobjekt.FormueobjektSyncJobOld
+import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncServiceOld
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncJob
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
@@ -36,6 +41,7 @@ import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
@@ -77,7 +83,9 @@ class Services(
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),
-                correlationIdProvider = { UUID.randomUUID().toString() }
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                bufferSize = 1000,
+                linger = 100.milliseconds,
             )
         )
 
@@ -102,6 +110,36 @@ class Services(
         ),
     )
 
+    val kafkaSergThinFeedConsumer =
+        MessageConsumer.Impl(
+            config = MessageConsumer.Config(
+                server = Url(config.kafkaBrokerUrl),
+                authentication = TokenClientFactory.MachineToMachine.azureAd()
+                    .asKafkaAuth(config.kafkaBrokerScope),
+                topic = "SERG_HENDELSER",
+                keySerializer = LongSerde,
+                valueSerializer = JsonSerde<Hendelse>(),
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                consumerGroup = "serg-sync",
+                instanceId = "test-instance-id",
+                initialOffsetPolicy = InitialOffsetPolicy.EARLIEST
+            )
+        )
+
+    val kafkaSergFormuesobjektFastEiendomFeedProducer =
+        MessageProducer.Impl(
+            config = MessageProducer.Config(
+                server = Url(config.kafkaBrokerUrl),
+                authentication = TokenClientFactory.MachineToMachine.azureAd()
+                    .asKafkaAuth(config.kafkaBrokerScope),
+                topic = "SERG_FORMUESOBJEKT_FAST_EIENDOM",
+                keySerializer = LongSerde,
+                valueSerializer = JsonSerde<FastEiendomSomFormuesObjektHendelse>(),
+                correlationIdProvider = { UUID.randomUUID().toString() },
+                bufferSize = 10
+            )
+        )
+
     val formueobjektApi = FormuesobjektFastEiendomApi(
         basePath = config.sergFormueobjektUrl,
         client = sergHttpClient.newBuilder()
@@ -110,12 +148,25 @@ class Services(
     )
 
     val formueobjektSyncService = FormuesobjektSyncService(
-        dataSource = dataSource,
         formueobjektApi = formueobjektApi,
+        messageConsumer = kafkaSergThinFeedConsumer,
+        messageProducer = kafkaSergFormuesobjektFastEiendomFeedProducer
     )
     val formueobjektSyncJob = FormueobjektSyncJob(
         syncService = formueobjektSyncService,
         config = FormueobjektSyncJob.Config(
+            antall = 10,
+            interval = 60.seconds,
+        ),
+    )
+
+    val formueobjektSyncServiceOld = FormuesobjektSyncServiceOld(
+        dataSource = dataSource,
+        formueobjektApi = formueobjektApi,
+    )
+    val formueobjektSyncJobOld = FormueobjektSyncJobOld(
+        syncService = formueobjektSyncServiceOld,
+        config = FormueobjektSyncJobOld.Config(
             antall = 10,
             interval = 60.seconds,
         ),

@@ -1,24 +1,18 @@
 package no.kartverket.matrikkel.serg
 
-import assertk.all
+import FastEiendomSomFormuesObjektHendelse
 import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
-import assertk.assertions.isNotNull
-import assertk.assertions.isNull
-import assertk.assertions.prop
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
-import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.*
 import no.kartverket.matrikkel.serg.formueobjekt.FormuesobjektSyncService
 import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
-import no.kartverket.matrikkel.serg.repository.SergDokument
-import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
@@ -33,67 +27,55 @@ import org.junit.jupiter.api.Test
 import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
 import kotlin.random.Random
+import kotlin.time.Clock
 
 class SyncFullTest : WithDatabase {
+
     @Test
     fun `should read all data`() = runBlocking {
         val (ctrl, hendelseApi, formueobjektApi) = SergMock().build()
+
         val kafkaSergHendelserFeedProducer = mockk<MessageProducer<Long, Hendelse>>()
-        coEvery { kafkaSergHendelserFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
 
         ctrl
-            .lagFormueobjekt(1000)
-            .randomEndringer(500)
-            .randomEndringer(500)
-            .randomEndringer(500)
+            .lagFormueobjekt(500)
+            .randomEndringer(400)
             .slettFormueobjekt(100)
 
+        val sentHendelser = mutableListOf<ProducerRecord<Long, Hendelse>>()
+        coEvery { kafkaSergHendelserFeedProducer.send(capture(sentHendelser)) } returns CompletableDeferred(Unit)
+
         val kvRepo = KeyValueRepository(dataSource())
-        val sergDokumentRepo = SergDokumentRepository(dataSource())
         val hendelserSync = HendelserSyncService(dataSource(), hendelseApi, kafkaSergHendelserFeedProducer)
-        val formueobjektSync = FormuesobjektSyncService(dataSource(), formueobjektApi)
+        val formueobjektSync = FormuesobjektSyncService(formueobjektApi, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer)
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1")
 
         synchronizeHendelser(hendelserSync)
 
-        assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("2601")
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(900)
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SLETTET, limit = 1000)).hasSize(100)
+        assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1001")
+        assertThat(ctrl.hendelser.size).isEqualTo(sentHendelser.size)
+        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.ny }.toList()).hasSize(500)
+        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.endret }.toList()).hasSize(400)
+        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.slettet }.toList()).hasSize(100)
 
-        val matrikkelenhetId = ctrl.randomMatrikkelenhetId()
-        assertThat(sergDokumentRepo.hentData(matrikkelenhetId)).isNotNull().all {
-            prop(SergDokument::hendelse).isNotNull()
-            prop(SergDokument::formueobjekt).isNull()
-        }
-
-        synchronizeFormueobjekt(formueobjektSync)
-
-        assertThat(sergDokumentRepo.hentData(matrikkelenhetId)).isNotNull().all {
-            prop(SergDokument::hendelse).isNotNull()
-            prop(SergDokument::formueobjekt).isNotNull()
-        }
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(0)
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SYNKRONISERT, limit = 3000)).hasSize(900)
-
-
-        ctrl
-            .slettFormueobjekt(100)
-            .randomEndringer(200)
-
-        synchronizeHendelser(hendelserSync)
-
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, limit = 3000)).hasSize(200)
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SLETTET, limit = 3000)).hasSize(200)
+        val sentFormuesobjekt = mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+        coEvery { kafkaSergFormuesobjektFeedProducer.send(capture(sentFormuesobjekt)) } returns CompletableDeferred(Unit)
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) } returns ConsumerRecords("",
+            records = sentHendelser.map { ConsumerRecord("", it.value!!.sekvensnummer!!, it.key, it.value, Clock.System.now()) }
+        )
 
         synchronizeFormueobjekt(formueobjektSync)
-        assertThat(sergDokumentRepo.listEtterStatus(SergDokumentStatus.SYNKRONISERT, limit = 3000)).hasSize(800)
+
+        assertThat(sentFormuesobjekt.size).isEqualTo(1000)
     }
 }
 
 private suspend fun synchronizeFormueobjekt(formueobjektSync: FormuesobjektSyncService) {
     do {
-        val result = formueobjektSync.sync()
+        val result = formueobjektSync.sync(antall = 1000)
         val antall = result.fold(
             onSuccess = { it },
             onFailure = { 0 }
@@ -103,7 +85,7 @@ private suspend fun synchronizeFormueobjekt(formueobjektSync: FormuesobjektSyncS
 
 private suspend fun synchronizeHendelser(hendelserSync: HendelserSyncService) {
     do {
-        val result = hendelserSync.sync(500)
+        val result = hendelserSync.sync(1000)
         val antall = result.fold(
             onSuccess = { it.size },
             onFailure = { 0 }
@@ -114,9 +96,8 @@ private suspend fun synchronizeHendelser(hendelserSync: HendelserSyncService) {
 class SergMock {
     private val rng = Random(0)
     private var sekvensnummer: Long = 2
-    private val hendelser: MutableList<Hendelse> = mutableListOf()
-    private val formueobjekter: MutableMap<Long, FastEiendomSomFormuesobjekt> = mutableMapOf()
-    private val hendelseMatrikkelenhetId: MutableMap<UUID, Long> = mutableMapOf()
+    val hendelser: MutableList<Hendelse> = mutableListOf()
+    private val formueobjekter: MutableMap<UUID, FastEiendomSomFormuesobjekt> = mutableMapOf()
 
     fun lagFormueobjekt(antall: Int): SergMock {
         repeat(antall) {
@@ -138,9 +119,8 @@ class SergMock {
                 )
             )
 
-            formueobjekter[matrikkelUnikIdentifikator] = formueobjekt
             hendelser.add(formueobjekt.createHendelse(Hendelsestype.ny))
-            hendelseMatrikkelenhetId[hendelsesidentifikator] = matrikkelUnikIdentifikator
+            formueobjekter[hendelsesidentifikator] = formueobjekt
         }
         return this
     }
@@ -149,7 +129,6 @@ class SergMock {
         val keys = formueobjekter.keys.randomSubset(antallEndringer)
         for (endringsKey in keys) {
             val formueobjekt = requireNotNull(formueobjekter[endringsKey])
-            val matrikkelUnikIdentifikator = requireNotNull(formueobjekt.identifikator?.matrikkelUnikIdentifikator)
             val hendelsesidentifikator = UUID.nameUUIDFromBytes(rng.nextBytes(5))
 
             val nyttformueobjekt = formueobjekt.copy(
@@ -163,9 +142,8 @@ class SergMock {
                 )
             )
 
-            formueobjekter[matrikkelUnikIdentifikator] = nyttformueobjekt
-            hendelser.add(formueobjekt.createHendelse(Hendelsestype.endret))
-            hendelseMatrikkelenhetId[hendelsesidentifikator] = matrikkelUnikIdentifikator
+            hendelser.add(nyttformueobjekt.createHendelse(Hendelsestype.endret))
+            formueobjekter[hendelsesidentifikator] = nyttformueobjekt
         }
         return this
     }
@@ -174,12 +152,12 @@ class SergMock {
         val keys = formueobjekter.keys.randomSubset(antall)
         for (endringsKey in keys) {
             val formueobjekt = requireNotNull(formueobjekter[endringsKey])
-            val matrikkelUnikIdentifikator = requireNotNull(formueobjekt.identifikator?.matrikkelUnikIdentifikator)
             val hendelsesidentifikator = UUID.nameUUIDFromBytes(rng.nextBytes(5))
 
-            formueobjekter.remove(matrikkelUnikIdentifikator)
-            hendelser.add(formueobjekt.copy(hendelsesidentifikator = hendelsesidentifikator).createHendelse(Hendelsestype.slettet))
-            hendelseMatrikkelenhetId[hendelsesidentifikator] = matrikkelUnikIdentifikator
+            val nyttformueobjekt = formueobjekt.copy(hendelsesidentifikator = hendelsesidentifikator)
+
+            hendelser.add(nyttformueobjekt.createHendelse(Hendelsestype.slettet))
+            formueobjekter[hendelsesidentifikator] = nyttformueobjekt
         }
         return this
     }
@@ -201,8 +179,7 @@ class SergMock {
 
         every { formueobjektApi.hentFormuesobjektFastEiendom(any(), any(), any()) } answers {
             val hendelseidentifikator = UUID.fromString(secondArg<String>())
-            val matrikkelenhetId = hendelseMatrikkelenhetId[hendelseidentifikator] ?: throw ClientException("fant ikke matrikkelenhetId")
-            formueobjekter[matrikkelenhetId] ?: throw ClientException("fant ikke formueobjekt")
+            formueobjekter[hendelseidentifikator] ?: throw ClientException("fant ikke formueobjekt: $hendelseidentifikator")
         }
 
         return Triple(this, hendelserApi, formueobjektApi)
@@ -218,10 +195,6 @@ class SergMock {
             kommunenummer = "0001"
         )
 
-    }
-
-    fun randomMatrikkelenhetId(): Long {
-        return formueobjekter.keys.random(rng)
     }
 }
 

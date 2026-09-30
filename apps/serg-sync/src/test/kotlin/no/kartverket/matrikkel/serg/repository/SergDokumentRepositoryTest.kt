@@ -63,7 +63,6 @@ class SergDokumentRepositoryTest : WithDatabase {
         )
 
         repository.settFormueobjektdata(1234, Result.success(formueobjekt))
-        3
         val data = repository.hentData(1234)
 
         assertThat(data?.matrikkelenhetId).isEqualTo(hendelse.matrikkelUnikIdentifikator)
