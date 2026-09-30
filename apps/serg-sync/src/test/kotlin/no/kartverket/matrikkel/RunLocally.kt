@@ -19,6 +19,6 @@ class Env {
 }
 
 fun main() {
-    Env.load("docker/idea.private.env")
-    runApplication()
+    Env.load("docker/local-runlocally.env")
+    runApplication(disableExternalAuthentication = true)
 }

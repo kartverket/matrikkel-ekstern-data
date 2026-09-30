@@ -14,11 +14,14 @@ import kotlin.reflect.KSuspendFunction0
 
 typealias SyncJob = KSuspendFunction0<Unit>
 
-fun runApplication() {
+fun runApplication(disableExternalAuthentication: Boolean = false) {
     val config = Configuration()
     DataSourceConfiguration.migrate(config.database)
 
-    val services = Services(config)
+    val services = Services(
+        config = config,
+        disableExternalAuthentication = disableExternalAuthentication,
+        )
 
     KtorServer
         .create(Netty, port = 8090) {

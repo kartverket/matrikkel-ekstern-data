@@ -42,8 +42,13 @@ import kotlin.time.toJavaDuration
 
 class Services(
     val config: Configuration,
+    disableExternalAuthentication: Boolean = false,
 ) {
-    val tokenClient = TokenClientFactory.MachineToMachine.maskinporten()
+    val tokenClient = if (disableExternalAuthentication) {
+        null
+    } else {
+        TokenClientFactory.MachineToMachine.maskinporten()
+    }
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
         config.database.userCredential
@@ -61,19 +66,33 @@ class Services(
 
     private val sergHttpClient = OkHttpClient.Builder()
         .readTimeout(30.seconds)
-        .addInterceptor(
-            AuthorizationInterceptor {
-                tokenClient.createToken("skatteetaten:formuesobjektfasteiendom").serialize()
-            },
-        )
+        .apply {
+            tokenClient?.let { client ->
+                addInterceptor(
+                    AuthorizationInterceptor {
+                        client
+                            .createToken("skatteetaten:formuesobjektfasteiendom")
+                            .serialize()
+                    },
+                )
+            }
+        }
         .build()
+
+    private val kafkaAuthentication =
+        if (disableExternalAuthentication) {
+            null
+        } else {
+            TokenClientFactory.MachineToMachine
+                .azureAd()
+                .asKafkaAuth(config.kafkaBrokerScope)
+        }
 
     val kafkaSergHendelserFeedProducer =
         MessageProducer.Impl(
             config = MessageProducer.Config(
                 server = Url(config.kafkaBrokerUrl),
-                authentication = TokenClientFactory.MachineToMachine.azureAd()
-                    .asKafkaAuth(config.kafkaBrokerScope),
+                authentication = kafkaAuthentication,
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),
