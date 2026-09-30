@@ -29,6 +29,8 @@ services:
     build:
       context: .
       dockerfile: apps/serg-sync/Dockerfile
+    command:
+      - --disable-external-authentication
     env_file:
       - docker/local-compose.env
     ports:

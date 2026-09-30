@@ -15,7 +15,6 @@ import no.kartverket.matrikkel.config.Configuration
 import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.config.JsonSerde
 import no.kartverket.matrikkel.kafka.asKafkaAuth
-import no.kartverket.matrikkel.kafkaclient.ClientAuthentication
 import no.kartverket.matrikkel.kafkaclient.LongSerde
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.okhttp.OkHttpUtils.AuthorizationInterceptor
@@ -43,11 +42,12 @@ import kotlin.time.toJavaDuration
 
 class Services(
     val config: Configuration,
+    disableExternalAuthentication: Boolean = false,
 ) {
-    val tokenClient =  if (config.sergAuthEnabled) {
-        TokenClientFactory.MachineToMachine.maskinporten()
-    } else {
+    val tokenClient = if (disableExternalAuthentication) {
         null
+    } else {
+        TokenClientFactory.MachineToMachine.maskinporten()
     }
     val dataSource = DataSourceConfiguration.createDatasource(
         config.database.jdbcUrl,
@@ -79,17 +79,13 @@ class Services(
         }
         .build()
 
-    private val kafkaAuthentication: ClientAuthentication? =
-        if (config.kafkaBrokerAuthEnabled) {
+    private val kafkaAuthentication =
+        if (disableExternalAuthentication) {
+            null
+        } else {
             TokenClientFactory.MachineToMachine
                 .azureAd()
-                .asKafkaAuth(
-                    requireNotNull(config.kafkaBrokerScope) {
-                        "KAFKA_BROKER_SCOPE må være satt når Kafka-auth er aktivert"
-                    },
-                )
-        } else {
-           null
+                .asKafkaAuth(config.kafkaBrokerScope)
         }
 
     val kafkaSergHendelserFeedProducer =
