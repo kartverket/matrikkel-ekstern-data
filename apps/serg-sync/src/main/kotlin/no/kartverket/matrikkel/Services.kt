@@ -85,7 +85,7 @@ class Services(
                 valueSerializer = JsonSerde<Hendelse>(),
                 correlationIdProvider = { UUID.randomUUID().toString() },
                 bufferSize = 1000,
-                linger = 100.milliseconds,
+                linger = 20.milliseconds
             )
         )
 
@@ -110,7 +110,7 @@ class Services(
         ),
     )
 
-    val kafkaSergThinFeedConsumer =
+    val kafkaSergHendelserFeedConsumer =
         MessageConsumer.Impl(
             config = MessageConsumer.Config(
                 server = Url(config.kafkaBrokerUrl),
@@ -121,7 +121,7 @@ class Services(
                 valueSerializer = JsonSerde<Hendelse>(),
                 correlationIdProvider = { UUID.randomUUID().toString() },
                 consumerGroup = "serg-sync",
-                instanceId = "test-instance-id",
+                instanceId = UUID.randomUUID().toString(),
                 initialOffsetPolicy = InitialOffsetPolicy.EARLIEST
             )
         )
@@ -149,7 +149,7 @@ class Services(
 
     val formueobjektSyncService = FormuesobjektSyncService(
         formueobjektApi = formueobjektApi,
-        messageConsumer = kafkaSergThinFeedConsumer,
+        messageConsumer = kafkaSergHendelserFeedConsumer,
         messageProducer = kafkaSergFormuesobjektFastEiendomFeedProducer
     )
     val formueobjektSyncJob = FormueobjektSyncJob(
@@ -258,9 +258,17 @@ class Services(
             }
 
             kafkaReporter.ping {
-                val metadata = kafkaSergHendelserFeedProducer.metadata()
-                require(metadata.canPublish) {
-                    "Kafka producer kan ikke publisere til topic ${metadata.topic}"
+                val hendelserProducer = kafkaSergHendelserFeedProducer.metadata()
+                val formuesobjektFastEiendomFeedProducer = kafkaSergFormuesobjektFastEiendomFeedProducer.metadata()
+                val hendelserConsumer = kafkaSergHendelserFeedConsumer.metadata()
+                require(hendelserProducer.canPublish) {
+                    "Kafka producer kan ikke publisere til topic ${hendelserProducer.topic}"
+                }
+                require(formuesobjektFastEiendomFeedProducer.canPublish) {
+                    "Kafka producer kan ikke publisere til topic ${formuesobjektFastEiendomFeedProducer.topic}"
+                }
+                require(hendelserConsumer.canConsume) {
+                    "Kafka consumer kan ikke konsumere fra topic ${hendelserConsumer.topic}"
                 }
             }
         }
