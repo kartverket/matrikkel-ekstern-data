@@ -21,6 +21,7 @@ class FormuesobjektSyncService(
     private val messageConsumer: MessageConsumer<Long, Hendelse>,
     private val messageProducer : MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>
 ) {
+    private val fastEiendomSomFormuesObjektHendelseMapper = FastEiendomSomFormuesObjektHendelseMapper()
 
     suspend fun sync(antall: Int = 10): Result<Int> {
         return runCatching {
@@ -89,11 +90,7 @@ class FormuesobjektSyncService(
                 for ((hendelse, resultatFormueobjekt) in formueobjekter) {
                     val formueobjekt = resultatFormueobjekt.getOrThrow()
                     val matrikkelenhetId = hendelse?.matrikkelUnikIdentifikator!!
-                    val fastEiendomSomFormuesObjektHendelse = FastEiendomSomFormuesObjektHendelse(
-                        matrikkelIdent = matrikkelenhetId,
-                        kommuneIdent = requireNotNull(hendelse.kommunenummer),
-                        skatteregistrerteEiere = formueobjekt.eieropplysninger?.map { x -> x.eierforhold.toString() }?.toHashSet() ?: hashSetOf()
-                    )
+                    val fastEiendomSomFormuesObjektHendelse = fastEiendomSomFormuesObjektHendelseMapper.map(hendelse, formueobjekt)
                     add(
                         messageProducer.send(ProducerRecord(
                             key = matrikkelenhetId,

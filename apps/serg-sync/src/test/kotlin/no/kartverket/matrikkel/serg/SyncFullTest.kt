@@ -15,6 +15,8 @@ import no.kartverket.matrikkel.serg.hendelser.HendelserSyncService
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
@@ -112,6 +114,7 @@ class SergMock {
                 hendelsesidentifikator = hendelsesidentifikator,
                 eieropplysninger = listOf(
                     Eieropplysninger(
+                        eierforhold = Eierforhold(eiernivaa = Eiernivaa.eiendomsrett),
                         personidentifikator = Personidentifikator(
                             organisasjonsnummer = rng.nextBytes(10).toHexString()
                         ),
@@ -135,6 +138,7 @@ class SergMock {
                 hendelsesidentifikator = hendelsesidentifikator,
                 eieropplysninger = listOf(
                     Eieropplysninger(
+                        eierforhold = Eierforhold(eiernivaa = Eiernivaa.feste),
                         personidentifikator = Personidentifikator(
                             foedselsnummer = rng.nextBytes(10).toHexString()
                         )

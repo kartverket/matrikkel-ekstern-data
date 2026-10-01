@@ -25,8 +25,12 @@ import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.BeforeEach
@@ -36,6 +40,7 @@ import java.util.Optional
 import java.util.UUID
 import javax.sql.DataSource
 import kotlin.jvm.optionals.getOrDefault
+import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -211,6 +216,14 @@ class FormueobjektSyncServiceTest : WithDatabase {
                 matrikkelUnikIdentifikator = id,
             ),
             hendelsesidentifikator = hendelseId,
+            eieropplysninger = listOf(
+                Eieropplysninger(
+                    eierforhold = Eierforhold(eiernivaa = Eiernivaa.eiendomsrett),
+                    personidentifikator = Personidentifikator(
+                        foedselsnummer = Random(0).nextBytes(10).toHexString()
+                    ),
+                )
+            )
         )
     }
 }
