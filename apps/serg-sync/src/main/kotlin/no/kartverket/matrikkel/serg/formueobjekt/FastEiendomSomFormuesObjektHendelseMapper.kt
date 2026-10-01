@@ -4,65 +4,70 @@ import no.kartverket.eksterndata.domene.Serg.Eiernivaa;
 import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import no.kartverket.eksterndata.domene.Serg.Identifikator
 import no.kartverket.eksterndata.domene.Serg.SkatteregistrerteEier
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa as SergEiernivaa
 
 class FastEiendomSomFormuesObjektHendelseMapper {
 
-    fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse{
-        var skatteregistrerteEier: Set<SkatteregistrerteEier> = emptySet()
-
-        if ((Hendelsestype.slettet != hendelse.hendelsestype) && harEierforhold(fastEiendomSomFormuesobjekt)) {
-            skatteregistrerteEier = fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty().map { eieropplysing ->
-                val eiernivaa = eieropplysing.eierforhold?.eiernivaa?.let(::mapEiernivaa)
-                    ?: throw IllegalArgumentException("Mangler eierforhold eller eiernivaa i eieropplysing")
-
-                val ident = requireNotNull(eieropplysing.personidentifikator) {
-                    "Mangler informasjon om personidentifikator i eieropplysing"
-                }
-
-                if (validerKunEnPersonidentifkator(ident)) {
-                    throw IllegalArgumentException("For mange mulige personidentifiktatorer")
-                }
-
-                if ((ident.ukjentRettighetshaver ?: false)) {
-                    throw IllegalArgumentException("Kan ikke opprette personident for ukjent rettighetshaver")
-                }
-
-                when {
-                    ident.foedselsnummer != null -> SkatteregistrerteEier(Identifikator.Person(requireNotNull(ident.foedselsnummer)), eiernivaa)
-                    ident.dNummer != null -> SkatteregistrerteEier(Identifikator.Person(requireNotNull(ident.dNummer)), eiernivaa)
-                    ident.organisasjonsnummer != null -> SkatteregistrerteEier(Identifikator.OrgNr(requireNotNull(ident.organisasjonsnummer)), eiernivaa)
-                    ident.loepenummer != null -> SkatteregistrerteEier(Identifikator.AnnenPerson(requireNotNull(ident.loepenummer)), eiernivaa)
-                    else -> throw IllegalArgumentException("Det mangler informasjon i personidentifikator for å kunne opprette en personidentifikator")
-                }
-            }.toSet()
+    fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse {
+        val eiere: List<Eieropplysninger> = when (hendelse.hendelsestype) {
+            Hendelsestype.ny -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            Hendelsestype.slettet -> emptyList()
+            null -> emptyList()
         }
 
         return FastEiendomSomFormuesObjektHendelse(
             matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator),
-            skatteregistrerteEiere = skatteregistrerteEier
+            skatteregistrerteEiere = eiere.map(::skatteEiere).toSet(),
         )
     }
 
-    private fun mapEiernivaa (nivaa : no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa): Eiernivaa {
-        return when (nivaa) {
-            no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa.eiendomsrett -> Eiernivaa.EIENDOMSRETT
-            no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa.feste -> Eiernivaa.FESTE       // Matches here -> returns "Two"
-            no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa.framfeste1 -> Eiernivaa.FRAMFESTE_1
-            no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa.framfeste2 -> Eiernivaa.FRAMFESTE_2
-            no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa.framfeste3 -> Eiernivaa.FRAMFESTE_3
+    private fun skatteEiere(eieropplysing: Eieropplysninger): SkatteregistrerteEier {
+        val eiernivaa = requireNotNull(eieropplysing.eierforhold?.eiernivaa?.let(::mapEiernivaa)) {
+            "Mangler eierforhold eller eiernivaa i eieropplysing"
+        }
+
+        val ident = requireNotNull(eieropplysing.personidentifikator) {
+            "Mangler informasjon om personidentifikator i eieropplysing"
+        }
+
+        require(validerKunEnPersonidentifikator(ident)) {
+            "For mange mulige personidentifiktatorer"
+        }
+
+        require(ident.ukjentRettighetshaver ?: false) {
+            "Kan ikke opprette personident for ukjent rettighetshaver"
+        }
+
+        return SkatteregistrerteEier(mapIdentifikator(ident), eiernivaa)
+    }
+
+    private fun mapIdentifikator(personidentifikator: Personidentifikator): Identifikator {
+        return when {
+            personidentifikator.foedselsnummer != null -> Identifikator.Person(requireNotNull(personidentifikator.foedselsnummer))
+            personidentifikator.dNummer != null -> Identifikator.Person(requireNotNull(personidentifikator.dNummer))
+            personidentifikator.organisasjonsnummer != null -> Identifikator.OrgNr(requireNotNull(personidentifikator.organisasjonsnummer))
+            personidentifikator.loepenummer != null -> Identifikator.AnnenPerson(requireNotNull(personidentifikator.loepenummer))
+            else -> throw IllegalArgumentException("Det mangler informasjon i personidentifikator for å kunne opprette en personidentifikator")
         }
     }
 
-    private fun harEierforhold(formueobjekt: FastEiendomSomFormuesobjekt): Boolean {
-        return !(formueobjekt.rettighetshaverMangler ?: false)
-                && (formueobjekt.eieropplysninger?: emptyList()).isNotEmpty()
+    private fun mapEiernivaa(nivaa: SergEiernivaa): Eiernivaa {
+        return when (nivaa) {
+            SergEiernivaa.eiendomsrett -> Eiernivaa.EIENDOMSRETT
+            SergEiernivaa.feste -> Eiernivaa.FESTE       // Matches here -> returns "Two"
+            SergEiernivaa.framfeste1 -> Eiernivaa.FRAMFESTE_1
+            SergEiernivaa.framfeste2 -> Eiernivaa.FRAMFESTE_2
+            SergEiernivaa.framfeste3 -> Eiernivaa.FRAMFESTE_3
+        }
     }
 
-    private fun validerKunEnPersonidentifkator(personidentifikator: Personidentifikator): Boolean {
+    private fun validerKunEnPersonidentifikator(personidentifikator: Personidentifikator): Boolean {
         val values = arrayOf(
             personidentifikator.foedselsnummer,
             personidentifikator.dNummer,

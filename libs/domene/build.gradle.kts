@@ -1,7 +1,5 @@
 plugins {
     id("buildsrc.convention.kotlin-jvm")
-    // Apply Kotlin Serialization plugin from `gradle/libs.versions.toml`.
-    alias(libs.plugins.kotlinPluginSerialization)
     id("maven-publish")
 }
 

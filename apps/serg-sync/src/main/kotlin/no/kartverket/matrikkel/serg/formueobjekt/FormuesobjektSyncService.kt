@@ -40,8 +40,8 @@ class FormuesobjektSyncService(
                 val hendelse = requireNotNull(record.value)
                 val hendelseId = hendelse.hendelseidentifikator
 
-                if (hendelseId  == null) {
-                    throw IllegalStateException("Hendelse mangler hendelseidentifikator: $hendelse")
+                requireNotNull(hendelseId) {
+                    "Hendelse mangler hendelseidentifikator: $hendelse"
                 }
 
                 Pair(
@@ -89,7 +89,7 @@ class FormuesobjektSyncService(
             val pendingSends = buildList {
                 for ((hendelse, resultatFormueobjekt) in formueobjekter) {
                     val formueobjekt = resultatFormueobjekt.getOrThrow()
-                    val matrikkelenhetId = hendelse?.matrikkelUnikIdentifikator!!
+                    val matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator)
                     val fastEiendomSomFormuesObjektHendelse = fastEiendomSomFormuesObjektHendelseMapper.map(hendelse, formueobjekt)
                     add(
                         messageProducer.send(ProducerRecord(
