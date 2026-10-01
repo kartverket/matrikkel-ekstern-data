@@ -15,8 +15,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
 
     fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse {
         val eiere: List<Eieropplysninger> = when (hendelse.hendelsestype) {
-            Hendelsestype.ny -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
-            Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            Hendelsestype.ny, Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
             Hendelsestype.slettet -> emptyList()
             null -> emptyList()
         }
@@ -40,7 +39,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
             "For mange mulige personidentifiktatorer"
         }
 
-        require(ident.ukjentRettighetshaver ?: false) {
+        require(!(ident.ukjentRettighetshaver ?: false)) {
             "Kan ikke opprette personident for ukjent rettighetshaver"
         }
 
@@ -74,6 +73,6 @@ class FastEiendomSomFormuesObjektHendelseMapper {
             personidentifikator.organisasjonsnummer,
             personidentifikator.loepenummer
         )
-        return values.count { it != null } > 1
+        return values.count { it != null } == 1
     }
 }
