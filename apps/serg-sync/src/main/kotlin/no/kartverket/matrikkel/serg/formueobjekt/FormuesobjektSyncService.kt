@@ -1,6 +1,6 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
-import FastEiendomSomFormuesObjektHendelse
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withTimeout
 import no.kartverket.kotlin.mapInParallell

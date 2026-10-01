@@ -1,6 +1,6 @@
 package no.kartverket.matrikkel.serg
 
-import FastEiendomSomFormuesObjektHendelse
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo

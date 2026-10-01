@@ -1,12 +1,10 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
-import FastEiendomSomFormuesObjektHendelse
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import assertk.assertThat
-import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isNull
 import assertk.assertions.isSuccess
 import assertk.assertions.messageContains
 import io.mockk.coEvery
@@ -21,8 +19,6 @@ import no.kartverket.matrikkel.kafkaclient.ConsumerRecords
 import no.kartverket.matrikkel.kafkaclient.MessageConsumer
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.ProducerRecord
-import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.WithDatabase
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
@@ -33,16 +29,10 @@ import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Formuesobj
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.sql.SQLException
-import java.util.Optional
 import java.util.UUID
-import javax.sql.DataSource
-import kotlin.jvm.optionals.getOrDefault
 import kotlin.random.Random
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 class FormueobjektSyncServiceTest : WithDatabase {
     private var nesteSekvensnummer = 0L

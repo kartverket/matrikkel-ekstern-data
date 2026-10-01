@@ -1,6 +1,6 @@
 package no.kartverket.matrikkel
 
-import FastEiendomSomFormuesObjektHendelse
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate

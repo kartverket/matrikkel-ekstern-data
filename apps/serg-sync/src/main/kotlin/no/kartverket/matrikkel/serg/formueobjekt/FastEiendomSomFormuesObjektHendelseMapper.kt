@@ -1,9 +1,9 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
-import Eiernivaa
-import FastEiendomSomFormuesObjektHendelse
-import Identifikatortype
-import SkatteregistrerteEier
+import no.kartverket.eksterndata.domene.Serg.Eiernivaa;
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
+import no.kartverket.eksterndata.domene.Serg.Identifikator
+import no.kartverket.eksterndata.domene.Serg.SkatteregistrerteEier
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
@@ -32,10 +32,10 @@ class FastEiendomSomFormuesObjektHendelseMapper {
                 }
 
                 when {
-                    ident.foedselsnummer != null -> SkatteregistrerteEier(ident.foedselsnummer!!, Identifikatortype.PERSON, eiernivaa)
-                    ident.dNummer != null -> SkatteregistrerteEier(ident.dNummer!!, Identifikatortype.PERSON, eiernivaa)
-                    ident.organisasjonsnummer != null -> SkatteregistrerteEier(ident.organisasjonsnummer!!, Identifikatortype.ORGANISASJON, eiernivaa)
-                    ident.loepenummer != null -> SkatteregistrerteEier(ident.loepenummer!!, Identifikatortype.ANNEN, eiernivaa)
+                    ident.foedselsnummer != null -> SkatteregistrerteEier(Identifikator.Person(requireNotNull(ident.foedselsnummer)), eiernivaa)
+                    ident.dNummer != null -> SkatteregistrerteEier(Identifikator.Person(requireNotNull(ident.dNummer)), eiernivaa)
+                    ident.organisasjonsnummer != null -> SkatteregistrerteEier(Identifikator.OrgNr(requireNotNull(ident.organisasjonsnummer)), eiernivaa)
+                    ident.loepenummer != null -> SkatteregistrerteEier(Identifikator.AnnenPerson(requireNotNull(ident.loepenummer)), eiernivaa)
                     else -> throw IllegalArgumentException("Det mangler informasjon i personidentifikator for å kunne opprette en personidentifikator")
                 }
             }.toSet()
