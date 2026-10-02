@@ -6,7 +6,6 @@ plugins {
 
 dependencies {
     implementation(libs.kotlinxSerialization)
-    implementation(libs.jackson)
 }
 
 publishing {

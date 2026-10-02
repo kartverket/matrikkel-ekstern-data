@@ -14,19 +14,22 @@ import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa 
 class FastEiendomSomFormuesObjektHendelseMapper {
 
     fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse {
-        val eiere: List<Eieropplysninger> = when (hendelse.hendelsestype) {
-            Hendelsestype.ny, Hendelsestype.endret -> if (fastEiendomSomFormuesobjekt.rettighetshaverMangler ?: false) emptyList() else fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
-            Hendelsestype.slettet -> emptyList()
-            null -> emptyList()
+        val eiere: List<Eieropplysninger> = when {
+            fastEiendomSomFormuesobjekt.rettighetshaverMangler == false -> emptyList()
+            hendelse.hendelsestype == Hendelsestype.ny -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            hendelse.hendelsestype == Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            hendelse.hendelsestype == Hendelsestype.slettet -> emptyList()
+            else -> emptyList()
         }
 
         return FastEiendomSomFormuesObjektHendelse(
+            hendelseId = requireNotNull(hendelse.hendelseidentifikator).toString(),
             matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator),
-            skatteregistrerteEiere = eiere.map(::skatteEiere).toSet(),
+            skatteregistrerteEiere = eiere.mapNotNull(::skatteEiere).toSet(),
         )
     }
 
-    private fun skatteEiere(eieropplysing: Eieropplysninger): SkatteregistrerteEier {
+    private fun skatteEiere(eieropplysing: Eieropplysninger): SkatteregistrerteEier? {
         val eiernivaa = requireNotNull(eieropplysing.eierforhold?.eiernivaa?.let(::mapEiernivaa)) {
             "Mangler eierforhold eller eiernivaa i eieropplysing"
         }
@@ -35,12 +38,12 @@ class FastEiendomSomFormuesObjektHendelseMapper {
             "Mangler informasjon om personidentifikator i eieropplysing"
         }
 
-        require(validerKunEnPersonidentifikator(ident)) {
-            "For mange mulige personidentifiktatorer"
+        if (ident.ukjentRettighetshaver ?: false) {
+            return null
         }
 
-        require(!(ident.ukjentRettighetshaver ?: false)) {
-            "Kan ikke opprette personident for ukjent rettighetshaver"
+        require(validerKunEnPersonidentifikator(ident)) {
+            "For mange mulige personidentifiktatorer"
         }
 
         return SkatteregistrerteEier(
@@ -53,7 +56,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
         return when {
             personidentifikator.foedselsnummer != null -> Identifikator.Person(requireNotNull(personidentifikator.foedselsnummer))
             personidentifikator.dNummer != null -> Identifikator.Person(requireNotNull(personidentifikator.dNummer))
-            personidentifikator.organisasjonsnummer != null -> Identifikator.OrgNr(requireNotNull(personidentifikator.organisasjonsnummer))
+            personidentifikator.organisasjonsnummer != null -> Identifikator.Organisasjons(requireNotNull(personidentifikator.organisasjonsnummer))
             personidentifikator.loepenummer != null -> Identifikator.AnnenPerson(requireNotNull(personidentifikator.loepenummer))
             else -> throw IllegalArgumentException("Det mangler informasjon i personidentifikator for å kunne opprette en personidentifikator")
         }

@@ -28,44 +28,24 @@ class FormuesobjektSyncService(
 
             val hendelser = messageConsumer.poll(maxRecords = antall)
 
-            val (gyldigeRecords, ugyldigeRecords) = hendelser.records.partition {
+            val (gyldigeHendelser, ugyldigeHendelser) = hendelser.records.partition {
                 it.value?.hendelseidentifikator != null
             }
 
-            ugyldigeRecords.forEach { record ->
+            ugyldigeHendelser.forEach { record ->
                 logger.warn("Hendelse mangler hendelseidentifikator, kan ikke hente formueobjekt, hopper over: ${record.value}")
             }
 
-            val formueobjekter = gyldigeRecords.mapInParallell(parallellism = antall) { record, _ ->
+            val formueobjekter = gyldigeHendelser.mapInParallell(parallellism = antall) { record, _ ->
                 val hendelse = requireNotNull(record.value)
-                val hendelseId = hendelse.hendelseidentifikator
-
-                requireNotNull(hendelseId) {
-                    "Hendelse mangler hendelseidentifikator: $hendelse"
-                }
+                val hendelseId = requireNotNull(hendelse.hendelseidentifikator)
 
                 Pair(
                     hendelse,
                     runCatching {
                         retry(
                             attempts = 3,
-                            stopRetryIf = { exception ->
-                                when (exception) {
-                                    is ClientException -> {
-                                        val statusCode = exception.statusCode
-                                        val body = when (val response = exception.response) {
-                                            is ClientError<*> -> response.body.toString()
-                                            else -> ""
-                                        }
-
-                                        val FFE005_generisk_feil = statusCode == 403 && body.contains("FFE-005")
-                                        val FFE007_mangler_data = statusCode == 404 && body.contains("FFE-007")
-
-                                        FFE005_generisk_feil || FFE007_mangler_data
-                                    }
-                                    else -> false
-                                }
-                            },
+                            stopRetryIf = { forventetApiFeil(it) },
                             fn = {
                                 formueobjektApi.hentFormuesobjektFastEiendom(
                                     rettighetspakke = "kartverketMatrikkel",
@@ -78,16 +58,21 @@ class FormuesobjektSyncService(
                 )
             }
 
-            val feilet = formueobjekter.stream().filter { it.second.isFailure }.toList()
+            val (ok, feilet) = formueobjekter.partition {
+                it.second.isSuccess || it.second.exceptionOrNull()?.let {x ->  forventetApiFeil(x) } == true
+            }
 
             if (feilet.isNotEmpty()) {
                 return Result.failure(
-                    IllegalStateException("Feilet med henting av formueobjekt for ${feilet.size} hendelser med: " + feilet.getOrNull(0)?.second?.exceptionOrNull()?.message)
+                    IllegalStateException("Feilet ved henting av formueobjekt for ${feilet.size} hendelser med: " + feilet.getOrNull(0)?.second?.exceptionOrNull()?.message)
                 )
             }
 
             val pendingSends = buildList {
-                for ((hendelse, resultatFormueobjekt) in formueobjekter) {
+                for ((hendelse, resultatFormueobjekt) in ok) {
+                    if (resultatFormueobjekt.isFailure) {
+                        logger.warn("Hendelse med hendelseidentifikator ${hendelse.hendelseidentifikator} feilet med forventet API-feil, hopper over: ${resultatFormueobjekt.exceptionOrNull()?.message}")
+                    }
                     val formueobjekt = resultatFormueobjekt.getOrThrow()
                     val matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator)
                     val fastEiendomSomFormuesObjektHendelse = fastEiendomSomFormuesObjektHendelseMapper.map(hendelse, formueobjekt)
@@ -110,5 +95,20 @@ class FormuesobjektSyncService(
         }
     }
 
+    fun forventetApiFeil(exception: Throwable): Boolean = when (exception) {
+        is ClientException -> {
+            val statusCode = exception.statusCode
+            val body = when (val response = exception.response) {
+                is ClientError<*> -> response.body.toString()
+                else -> ""
+            }
 
+            val FFE005_generisk_feil = statusCode == 403 && body.contains("FFE-005")
+            val FFE007_mangler_data = statusCode == 404 && body.contains("FFE-007")
+
+            FFE005_generisk_feil || FFE007_mangler_data
+        }
+
+        else -> false
+    }
 }
