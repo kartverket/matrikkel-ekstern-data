@@ -1,5 +1,7 @@
 package no.kartverket.eksterndata.domene
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -18,6 +20,16 @@ object Serg {
         val eiernivaa: Eiernivaa
     )
 
+    @JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type"
+    )
+    @JsonSubTypes(
+        JsonSubTypes.Type(value = Identifikator.Person::class, name = "Person"),
+        JsonSubTypes.Type(value = Identifikator.Organisasjons::class, name = "Organisasjons"),
+        JsonSubTypes.Type(value = Identifikator.AnnenPerson::class, name = "AnnenPerson")
+    )
     @Serializable
     sealed class Identifikator {
         @Serializable
