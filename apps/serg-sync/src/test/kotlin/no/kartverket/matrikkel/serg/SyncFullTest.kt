@@ -59,9 +59,11 @@ class SyncFullTest : WithDatabase {
 
         assertThat(kvRepo.getValue("sekvensnummer")).isEqualTo("1001")
         assertThat(ctrl.hendelser.size).isEqualTo(sentHendelser.size)
-        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.ny }.toList()).hasSize(500)
-        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.endret }.toList()).hasSize(400)
-        assertThat(sentHendelser.stream().filter { it.value!!.hendelsestype == Hendelsestype.slettet }.toList()).hasSize(100)
+        val sendteHendelseTyper = sentHendelser.groupBy { it.value?.hendelsestype }
+        assertThat(sendteHendelseTyper[Hendelsestype.ny] ?: emptyList()).hasSize(500)
+        assertThat(sendteHendelseTyper[Hendelsestype.endret] ?: emptyList()).hasSize(500)
+        assertThat(sendteHendelseTyper[Hendelsestype.slettet] ?: emptyList()).hasSize(500)
+       
 
         val sentFormuesobjekt = mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
         coEvery { kafkaSergFormuesobjektFeedProducer.send(capture(sentFormuesobjekt)) } returns CompletableDeferred(Unit)
