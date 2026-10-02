@@ -58,21 +58,18 @@ class FormuesobjektSyncService(
                 )
             }
 
-            val (ok, feilet) = formueobjekter.partition {
-                it.second.isSuccess || it.second.exceptionOrNull()?.let {x ->  forventetApiFeil(x) } == true
-            }
+            val ikkeForventedeFeil = formueobjekter
+                .mapNotNull { it.second.exceptionOrNull() }
+                .filter { !forventetApiFeil(it) }
 
-            if (feilet.isNotEmpty()) {
+            if (ikkeForventedeFeil.isNotEmpty()) {
                 return Result.failure(
-                    IllegalStateException("Feilet ved henting av formueobjekt for ${feilet.size} hendelser med: " + feilet.getOrNull(0)?.second?.exceptionOrNull()?.message)
+                    IllegalStateException("Feilet ved henting av formueobjekt for ${ikkeForventedeFeil.size} hendelser med: " + ikkeForventedeFeil.getOrNull(0)?.message)
                 )
             }
 
             val pendingSends = buildList {
-                for ((hendelse, resultatFormueobjekt) in ok) {
-                    if (resultatFormueobjekt.isFailure) {
-                        logger.warn("Hendelse med hendelseidentifikator ${hendelse.hendelseidentifikator} feilet med forventet API-feil, hopper over: ${resultatFormueobjekt.exceptionOrNull()?.message}")
-                    }
+                for ((hendelse, resultatFormueobjekt) in formueobjekter.filter { it.second.isSuccess }) {
                     val formueobjekt = resultatFormueobjekt.getOrThrow()
                     val matrikkelenhetId = requireNotNull(hendelse.matrikkelUnikIdentifikator)
                     val fastEiendomSomFormuesObjektHendelse = fastEiendomSomFormuesObjektHendelseMapper.map(hendelse, formueobjekt)
