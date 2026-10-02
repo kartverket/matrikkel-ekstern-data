@@ -133,8 +133,7 @@ class Services(
         MessageConsumer.Impl(
             config = MessageConsumer.Config(
                 server = Url(config.kafkaBrokerUrl),
-                authentication = TokenClientFactory.MachineToMachine.azureAd()
-                    .asKafkaAuth(config.kafkaBrokerScope),
+                authentication = kafkaAuthentication,
                 topic = "SERG_HENDELSER",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<Hendelse>(),
@@ -149,8 +148,7 @@ class Services(
         MessageProducer.Impl(
             config = MessageProducer.Config(
                 server = Url(config.kafkaBrokerUrl),
-                authentication = TokenClientFactory.MachineToMachine.azureAd()
-                    .asKafkaAuth(config.kafkaBrokerScope),
+                authentication = kafkaAuthentication,
                 topic = "SERG_FORMUESOBJEKT_FAST_EIENDOM",
                 keySerializer = LongSerde,
                 valueSerializer = JsonSerde<FastEiendomSomFormuesObjektHendelse>(),

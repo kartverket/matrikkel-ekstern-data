@@ -1,6 +1,7 @@
 plugins {
     id("buildsrc.convention.kotlin-jvm")
     id("maven-publish")
+    alias(libs.plugins.kotlinPluginSerialization)
 }
 
 dependencies {

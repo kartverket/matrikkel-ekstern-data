@@ -15,7 +15,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
 
     fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse {
         val eiere: List<Eieropplysninger> = when (hendelse.hendelsestype) {
-            Hendelsestype.ny, Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
+            Hendelsestype.ny, Hendelsestype.endret -> if (fastEiendomSomFormuesobjekt.rettighetshaverMangler ?: false) emptyList() else fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
             Hendelsestype.slettet -> emptyList()
             null -> emptyList()
         }
@@ -43,7 +43,10 @@ class FastEiendomSomFormuesObjektHendelseMapper {
             "Kan ikke opprette personident for ukjent rettighetshaver"
         }
 
-        return SkatteregistrerteEier(mapIdentifikator(ident), eiernivaa)
+        return SkatteregistrerteEier(
+            identifikator = mapIdentifikator(ident),
+            eiernivaa = eiernivaa
+        )
     }
 
     private fun mapIdentifikator(personidentifikator: Personidentifikator): Identifikator {
