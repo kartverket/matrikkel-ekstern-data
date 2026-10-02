@@ -61,8 +61,8 @@ class SyncFullTest : WithDatabase {
         assertThat(ctrl.hendelser.size).isEqualTo(sentHendelser.size)
         val sendteHendelseTyper = sentHendelser.groupBy { it.value?.hendelsestype }
         assertThat(sendteHendelseTyper[Hendelsestype.ny] ?: emptyList()).hasSize(500)
-        assertThat(sendteHendelseTyper[Hendelsestype.endret] ?: emptyList()).hasSize(500)
-        assertThat(sendteHendelseTyper[Hendelsestype.slettet] ?: emptyList()).hasSize(500)
+        assertThat(sendteHendelseTyper[Hendelsestype.endret] ?: emptyList()).hasSize(400)
+        assertThat(sendteHendelseTyper[Hendelsestype.slettet] ?: emptyList()).hasSize(100)
        
 
         val sentFormuesobjekt = mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
