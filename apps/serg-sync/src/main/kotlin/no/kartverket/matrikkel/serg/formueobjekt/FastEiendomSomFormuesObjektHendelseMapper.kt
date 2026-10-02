@@ -15,7 +15,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
 
     fun map(hendelse: Hendelse, fastEiendomSomFormuesobjekt: FastEiendomSomFormuesobjekt): FastEiendomSomFormuesObjektHendelse {
         val eiere: List<Eieropplysninger> = when {
-            fastEiendomSomFormuesobjekt.rettighetshaverMangler == false -> emptyList()
+            fastEiendomSomFormuesobjekt.rettighetshaverMangler == true -> emptyList()
             hendelse.hendelsestype == Hendelsestype.ny -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
             hendelse.hendelsestype == Hendelsestype.endret -> fastEiendomSomFormuesobjekt.eieropplysninger.orEmpty()
             hendelse.hendelsestype == Hendelsestype.slettet -> emptyList()
