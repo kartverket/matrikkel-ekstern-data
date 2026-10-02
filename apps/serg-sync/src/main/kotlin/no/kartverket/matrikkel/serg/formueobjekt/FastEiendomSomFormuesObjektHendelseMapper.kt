@@ -30,10 +30,6 @@ class FastEiendomSomFormuesObjektHendelseMapper {
     }
 
     private fun skatteEiere(eieropplysing: Eieropplysninger): SkatteregistrerteEier? {
-        val eiernivaa = requireNotNull(eieropplysing.eierforhold?.eiernivaa?.let(::mapEiernivaa)) {
-            "Mangler eierforhold eller eiernivaa i eieropplysing"
-        }
-
         val ident = requireNotNull(eieropplysing.personidentifikator) {
             "Mangler informasjon om personidentifikator i eieropplysing"
         }
@@ -44,6 +40,10 @@ class FastEiendomSomFormuesObjektHendelseMapper {
 
         require(validerKunEnPersonidentifikator(ident)) {
             "For mange mulige personidentifiktatorer"
+        }
+
+        val eiernivaa = requireNotNull(eieropplysing.eierforhold?.eiernivaa?.let(::mapEiernivaa)) {
+            "Mangler eierforhold eller eiernivaa i eieropplysing"
         }
 
         return SkatteregistrerteEier(
@@ -65,7 +65,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
     private fun mapEiernivaa(nivaa: SergEiernivaa): Eiernivaa {
         return when (nivaa) {
             SergEiernivaa.eiendomsrett -> Eiernivaa.EIENDOMSRETT
-            SergEiernivaa.feste -> Eiernivaa.FESTE       // Matches here -> returns "Two"
+            SergEiernivaa.feste -> Eiernivaa.FESTE
             SergEiernivaa.framfeste1 -> Eiernivaa.FRAMFESTE_1
             SergEiernivaa.framfeste2 -> Eiernivaa.FRAMFESTE_2
             SergEiernivaa.framfeste3 -> Eiernivaa.FRAMFESTE_3
