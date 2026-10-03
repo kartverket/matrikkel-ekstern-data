@@ -1,271 +1,205 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
+import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import assertk.assertThat
-import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isNull
 import assertk.assertions.isSuccess
+import assertk.assertions.messageContains
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
-import kotlinx.coroutines.runBlocking
-import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
-import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
-import no.kartverket.matrikkel.serg.repository.WithDatabase
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.test.runTest
+import no.kartverket.eksterndata.domene.Serg
+import no.kartverket.matrikkel.kafkaclient.ConsumerRecord
+import no.kartverket.matrikkel.kafkaclient.ConsumerRecords
+import no.kartverket.matrikkel.kafkaclient.MessageConsumer
+import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eierforhold
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eiernivaa
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Eieropplysninger
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FastEiendomSomFormuesobjekt
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.FormuesobjektIdentifikator
+import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.models.Personidentifikator
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.Test
-import java.sql.SQLException
+import org.openapitools.client.infrastructure.ClientError
+import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
-import javax.sql.DataSource
+import kotlin.random.Random
+import kotlin.time.Clock
 
-class FormueobjektSyncServiceTest : WithDatabase {
+class FormueobjektSyncServiceTest {
     private var nesteSekvensnummer = 0L
 
     @Test
-    fun `ingen dokumenter å synkronisere`() = runBlocking {
+    fun `ingen dokumenter å synkronisere`() = runTest {
         val api = mockk<FormuesobjektFastEiendomApi>()
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) } returns ConsumerRecords("", emptyList())
+        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
 
         assertThat(result).isSuccess()
         verify(exactly = 0) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 0) { kafkaSergFormuesobjektFeedProducer.send(any()) }
     }
 
     @Test
-    fun `henter kun KREVER_SYNKRONISERING`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val requireId = 1001L
-        val syncedId = 1002L
-        val deletedId = 1003L
-        val failureId = 1004L
-        val requireHendelseId = upsertHendelse(repository, requireId)
-        val syncedHendelseId = upsertHendelse(repository, syncedId)
-        upsertHendelse(repository, deletedId, type = Hendelsestype.slettet)
-        upsertHendelse(repository, failureId)
-        repository.settFormueobjektdata(
-            syncedId,
-            Result.success(formueobjekt(syncedId, syncedHendelseId))
+    fun `kan synkronisere hendelser`() = runTest {
+        // Hendelser mock
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
+        val hendelser = listOf(
+            lagRecord(1001L, UUID.randomUUID()),
+            lagRecord(1002L, UUID.randomUUID())
         )
-        repository.settFormueobjektdata(
-            failureId,
-            Result.failure(RuntimeException("gammel feil"))
-        )
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) }returns ConsumerRecords("", hendelser)
+        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
 
+        // API mock
         val api = mockk<FormuesobjektFastEiendomApi>()
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", requireHendelseId.toString(), any())
-        } returns formueobjekt(requireId, requireHendelseId)
+        hendelser.forEach { hendelse ->
+            every {
+                api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelse.value?.hendelseidentifikator.toString(), any())
+            } returns formueobjekt(hendelse.key, hendelse.value?.hendelseidentifikator!!)
+        }
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        // FastEiendomSomFormuesObjektFeedProducer mock
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val sentFormuesobjekt = mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+        coEvery { kafkaSergFormuesobjektFeedProducer.send(capture(sentFormuesobjekt)) } returns CompletableDeferred(Unit)
+
+        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
 
         assertThat(result).isSuccess()
-        verify(exactly = 1) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", requireHendelseId.toString(), any())
-        }
-        verify(exactly = 1) {
+        verify(exactly = 2) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
-
-        assertThat(repository.hentData(requireId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
-        assertThat(repository.hentData(syncedId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
-        assertThat(repository.hentData(deletedId)?.status).isEqualTo(SergDokumentStatus.SLETTET)
-        assertThat(repository.hentData(failureId)?.status).isEqualTo(SergDokumentStatus.FEIL)
-        assertThat(repository.hentData(failureId)?.kommentar).isEqualTo("gammel feil")
+        assertThat(sentFormuesobjekt.size).isEqualTo(2)
     }
 
     @Test
-    fun `mangler hendelseId gir FEIL uten API-kall`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val id = 2001L
-        upsertHendelse(repository, id, hendelseId = null)
+    fun `mangler hendelseId gir FEIL uten API-kall`() = runTest {
         val api = mockk<FormuesobjektFastEiendomApi>()
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val hendelser = listOf(lagRecord(2001L, null))
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) } returns ConsumerRecords("", hendelser)
+        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
+
+        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
 
         assertThat(result).isSuccess()
-        assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.FEIL)
-        assertThat(repository.hentData(id)?.kommentar).isEqualTo("Mangler hendelseId")
         verify(exactly = 0) {
             api.hentFormuesobjektFastEiendom(any(), any(), any())
         }
+        coVerify(exactly = 0) { kafkaSergFormuesobjektFeedProducer.send(any()) }
     }
 
     @Test
-    fun `API-suksess lagrer formueobjekt og setter SYNKRONISERT`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val id = 3001L
-        val hendelseId = upsertHendelse(repository, id)
-        val api = mockk<FormuesobjektFastEiendomApi>()
-        val response = formueobjekt(id, hendelseId)
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
-        } returns response
+    fun `API-feil setter FEIL med feilmelding`() = runTest {
+        // Hendelser mock
+        val hendelser = listOf(lagRecord(4001L, UUID.randomUUID()))
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) } returns ConsumerRecords("", hendelser)
+        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        // Producer mock
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        coEvery { kafkaSergFormuesobjektFeedProducer.send(any()) } returns CompletableDeferred(Unit)
 
-        assertThat(result).isSuccess()
-        val data = repository.hentData(id)
-        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
-        assertThat(data?.formueobjekt).isEqualTo(response)
-        assertThat(data?.kommentar).isNull()
-        verify(exactly = 1) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
-        }
-    }
-
-    @Test
-    fun `API-feil setter FEIL med feilmelding`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val id = 4001L
-        val hendelseId = upsertHendelse(repository, id)
+        // API mock
         val api = mockk<FormuesobjektFastEiendomApi>()
         every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
+            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", any(), any())
         } throws RuntimeException("SERG formueobjekt utilgjengelig")
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
 
-        assertThat(result).isSuccess()
-        val data = repository.hentData(id)
-        assertThat(data?.status).isEqualTo(SergDokumentStatus.FEIL)
-        assertThat(data?.kommentar).isEqualTo("SERG formueobjekt utilgjengelig")
+        assertThat(result).isFailure()
+            .isInstanceOf(RuntimeException::class)
+            .messageContains("SERG formueobjekt utilgjengelig")
+        coVerify(exactly = 0) { kafkaSergFormuesobjektFeedProducer.send(any()) }
+        coVerify(exactly = 0) { kafkaSergHendelserFeedConsumer.commitSync() }
     }
 
     @Test
-    fun `fortsetter med neste dokument når ett API-kall feiler`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val failId = 5001L
-        val okId = 5002L
-        val failHendelseId = upsertHendelse(repository, failId)
-        val okHendelseId = upsertHendelse(repository, okId)
-        val api = mockk<FormuesobjektFastEiendomApi>()
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", failHendelseId.toString(), any())
-        } throws RuntimeException("første feilet")
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
-        } returns formueobjekt(okId, okHendelseId)
-
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
-
-        assertThat(result).isSuccess()
-        assertThat(repository.hentData(failId)?.status).isEqualTo(SergDokumentStatus.FEIL)
-        assertThat(repository.hentData(failId)?.kommentar).isEqualTo("første feilet")
-        assertThat(repository.hentData(okId)?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
-        verify(exactly = 3) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", failHendelseId.toString(), any())
-        }
-        verify(exactly = 1) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", okHendelseId.toString(), any())
-        }
-    }
-
-    @Test
-    fun `sender riktige API-parametre`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val id = 6001L
-        val hendelseId = upsertHendelse(repository, id)
-        val api = mockk<FormuesobjektFastEiendomApi>()
-        every {
-            api.hentFormuesobjektFastEiendom(any(), any(), any())
-        } returns formueobjekt(id, hendelseId)
-
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
-
-        assertThat(result).isSuccess()
-        verify(exactly = 1) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelseId.toString(), any())
-        }
-    }
-
-    @Test
-    fun `behandler maks 10 dokumenter per kjøring`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val idsByHendelseId = (1L..12L).associate { id ->
-            val hendelseId = upsertHendelse(repository, id)
-            hendelseId.toString() to id
-        }
-        val api = mockk<FormuesobjektFastEiendomApi>()
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", any(), any())
-        } answers {
-            val hid = secondArg<String>()
-            val id = idsByHendelseId.getValue(hid)
-            formueobjekt(id, UUID.fromString(hid))
-        }
-
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
-
-        assertThat(result).isSuccess()
-        verify(exactly = 10) {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", any(), any())
-        }
-        assertThat(repository.listEtterStatus(SergDokumentStatus.SYNKRONISERT, 100).size).isEqualTo(10)
-        assertThat(repository.listEtterStatus(SergDokumentStatus.KREVER_SYNKRONISERING, 100).size).isEqualTo(2)
-    }
-
-    @Test
-    fun `tidligere kommentar nullstilles ved vellykket synk`() = runBlocking {
-        val repository = SergDokumentRepository(dataSource())
-        val id = 7001L
-        upsertHendelse(repository, id, sekvensnummer = 7001L)
-        repository.settFormueobjektdata(
-            id,
-            Result.failure(RuntimeException("gammel feil"))
+    fun `fortsetter med neste dokument når hendelse mangler hendelseidentifikator`() = runTest {
+        // Hendelser mock
+        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
+        val hendelser = listOf(
+            lagRecord(1001L, null),
+            lagRecord(1002L, UUID.randomUUID())
         )
-        val nyHendelseId = upsertHendelse(repository, id, sekvensnummer = 7002L)
-        assertThat(repository.hentData(id)?.status).isEqualTo(SergDokumentStatus.KREVER_SYNKRONISERING)
-        assertThat(repository.hentData(id)?.kommentar).isEqualTo("gammel feil")
+        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) }returns ConsumerRecords("", hendelser)
+        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
 
+        // API mock
         val api = mockk<FormuesobjektFastEiendomApi>()
-        every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", nyHendelseId.toString(), any())
-        } returns formueobjekt(id, nyHendelseId)
+        hendelser.filter { it.value?.hendelseidentifikator != null }.forEach { hendelse ->
+            every {
+                api.hentFormuesobjektFastEiendom("kartverketMatrikkel", hendelse.value?.hendelseidentifikator.toString(), any())
+            } returns formueobjekt(hendelse.key, hendelse.value?.hendelseidentifikator!!)
+        }
 
-        val result = FormuesobjektSyncService(dataSource(), api).sync()
+        // FastEiendomSomFormuesObjektFeedProducer mock
+        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val sentFormuesobjekt = mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+        coEvery { kafkaSergFormuesobjektFeedProducer.send(capture(sentFormuesobjekt)) } returns CompletableDeferred(Unit)
+
+        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
 
         assertThat(result).isSuccess()
-        val data = repository.hentData(id)
-        assertThat(data?.status).isEqualTo(SergDokumentStatus.SYNKRONISERT)
-        assertThat(data?.kommentar).isNull()
+        verify(exactly = 1) {
+            api.hentFormuesobjektFastEiendom(any(), any(), any())
+        }
+        assertThat(sentFormuesobjekt.size).isEqualTo(1)
+        assertThat(sentFormuesobjekt.first().key).isEqualTo(1002L)
     }
 
-    @Test
-    fun `uventet DB-feil gir feil-resultat`() = runBlocking {
-        val failingDataSource = mockk<DataSource>()
-        every { failingDataSource.connection } throws SQLException("db down")
-        val api = mockk<FormuesobjektFastEiendomApi>()
-
-        val result = FormuesobjektSyncService(failingDataSource, api).sync()
-
-        assertThat(result).isFailure().isInstanceOf(SQLException::class).hasMessage("db down")
-    }
-
-    private suspend fun upsertHendelse(
-        repository: SergDokumentRepository,
+    private fun lagRecord(
         matrikkelenhetId: Long,
         hendelseId: UUID? = UUID.randomUUID(),
         type: Hendelsestype = Hendelsestype.ny,
         sekvensnummer: Long = nesteSekvensnummer(),
-    ): UUID {
-        repository.upsertFraHendelse(
-            Hendelse(
-                sekvensnummer = sekvensnummer,
-                hendelseidentifikator = hendelseId,
-                matrikkelUnikIdentifikator = matrikkelenhetId,
-                hendelsestype = type,
-                kommunenummer = "0301",
-            )
+    ): ConsumerRecord<Long, Hendelse> {
+        return ConsumerRecord(
+            "",
+            nesteSekvensnummer(),
+            matrikkelenhetId,
+            lagHendelse(matrikkelenhetId, hendelseId, type, sekvensnummer),
+            Clock.System.now()
         )
-        return hendelseId ?: UUID.randomUUID()
+    }
+
+    private fun lagHendelse(
+        matrikkelenhetId: Long,
+        hendelseId: UUID? = UUID.randomUUID(),
+        type: Hendelsestype = Hendelsestype.ny,
+        sekvensnummer: Long = nesteSekvensnummer(),
+    ): Hendelse {
+        val hendelse = Hendelse(
+            sekvensnummer = sekvensnummer,
+            hendelseidentifikator = hendelseId,
+            matrikkelUnikIdentifikator = matrikkelenhetId,
+            hendelsestype = type,
+            kommunenummer = "0301",
+        )
+        return hendelse
     }
 
     private fun nesteSekvensnummer(): Long = ++nesteSekvensnummer
@@ -276,6 +210,365 @@ class FormueobjektSyncServiceTest : WithDatabase {
                 matrikkelUnikIdentifikator = id,
             ),
             hendelsesidentifikator = hendelseId,
+            eieropplysninger = listOf(
+                Eieropplysninger(
+                    eierforhold = Eierforhold(eiernivaa = Eiernivaa.eiendomsrett),
+                    personidentifikator = Personidentifikator(
+                        foedselsnummer = Random(0).nextBytes(10).toHexString()
+                    ),
+                )
+            )
         )
+    }
+
+    @Test
+    fun `committer ikke consumer-offset når publisering av eneste melding feiler`() = runTest {
+        val hendelseId = UUID.randomUUID()
+        val record = lagRecord(1001L, hendelseId)
+
+        val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery { consumer.poll(any()) } returns ConsumerRecords("", listOf(record))
+
+        val api = mockk<FormuesobjektFastEiendomApi>()
+        every {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        } returns formueobjekt(1001L, hendelseId)
+
+        val producer =
+            mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val feiletSending = CompletableDeferred<Unit>().apply {
+            completeExceptionally(RuntimeException("Kafka utilgjengelig"))
+        }
+        coEvery { producer.send(any()) } returns feiletSending
+
+        val resultat = FormuesobjektSyncService(api, consumer, producer).sync()
+
+        assertThat(resultat)
+            .isFailure()
+            .messageContains("Kafka utilgjengelig")
+
+        coVerify(exactly = 1) { producer.send(any()) }
+        coVerify(exactly = 0) { consumer.commitSync() }
+    }
+
+    @Test
+    fun `committer ikke consumer-offset når én melding publiseres og én melding feiler`() =
+        runTest {
+            val forsteHendelseId = UUID.randomUUID()
+            val andreHendelseId = UUID.randomUUID()
+
+            val records = listOf(
+                lagRecord(1001L, forsteHendelseId),
+                lagRecord(1002L, andreHendelseId),
+            )
+
+            val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+            coEvery {
+                consumer.poll(any())
+            } returns ConsumerRecords("", records)
+
+            val api = mockk<FormuesobjektFastEiendomApi>()
+            every {
+                api.hentFormuesobjektFastEiendom(
+                    "kartverketMatrikkel",
+                    forsteHendelseId.toString(),
+                    any(),
+                )
+            } returns formueobjekt(1001L, forsteHendelseId)
+
+            every {
+                api.hentFormuesobjektFastEiendom(
+                    "kartverketMatrikkel",
+                    andreHendelseId.toString(),
+                    any(),
+                )
+            } returns formueobjekt(1002L, andreHendelseId)
+
+            val producer =
+                mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+            val sendteRecords =
+                mutableListOf<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+            val vellykketSending = CompletableDeferred(Unit)
+            val feiletSending = CompletableDeferred<Unit>().apply {
+                completeExceptionally(
+                    RuntimeException("Kafka-publisering feilet"),
+                )
+            }
+
+            coEvery {
+                producer.send(capture(sendteRecords))
+            } answers {
+                val record =
+                    firstArg<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+                when (record.key) {
+                    1001L -> vellykketSending
+                    1002L -> feiletSending
+                    else -> error("Uventet Kafka-nøkkel: ${record.key}")
+                }
+            }
+
+            val resultat = FormuesobjektSyncService(
+                api,
+                consumer,
+                producer,
+            ).sync()
+
+            assertThat(resultat)
+                .isFailure()
+                .messageContains("Kafka-publisering feilet")
+
+            assertThat(sendteRecords.map { it.key }.toSet())
+                .isEqualTo(setOf(1001L, 1002L))
+
+            coVerify(exactly = 2) {
+                producer.send(any())
+            }
+            coVerify(exactly = 0) {
+                consumer.commitSync()
+            }
+        }
+
+    @Test
+    fun `publiserer forventet Kafka-nøkkel og komplett formuesobjekt`() = runTest {
+        val hendelseId =
+            UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
+        val matrikkelenhetId = 1001L
+
+        val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery {
+            consumer.poll(any())
+        } returns ConsumerRecords(
+            "",
+            listOf(
+                lagRecord(
+                    matrikkelenhetId = matrikkelenhetId,
+                    hendelseId = hendelseId,
+                    type = Hendelsestype.ny,
+                ),
+            ),
+        )
+        coEvery {
+            consumer.commitSync()
+        } returns Unit
+
+        val api = mockk<FormuesobjektFastEiendomApi>()
+        every {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        } returns FastEiendomSomFormuesobjekt(
+            identifikator = FormuesobjektIdentifikator(
+                matrikkelUnikIdentifikator = matrikkelenhetId,
+            ),
+            hendelsesidentifikator = hendelseId,
+            rettighetshaverMangler = false,
+            eieropplysninger = listOf(
+                Eieropplysninger(
+                    personidentifikator = Personidentifikator(
+                        foedselsnummer = "01019012345",
+                    ),
+                    eierforhold = Eierforhold(
+                        eiernivaa = Eiernivaa.eiendomsrett,
+                    ),
+                ),
+            ),
+        )
+
+        val producer =
+            mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+        val publisertRecord =
+            slot<ProducerRecord<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+        coEvery {
+            producer.send(capture(publisertRecord))
+        } returns CompletableDeferred(Unit)
+
+        val resultat = FormuesobjektSyncService(
+            formueobjektApi = api,
+            messageConsumer = consumer,
+            messageProducer = producer,
+        ).sync()
+
+        assertThat(resultat)
+            .isSuccess()
+            .isEqualTo(1)
+
+        assertThat(publisertRecord.captured.key)
+            .isEqualTo(matrikkelenhetId)
+
+        assertThat(publisertRecord.captured.value)
+            .isEqualTo(
+                FastEiendomSomFormuesObjektHendelse(
+                    hendelseId = hendelseId.toString(),
+                    matrikkelenhetId = matrikkelenhetId,
+                    skatteregistrerteEiere = setOf(
+                        Serg.SkatteregistrerteEier(
+                            identifikator =
+                                Serg.Identifikator.Person("01019012345"),
+                            eiernivaa = Serg.Eiernivaa.EIENDOMSRETT,
+                        ),
+                    ),
+                ),
+            )
+
+        coVerify(exactly = 1) {
+            producer.send(any())
+        }
+        coVerify(exactly = 1) {
+            consumer.commitSync()
+        }
+    }
+
+    @Test
+    fun `FFE-005 publiserer ikke melding og committer offset uten retry`() = runTest {
+        verifiserForventetApiFeil(
+            feilkode = "FFE-005",
+            statuskode = 403,
+        )
+    }
+
+    @Test
+    fun `FFE-007 publiserer ikke melding og committer offset uten retry`() = runTest {
+        verifiserForventetApiFeil(
+            feilkode = "FFE-007",
+            statuskode = 404,
+        )
+    }
+
+    private suspend fun verifiserForventetApiFeil(
+        feilkode: String,
+        statuskode: Int,
+    ) {
+        // Arrange: Lag én hendelse som skal behandles.
+        val hendelseId = UUID.randomUUID()
+        val record = lagRecord(
+            matrikkelenhetId = 1001L,
+            hendelseId = hendelseId,
+        )
+
+        val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery {
+            consumer.poll(any())
+        } returns ConsumerRecords("", listOf(record))
+        coEvery {
+            consumer.commitSync()
+        } returns Unit
+
+        // Skatteetatens API svarer med forventet feil.
+        val response = ClientError<Unit>(
+            message = "Forventet feil fra Skatteetaten",
+            body = """{"kode":"$feilkode"}""",
+            statusCode = statuskode,
+        )
+        val apiFeil = ClientException(
+            "Client error: $statuskode $feilkode",
+            statuskode,
+            response,
+        )
+
+        val api = mockk<FormuesobjektFastEiendomApi>()
+        every {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        } throws apiFeil
+
+        val producer =
+            mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+        // Act: Behandle hendelsen.
+        val resultat = FormuesobjektSyncService(
+            formueobjektApi = api,
+            messageConsumer = consumer,
+            messageProducer = producer,
+        ).sync()
+
+        // Assert: Feilen regnes som forventet.
+        assertThat(resultat)
+            .isSuccess()
+            .isEqualTo(0)
+
+        // API-et skal ikke forsøkes på nytt.
+        verify(exactly = 1) {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        }
+
+        // Det finnes ikke et formuesobjekt som kan publiseres.
+        coVerify(exactly = 0) {
+            producer.send(any())
+        }
+
+        // Hendelsen markeres som ferdigbehandlet.
+        coVerify(exactly = 1) {
+            consumer.commitSync()
+        }
+    }
+
+    @Test
+    fun `committer ikke consumer-offset når Kafka-publisering får timeout`() = runTest {
+        val hendelseId = UUID.randomUUID()
+        val record = lagRecord(
+            matrikkelenhetId = 1001L,
+            hendelseId = hendelseId,
+        )
+
+        val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery {
+            consumer.poll(any())
+        } returns ConsumerRecords("", listOf(record))
+
+        val api = mockk<FormuesobjektFastEiendomApi>()
+        every {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        } returns formueobjekt(
+            id = 1001L,
+            hendelseId = hendelseId,
+        )
+
+        val producer =
+            mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+
+        // Denne fullføres aldri og simulerer at Kafka ikke svarer.
+        val sendingSomAldriFullfores = CompletableDeferred<Unit>()
+
+        coEvery {
+            producer.send(any())
+        } returns sendingSomAldriFullfores
+
+        val resultat = FormuesobjektSyncService(
+            formueobjektApi = api,
+            messageConsumer = consumer,
+            messageProducer = producer,
+        ).sync()
+
+        assertThat(resultat)
+            .isFailure()
+            .isInstanceOf(TimeoutCancellationException::class)
+
+        coVerify(exactly = 1) {
+            producer.send(any())
+        }
+        coVerify(exactly = 0) {
+            consumer.commitSync()
+        }
     }
 }

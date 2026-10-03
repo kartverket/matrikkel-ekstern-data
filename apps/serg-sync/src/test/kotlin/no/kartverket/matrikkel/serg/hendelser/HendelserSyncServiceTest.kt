@@ -7,14 +7,17 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isSuccess
+import assertk.assertions.messageContains
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.test.runTest
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
+import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
@@ -37,7 +40,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `start fra 1 om sekvensnumemr ikke er satt`() = runBlocking {
+    fun `start fra 1 om sekvensnumemr ikke er satt`() = runTest {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.delete("sekvensnummer")
@@ -52,7 +55,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `plukker opp sekvensnummer om satt`() = runBlocking {
+    fun `plukker opp sekvensnummer om satt`() = runTest {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
@@ -67,7 +70,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `feil ved henting av sekvensnummer rapporteres`() = runBlocking {
+    fun `feil ved henting av sekvensnummer rapporteres`() = runTest {
         val hendelserApi = gittHendelseApiSomReturnerer(emptyList())
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "ikke_tall")
@@ -85,7 +88,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `henter hendelser fra SERG`() = runBlocking {
+    fun `henter hendelser fra SERG`() = runTest {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
         val dokumentRepository = SergDokumentRepository(dataSource())
@@ -123,7 +126,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `feil ved henting av hendelser rapporteres`() = runBlocking {
+    fun `feil ved henting av hendelser rapporteres`() = runTest {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "123")
         val hendelserApi = mockk<HendelserApi>()
@@ -146,7 +149,7 @@ class HendelserSyncServiceTest : WithDatabase {
     }
 
     @Test
-    fun `lagrer alle hendelser og rapporterer om eventuelle ugyldige data`() = runBlocking {
+    fun `lagrer alle hendelser og rapporterer om eventuelle ugyldige data`() = runTest {
         val keyValueRepository = KeyValueRepository(dataSource())
         keyValueRepository.setValue("sekvensnummer", "1")
         val dokumentRepository = SergDokumentRepository(dataSource())
@@ -191,5 +194,162 @@ class HendelserSyncServiceTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } returns Hendelser(hendelser = list)
         return hendelserApi
+    }
+
+    @Test
+    fun `beholder sekvensnummer når Kafka-publisering feiler`() = runTest {
+        val keyValueRepository = KeyValueRepository(dataSource())
+        keyValueRepository.setValue("sekvensnummer", "123")
+
+        val hendelse = hendelse(
+            id = 1001L,
+            type = Hendelsestype.ny,
+            seq = 124L,
+        )
+        val hendelserApi = gittHendelseApiSomReturnerer(listOf(hendelse))
+
+        val feiletSending = CompletableDeferred<Unit>().apply {
+            completeExceptionally(RuntimeException("Kafka utilgjengelig"))
+        }
+        coEvery {
+            kafkaSergHendelserFeedProducer.send(any())
+        } returns feiletSending
+
+        val resultat = HendelserSyncService(
+            dataSource(),
+            hendelserApi,
+            kafkaSergHendelserFeedProducer,
+        ).sync()
+
+        assertThat(resultat)
+            .isFailure()
+            .messageContains("Kafka utilgjengelig")
+
+        assertThat(keyValueRepository.getValue("sekvensnummer"))
+            .isEqualTo("123")
+
+        coVerify(exactly = 1) {
+            kafkaSergHendelserFeedProducer.send(
+                match { it.key == 1001L && it.value == hendelse },
+            )
+        }
+    }
+
+    @Test
+    fun `beholder sekvensnummer når én hendelse publiseres og én hendelse feiler`() =
+        runTest {
+            val opprinneligSekvensnummer = 123L
+            val keyValueRepository = KeyValueRepository(dataSource())
+            keyValueRepository.setValue(
+                "sekvensnummer",
+                opprinneligSekvensnummer.toString(),
+            )
+
+            val forsteHendelse = hendelse(
+                id = 1001L,
+                type = Hendelsestype.ny,
+                seq = 124L,
+            )
+            val andreHendelse = hendelse(
+                id = 1002L,
+                type = Hendelsestype.endret,
+                seq = 125L,
+            )
+            val hendelserApi = gittHendelseApiSomReturnerer(
+                listOf(forsteHendelse, andreHendelse),
+            )
+
+            val feiletSending = CompletableDeferred<Unit>().apply {
+                completeExceptionally(
+                    RuntimeException("Kafka-publisering feilet"),
+                )
+            }
+
+            coEvery {
+                kafkaSergHendelserFeedProducer.send(any())
+            } answers {
+                when (firstArg<ProducerRecord<Long, Hendelse>>().key) {
+                    1001L -> CompletableDeferred(Unit)
+                    1002L -> feiletSending
+                    else -> error("Uventet Kafka-nøkkel")
+                }
+            }
+
+            val resultat = HendelserSyncService(
+                dataSource = dataSource(),
+                hendelserApi = hendelserApi,
+                messageProducer = kafkaSergHendelserFeedProducer,
+            ).sync()
+
+            assertThat(resultat)
+                .isFailure()
+                .hasMessage("Kafka-publisering feilet")
+
+            assertThat(keyValueRepository.getValue("sekvensnummer"))
+                .isEqualTo(opprinneligSekvensnummer.toString())
+
+            coVerify(exactly = 1) {
+                kafkaSergHendelserFeedProducer.send(
+                    match {
+                        it.key == 1001L &&
+                                it.value == forsteHendelse
+                    },
+                )
+            }
+            coVerify(exactly = 1) {
+                kafkaSergHendelserFeedProducer.send(
+                    match {
+                        it.key == 1002L &&
+                                it.value == andreHendelse
+                    },
+                )
+            }
+        }
+
+    @Test
+    fun `beholder sekvensnummer når Kafka-publisering får timeout`() = runTest {
+        val opprinneligSekvensnummer = 123L
+        val keyValueRepository = KeyValueRepository(dataSource())
+        keyValueRepository.setValue(
+            "sekvensnummer",
+            opprinneligSekvensnummer.toString(),
+        )
+
+        val hendelse = hendelse(
+            id = 1001L,
+            type = Hendelsestype.ny,
+            seq = 124L,
+        )
+        val hendelserApi =
+            gittHendelseApiSomReturnerer(listOf(hendelse))
+
+        // Denne fullføres aldri og utløser tjenestens timeout.
+        val sendingSomAldriFullfores = CompletableDeferred<Unit>()
+
+        coEvery {
+            kafkaSergHendelserFeedProducer.send(any())
+        } returns sendingSomAldriFullfores
+
+        val resultat = HendelserSyncService(
+            dataSource = dataSource(),
+            hendelserApi = hendelserApi,
+            messageProducer = kafkaSergHendelserFeedProducer,
+        ).sync()
+
+        assertThat(resultat)
+            .isFailure()
+            .isInstanceOf(TimeoutCancellationException::class)
+
+        assertThat(keyValueRepository.getValue("sekvensnummer"))
+            .isEqualTo(opprinneligSekvensnummer.toString())
+
+        coVerify(exactly = 1) {
+            kafkaSergHendelserFeedProducer.send(
+                match {
+                    it.key == 1001L &&
+                            it.value == hendelse
+                },
+            )
+        }
     }
 }

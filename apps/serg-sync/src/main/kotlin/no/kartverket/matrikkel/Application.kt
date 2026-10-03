@@ -36,6 +36,7 @@ fun runApplication(disableExternalAuthentication: Boolean = false) {
                     add(services.hendelserSyncJob::start)
                 }
                 if (config.runFormueobjektSync) {
+                    add(services.formueobjektSyncJobOld::start)
                     add(services.formueobjektSyncJob::start)
                 }
             }.map { job ->
