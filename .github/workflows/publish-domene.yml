@@ -1,0 +1,71 @@
+name: "[domene] Publish"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Endringer i den publiserte domenemodellen.
+      - "libs/domene/src/main/**"
+
+      # Endringer i modulens avhengigheter eller publiseringsoppsett.
+      - "libs/domene/build.gradle.kts"
+
+  # Gjør det mulig å publisere manuelt ved behov.
+  workflow_dispatch:
+
+concurrency:
+  group: publish-domene-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish domain library to GitHub Packages
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate version
+        id: version
+        shell: bash
+        run: |
+          version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Test domain library and kafka-light contract
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew \
+          :libs:domene:check \
+          :apps:serg-sync:test \
+          --tests "no.kartverket.matrikkel.serg.kafka.JsonSerdeTest" \
+          --no-daemon
+
+      - name: Publish domain library
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew :libs:domene:publish \
+            --no-daemon \
+            --stacktrace \
+            -Pversion="${{ steps.version.outputs.value }}"
