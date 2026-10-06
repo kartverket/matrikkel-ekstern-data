@@ -1,4 +1,4 @@
-name: "[domene] Publish"
+name: "[serg-kontrakt] Publish"
 
 on:
   push:
@@ -6,21 +6,21 @@ on:
       - main
     paths:
       # Endringer i den publiserte domenemodellen.
-      - "libs/domene/src/main/**"
-
+      - "libs/domene/serg-kontrakt/src/main/**"
       # Endringer i modulens avhengigheter eller publiseringsoppsett.
-      - "libs/domene/build.gradle.kts"
+      - "libs/domene/serg-kontrakt/build.gradle.kts"
+      - ".github/workflows/publish-serg-kontrakt.yml"
 
   # Gjør det mulig å publisere manuelt ved behov.
   workflow_dispatch:
 
 concurrency:
-  group: publish-domene-${{ github.ref }}
+  group: publish-serg-kontrakt-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish domain library to GitHub Packages
+    name: Publish serg-kontrakt to GitHub Packages
     runs-on: ubuntu-latest
 
     permissions:
@@ -50,22 +50,22 @@ jobs:
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "value=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Test domain library and kafka-light contract
+      - name: Test serg-kontrakt
         env:
           PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./gradlew \
-          :libs:domene:check \
+          :libs:domene:serg-kontrakt:check \
           :apps:serg-sync:test \
           --tests "no.kartverket.matrikkel.serg.kafka.JsonSerdeTest" \
           --no-daemon
 
-      - name: Publish domain library
+      - name: Publish serg-kontrakt
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew :libs:domene:publish \
+          ./gradlew :libs:domene:serg-kontrakt:publish \
             --no-daemon \
             --stacktrace \
             -Pversion="${{ steps.version.outputs.value }}"

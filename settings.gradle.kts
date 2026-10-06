@@ -31,7 +31,7 @@ include(":apps:serg-sync")
 include(":apps:serg-mock")
 include(":libs:kotlin-utils")
 include(":libs:logging")
-include(":libs:domene")
+include(":libs:domene:serg-kontrakt")
 include(":tjenestespesifikasjoner:openapi-infrastructure")
 include(":tjenestespesifikasjoner:serg")
 

@@ -14,10 +14,10 @@ publishing {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
             groupId = "no.kartverket.ekstern-data"
-            artifactId = "domene"
+            artifactId = "serg-kontrakt"
             pom {
-                name.set("matrikkel-ekstern-data")
-                description.set("Classes used by consumers of kafka topics")
+                name.set("serg-kontrakt")
+                description.set("Message contracts published by serg-sync")
                 url.set("https://github.com/kartverket/matrikkel-ekstern-data")
 
                 licenses {

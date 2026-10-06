@@ -14,7 +14,7 @@ dependencies {
     implementation(libs.tokenClient)
     implementation(project(":libs:kotlin-utils"))
     implementation(project(":libs:logging"))
-    implementation(project(":libs:domene"))
+    implementation(project(":libs:domene:serg-kontrakt"))
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.kotliQuery)
     implementation(libs.flyway)
