@@ -106,7 +106,7 @@ class JsonSerdeTest {
     fun `organisasjonsidentifikator serialiseres med forventet JSON-kontrakt`() {
         verifiserIdentifikatorKontrakt(
             identifikator = Identifikator.Organisasjon("987654321"),
-            forventetType = "Organisasjons",
+            forventetType = "Organisasjon",
             forventetNummer = "987654321",
         )
     }

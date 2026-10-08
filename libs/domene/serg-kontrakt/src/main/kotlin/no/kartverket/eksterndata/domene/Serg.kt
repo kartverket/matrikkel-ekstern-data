@@ -36,7 +36,7 @@ object Serg {
         @SerialName("Person")
         data class Person(val nr: String) : Identifikator()
         @Serializable
-        @SerialName("Organisasjons")
+        @SerialName("Organisasjon")
         data class Organisasjon(val nr: String) : Identifikator()
         @Serializable
         @SerialName("AnnenPerson")
