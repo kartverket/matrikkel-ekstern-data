@@ -93,7 +93,7 @@ class FastEiendomSomFormuesObjektHendelseMapperTest {
             setOf(
                 Serg.SkatteregistrerteEier(
                     identifikator =
-                        Serg.Identifikator.Organisasjons("987654321"),
+                        Serg.Identifikator.Organisasjon("987654321"),
                     eiernivaa = Serg.Eiernivaa.FESTE,
                 ),
             ),

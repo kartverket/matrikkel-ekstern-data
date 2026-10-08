@@ -33,12 +33,12 @@ class FormueobjektSyncJob(
                     onFailure = {
                         if (it is CancellationException) throw it
                         probe.reportError(it)
-                        logger.error("Feilet med henting av formueobjekt", it)
+                        logger.error("Feilet med henting av formueobjekt for skriving til kafka feed", it)
                         0
                     },
                     onSuccess = {
                         probe.reportOk()
-                        logger.info("Hentet $it formueobjekt fra SERG")
+                        logger.info("Skrevet $it formueobjekt fra SERG til kafka feed")
                         it
                     },
                 )

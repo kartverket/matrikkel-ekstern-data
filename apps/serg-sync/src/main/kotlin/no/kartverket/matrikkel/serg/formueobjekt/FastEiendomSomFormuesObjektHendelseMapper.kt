@@ -56,7 +56,7 @@ class FastEiendomSomFormuesObjektHendelseMapper {
         return when {
             personidentifikator.foedselsnummer != null -> Identifikator.Person(requireNotNull(personidentifikator.foedselsnummer))
             personidentifikator.dNummer != null -> Identifikator.Person(requireNotNull(personidentifikator.dNummer))
-            personidentifikator.organisasjonsnummer != null -> Identifikator.Organisasjons(requireNotNull(personidentifikator.organisasjonsnummer))
+            personidentifikator.organisasjonsnummer != null -> Identifikator.Organisasjon(requireNotNull(personidentifikator.organisasjonsnummer))
             personidentifikator.loepenummer != null -> Identifikator.AnnenPerson(requireNotNull(personidentifikator.loepenummer))
             else -> throw IllegalArgumentException("Det mangler informasjon i personidentifikator for å kunne opprette en personidentifikator")
         }

@@ -26,7 +26,7 @@ class JsonSerdeTest {
                     eiernivaa = Eiernivaa.EIENDOMSRETT
                 ),
                 Serg.SkatteregistrerteEier(
-                    identifikator = Identifikator.Organisasjons("1"),
+                    identifikator = Identifikator.Organisasjon("1"),
                     eiernivaa = Eiernivaa.FRAMFESTE_2
                 ),
                 Serg.SkatteregistrerteEier(
@@ -105,8 +105,8 @@ class JsonSerdeTest {
     @Test
     fun `organisasjonsidentifikator serialiseres med forventet JSON-kontrakt`() {
         verifiserIdentifikatorKontrakt(
-            identifikator = Identifikator.Organisasjons("987654321"),
-            forventetType = "Organisasjons",
+            identifikator = Identifikator.Organisasjon("987654321"),
+            forventetType = "Organisasjon",
             forventetNummer = "987654321",
         )
     }
