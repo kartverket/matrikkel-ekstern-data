@@ -27,7 +27,7 @@ object Serg {
     )
     @JsonSubTypes(
         JsonSubTypes.Type(value = Identifikator.Person::class, name = "Person"),
-        JsonSubTypes.Type(value = Identifikator.Organisasjons::class, name = "Organisasjons"),
+        JsonSubTypes.Type(value = Identifikator.Organisasjon::class, name = "Organisasjon"),
         JsonSubTypes.Type(value = Identifikator.AnnenPerson::class, name = "AnnenPerson")
     )
     @Serializable
@@ -37,7 +37,7 @@ object Serg {
         data class Person(val nr: String) : Identifikator()
         @Serializable
         @SerialName("Organisasjons")
-        data class Organisasjons(val nr: String) : Identifikator()
+        data class Organisasjon(val nr: String) : Identifikator()
         @Serializable
         @SerialName("AnnenPerson")
         data class AnnenPerson(val nr: String) : Identifikator()
