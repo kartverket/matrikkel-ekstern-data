@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel.serg.hendelser
 
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -33,7 +34,7 @@ class HendelserSyncJob(
                 .map { it.size }
                 .fold(
                     onFailure = {
-                        if (it is CancellationException) throw it
+                        if (it is CancellationException && it !is TimeoutCancellationException) throw it
                         probe.reportError(it)
                         logger.error("Feilet med henting av hendelser", it)
                         0

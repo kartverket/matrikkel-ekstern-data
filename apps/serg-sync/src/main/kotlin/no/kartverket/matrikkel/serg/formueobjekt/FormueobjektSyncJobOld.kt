@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -31,7 +32,7 @@ class FormueobjektSyncJobOld(
             val antallHentet = hendelser
                 .fold(
                     onFailure = {
-                        if (it is CancellationException) throw it
+                        if (it is CancellationException && it !is TimeoutCancellationException) throw it
                         probe.reportError(it)
                         logger.error("Feilet med henting av formueobjekt", it)
                         0

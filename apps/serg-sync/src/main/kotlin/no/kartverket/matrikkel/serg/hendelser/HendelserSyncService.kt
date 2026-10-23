@@ -70,9 +70,9 @@ class HendelserSyncService(
                     }
                 }
 
-                logger.info("Publiserer $innsatteHendelser hendelser til kafka")
+                logger.info("Publiserer ${innsatteHendelser.size} hendelser til kafka")
                 publishToKafka(innsatteHendelser)
-                logger.info("$innsatteHendelser hendelser publisert til kafka")
+                logger.info("${innsatteHendelser.size} hendelser publisert til kafka")
 
                 val maxSekvensnummer = hendelser.maxOfOrNull { it.sekvensnummer ?: -1 } ?: -1
                 if (maxSekvensnummer > -1) {
