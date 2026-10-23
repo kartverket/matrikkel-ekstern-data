@@ -1,11 +1,7 @@
-FROM eclipse-temurin:25-jre-alpine@sha256:3c0a9084927a221ccd1d007fcaf614465672c0af37aaa834c5184483afe56d61
+FROM ghcr.io/kartverket/emudhra-images/jre/dockerhub:jre-25.0-alpine3.24@sha256:2d2e8939adc7327871075062d4cca2dbd8da7542d903861dc9d0b84c96b3a722
 
-RUN addgroup -g 150 -S apprunner \
- && adduser -u 150 -S apprunner -G apprunner
+COPY apps/serg-sync/build/install/serg-sync /app
 
-COPY --chown=150:150 apps/serg-sync/build/install/serg-sync /app
-
-USER apprunner
 EXPOSE 8090
 
 ENTRYPOINT ["/app/bin/serg-sync"]
