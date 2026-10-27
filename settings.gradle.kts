@@ -23,16 +23,15 @@ plugins {
     // Use the Foojay Toolchains plugin to automatically download JDKs required by subprojects.
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
+rootProject.name = "matrikkel-ekstern-data"
 
 // Include the `app` and `utils` subprojects in the build.
 // If there are changes in only one of the projects, Gradle will rebuild only the one that has changed.
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
 include(":apps:serg-sync")
 include(":apps:serg-mock")
-include(":libs:kotlin-utils")
+include(":libs:app-utils")
 include(":libs:logging")
 include(":libs:domene:serg-kontrakt")
 include(":tjenestespesifikasjoner:openapi-infrastructure")
 include(":tjenestespesifikasjoner:serg")
-
-rootProject.name = "matrikkel-ekstern-data"

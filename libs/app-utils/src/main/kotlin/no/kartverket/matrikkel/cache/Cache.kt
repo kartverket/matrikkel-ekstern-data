@@ -1,4 +1,4 @@
-package no.kartverket.kotlin
+package no.kartverket.matrikkel.cache
 
 import java.time.Duration
 import java.time.Instant

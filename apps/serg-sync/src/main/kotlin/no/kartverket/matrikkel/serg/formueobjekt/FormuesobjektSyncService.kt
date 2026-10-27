@@ -3,12 +3,12 @@ package no.kartverket.matrikkel.serg.formueobjekt
 import no.kartverket.eksterndata.domene.Serg.FastEiendomSomFormuesObjektHendelse
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withTimeout
-import no.kartverket.kotlin.mapInParallell
-import no.kartverket.kotlin.retry
+import no.kartverket.matrikkel.concurrency.mapInParallell
 import no.kartverket.matrikkel.kafkaclient.MessageConsumer
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.logger
+import no.kartverket.matrikkel.resilience.retry
 import no.kartverket.tjenestespesifikasjoner.serg.formueobjekt.apis.FormuesobjektFastEiendomApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import org.openapitools.client.infrastructure.ClientError

@@ -2,8 +2,8 @@ package no.kartverket.matrikkel.serg.repository
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import no.kartverket.matrikkel.config.DataSourceConfiguration
-import no.kartverket.matrikkel.config.MigrationEnv
+import no.kartverket.matrikkel.database.DataSourceConfiguration
+import no.kartverket.matrikkel.database.MigrationEnv
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.containers.PostgreSQLContainer

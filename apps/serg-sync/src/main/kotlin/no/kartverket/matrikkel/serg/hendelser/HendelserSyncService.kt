@@ -4,10 +4,10 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
-import no.kartverket.kotlin.retry
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import no.kartverket.matrikkel.logger
+import no.kartverket.matrikkel.resilience.retry
 import no.kartverket.matrikkel.serg.repository.HendelseRepository
 import no.kartverket.matrikkel.serg.repository.KeyValueRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository

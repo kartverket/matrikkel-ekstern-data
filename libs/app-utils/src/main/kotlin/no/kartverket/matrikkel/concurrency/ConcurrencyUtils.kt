@@ -1,4 +1,4 @@
-package no.kartverket.kotlin
+package no.kartverket.matrikkel.concurrency
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

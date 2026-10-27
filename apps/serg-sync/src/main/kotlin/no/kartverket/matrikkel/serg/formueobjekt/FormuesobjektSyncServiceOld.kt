@@ -1,7 +1,7 @@
 package no.kartverket.matrikkel.serg.formueobjekt
 
-import no.kartverket.kotlin.mapInParallell
-import no.kartverket.kotlin.retry
+import no.kartverket.matrikkel.concurrency.mapInParallell
+import no.kartverket.matrikkel.resilience.retry
 import no.kartverket.matrikkel.serg.repository.SergDokumentRepository
 import no.kartverket.matrikkel.serg.repository.SergDokumentStatus
 import no.kartverket.matrikkel.serg.repository.withTransaction

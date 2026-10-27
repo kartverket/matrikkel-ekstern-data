@@ -1,4 +1,4 @@
-package no.kartverket.kotlin
+package no.kartverket.matrikkel.resilience
 
 import kotlinx.coroutines.delay
 

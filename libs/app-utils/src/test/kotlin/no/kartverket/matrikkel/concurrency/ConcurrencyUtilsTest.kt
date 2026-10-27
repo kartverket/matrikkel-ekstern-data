@@ -1,5 +1,4 @@
-package no.kartverket.kotlin
-
+package no.kartverket.matrikkel.concurrency
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlinx.coroutines.delay

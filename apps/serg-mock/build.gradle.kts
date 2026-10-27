@@ -7,7 +7,7 @@ plugins {
 
 dependencies {
     implementation(libs.ktorUtils)
-    implementation(project(":libs:kotlin-utils"))
+    implementation(project(":libs:app-utils"))
     implementation(project(":libs:logging"))
     implementation(libs.bundles.ktorEcosystem)
     implementation(libs.bundles.kotlinxEcosystem)
