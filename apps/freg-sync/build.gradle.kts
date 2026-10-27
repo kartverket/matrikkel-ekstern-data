@@ -1,0 +1,33 @@
+plugins {
+    id("buildsrc.convention.kotlin-jvm")
+    application
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.kotlinPluginSerialization)
+}
+
+dependencies {
+    implementation(libs.kafkaLight)
+    implementation(libs.bundles.ktorEcosystem)
+
+    implementation(libs.ktorUtils)
+    implementation(libs.kotlinUtils)
+    implementation(libs.tokenClient)
+
+    implementation(project(":libs:app-utils"))
+    implementation(project(":libs:logging"))
+    implementation(libs.bundles.kotlinxEcosystem)
+    implementation(libs.kotliQuery)
+    implementation(libs.flyway)
+    implementation(libs.flyway.postgresql)
+    implementation(libs.hikari)
+    implementation(libs.postgresql)
+
+    testImplementation(libs.bundles.testEcosystem)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
+    testRuntimeOnly(libs.junitPlatformLauncher)
+}
+
+application {
+    mainClass = "no.kartverket.matrikkel.MainKt"
+}
