@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotliquery.queryOf
+import kotliquery.sessionOf
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import java.sql.ConnectionBuilder
 import java.sql.ShardingKeyBuilder
