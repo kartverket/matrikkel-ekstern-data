@@ -18,7 +18,7 @@ env:
   TZ: Europe/Oslo
 
 concurrency:
-  group: main-${{ github.ref }}
+  group: serg-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
