@@ -10,10 +10,10 @@ import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
 import no.kartverket.matrikkel.database.DataSourceConfiguration
 import no.kartverket.matrikkel.database.withSelftest
 import no.kartverket.matrikkel.kafka.asKafkaAuth
-import no.kartverket.matrikkel.kafka.jsonSerde
 import no.kartverket.matrikkel.kafka.withSelftest
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.StringSerde
+import no.kartverket.matrikkel.kafkaclient.jsonSerde
 import kotlin.uuid.Uuid
 
 @Serializable
