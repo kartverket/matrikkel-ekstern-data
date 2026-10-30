@@ -1,4 +1,4 @@
-package no.kartverket.kotlin
+package no.kartverket.matrikkel.resilience
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo

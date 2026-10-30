@@ -9,7 +9,7 @@ import no.kartverket.heimdall.common.ktor.utils.KtorServer
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.Selftest
 import no.kartverket.matrikkel.config.Configuration
-import no.kartverket.matrikkel.config.DataSourceConfiguration
+import no.kartverket.matrikkel.database.DataSourceConfiguration
 import kotlin.reflect.KSuspendFunction0
 
 typealias SyncJob = KSuspendFunction0<Unit>

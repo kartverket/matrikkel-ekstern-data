@@ -1,4 +1,4 @@
-package no.kartverket.matrikkel.config
+package no.kartverket.matrikkel.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource

@@ -12,7 +12,7 @@ dependencies {
     implementation(libs.ktorUtils)
     implementation(libs.kotlinUtils)
     implementation(libs.tokenClient)
-    implementation(project(":libs:kotlin-utils"))
+    implementation(project(":libs:app-utils"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:domene:serg-kontrakt"))
     implementation(libs.bundles.kotlinxEcosystem)

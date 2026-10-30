@@ -11,10 +11,10 @@ import kotliquery.queryOf
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.SelftestGenerator
 import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
-import no.kartverket.kotlin.cache
+import no.kartverket.matrikkel.cache.cache
 import no.kartverket.matrikkel.config.Configuration
-import no.kartverket.matrikkel.config.DataSourceConfiguration
 import no.kartverket.matrikkel.config.JsonSerde
+import no.kartverket.matrikkel.database.DataSourceConfiguration
 import no.kartverket.matrikkel.kafka.asKafkaAuth
 import no.kartverket.matrikkel.kafkaclient.InitialOffsetPolicy
 import no.kartverket.matrikkel.kafkaclient.LongSerde
