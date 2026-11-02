@@ -36,6 +36,7 @@ kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ver
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
 kotlinxCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinxCoroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 
 ktorServerCore = { module = "io.ktor:ktor-server-core", version.ref = "ktorVersion" }
 ktorServerContentNegotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktorVersion" }
@@ -117,7 +118,8 @@ testEcosystem = [
     "junitParams",
     "assertk",
     "mockk",
-    "okhttpMockserver"
+    "okhttpMockserver",
+    "kotlinxCoroutinesTest",
 ]
 
 [plugins]
