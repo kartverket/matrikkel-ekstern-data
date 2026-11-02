@@ -30,6 +30,7 @@ rootProject.name = "matrikkel-ekstern-data"
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
 include(":apps:serg-sync")
 include(":apps:serg-mock")
+include(":apps:freg-sync")
 include(":libs:app-utils")
 include(":libs:logging")
 include(":libs:domene:serg-kontrakt")

@@ -9,6 +9,7 @@ dependencies {
     implementation(libs.ktorUtils)
     implementation(libs.kotlinUtils)
     implementation(libs.bundles.kotlinxEcosystem)
+    implementation(libs.ktorServerCore)
 
     implementation(libs.kotliQuery)
     implementation(libs.flyway)

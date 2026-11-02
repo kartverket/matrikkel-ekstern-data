@@ -2,6 +2,15 @@ name: "[serg-sync] Build and deploy"
 
 on:
   push: # TODO add paths we care about
+    paths:
+      - '.github/workflows/serg-sync-deploy.yml'
+      - '.skip/matrikkel-serg-sync-*'
+      - 'apps/serg-sync/**'
+      - 'build/**'
+      - 'gradle/**'
+      - 'libs/**'
+      - 'tjenestespesifikasjoner/openapi-infrastructure/**'
+      - 'tjenestespesifikasjoner/serg/**'
   workflow_dispatch:
 
 env:
@@ -9,7 +18,7 @@ env:
   TZ: Europe/Oslo
 
 concurrency:
-  group: main-${{ github.ref }}
+  group: serg-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
