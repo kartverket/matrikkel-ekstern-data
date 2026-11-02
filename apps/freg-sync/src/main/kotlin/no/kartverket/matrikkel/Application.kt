@@ -7,10 +7,10 @@ import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.Selftest
 import no.kartverket.heimdall.common.ktor.utils.KtorServer
 import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
-import no.kartverket.matrikkel.database.DataSourceConfiguration
-import no.kartverket.matrikkel.database.withSelftest
+import no.kartverket.matrikkel.kafka.KafkaStoredValue
 import no.kartverket.matrikkel.kafka.asKafkaAuth
 import no.kartverket.matrikkel.kafka.withSelftest
+import no.kartverket.matrikkel.kafkaclient.LongSerde
 import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.matrikkel.kafkaclient.StringSerde
 import no.kartverket.matrikkel.kafkaclient.jsonSerde
@@ -21,17 +21,25 @@ data class DummyObject(val name: String)
 
 fun runApplication() {
     val config = Configuration()
-    DataSourceConfiguration.migrate(config.database)
+
+    val authentication = TokenClientFactory.MachineToMachine
+        .azureAd()
+        .asKafkaAuth(config.kafka.brokerScope)
 
     val producerConfig = MessageProducer.Config(
-        config.kafkaBrokerUrl,
-        authentication = TokenClientFactory.MachineToMachine
-            .azureAd()
-            .asKafkaAuth(config.kafkaBrokerScope),
+        config.kafka.brokerUrl,
+        authentication = authentication,
         topic = "FREG_OPPDATERING",
         keySerializer = StringSerde,
         valueSerializer = jsonSerde<DummyObject>(),
         correlationIdProvider = { Uuid.random().toHexDashString() }
+    )
+
+    val offsetSync = KafkaStoredValue(
+        config = config.kafka,
+        topic = "FREG_OFFSET",
+        serde = LongSerde,
+        authentication = authentication
     )
 
     KtorServer
@@ -42,16 +50,12 @@ fun runApplication() {
                 version = config.version
             }
 
+            // offsetSync.start()
+            // offsetSync.waitToReady()
+
             val producer = MessageProducer
                 .Impl(producerConfig)
                 .withSelftest("FREG_KAFKA_PRODUCER", false)
-
-            val db = DataSourceConfiguration
-                .createDatasource(
-                    config.database.jdbcUrl,
-                    config.database.userCredential
-                )
-                .withSelftest("DATABASE", false)
 
         }.start(wait = true)
 }

@@ -44,10 +44,6 @@ spec:
     application:
       enabled: true
 
-  databases:
-    - name: matrikkel-freg-sync
-      envName: DB_URL
-
 #  maskinporten:
 #    enabled: true
 #    scopes:
