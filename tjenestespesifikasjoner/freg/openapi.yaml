@@ -1,0 +1,4427 @@
+openapi: 3.0.1
+info:
+  description: |-
+    Beskrivelsene under dokumenterer rettighetspakken Offentlig med hjemmel.
+
+    Tilgang til API-et styres med OAuth2-baserte access_tokens.
+
+    Mer informasjon om tjenestene, hvordan du får tilgang og finnes på [folkeregisteret-api-dokumentasjon](https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/konsumenttjenester/)
+
+    Dokumentasjonen kan foreløpig ikke benyttes til kall mot Folkeregisterets testmiljøer.
+  title: Folkeregisteret - offentlig med hjemmel
+  version: 1.6.2
+paths:
+  /v1/hendelser/bulkoppslag:
+    post:
+      operationId: hentHendelseDokumenter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.request.HendelseBulkoppslagRequest'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.request.HendelseBulkoppslagRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.HendelseBulkoppslagResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.HendelseBulkoppslagResponse'
+          description: Returnerer hendelse.
+        '400':
+          description: Ugyldig input.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter et sett med hendelser.
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/feed:
+    get:
+      operationId: hentFeedSide
+      parameters:
+        - description: Fra hvilket sekvensnummer (inklusivt) man ønsker å hente registerhendelser.
+          in: query
+          name: seq
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          content:
+            application/atom+xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorer'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorer'
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorer'
+          description: Returnerer en liste med lagrede hendelser
+        '304':
+          description: Ikke Endret. Innholdet er ikke endret siden ETag versjonen sendt inn i If-None-Match (se https://en.wikipedia.org/wiki/HTTP_ETag#Typical_usage)
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+          description: Ikke funnet.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter lagrede hendelser fra rettighetspakke.
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/feed/tilpasset:
+    get:
+      operationId: hentTilpassetFeedSide
+      parameters:
+        - description: Fra hvilket sekvensnummer (inklusivt) man ønsker å hente registerhendelser.
+          in: query
+          name: seq
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: kommunenummer
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/atom+xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorerFiltrert'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorerFiltrert'
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorerFiltrert'
+          description: Returnerer en liste med lagrede hendelser filtrert på oppgitt kommune
+        '304':
+          description: Ikke Endret. Innholdet er ikke endret siden ETag versjonen sendt inn i If-None-Match (se https://en.wikipedia.org/wiki/HTTP_ETag#Typical_usage)
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          content:
+            application/atom+xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers'
+          description: Ikke funnet.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter lagrede hendelser fra rettighetspakke filtrert på input.
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/feedxsd:
+    get:
+      operationId: getFeedXsd
+      responses:
+        default:
+          content:
+            application/xml: {}
+          description: default response
+      summary: Hent XSD for feed
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/siste/sekvensnummer:
+    get:
+      operationId: sisteSekvensnummerIFeed
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.Sekvensnummer'
+          description: Returnerer siste persisterte sekvensnummer
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+      summary: Henter siste persisterte sekvensnummer i feed
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/xsd:
+    get:
+      operationId: getXsd
+      responses:
+        default:
+          content:
+            application/xml: {}
+          description: default response
+      summary: Hent XSD for hendelse
+      tags:
+        - Offentlig med hjemmel
+  /v1/hendelser/{hendelsesidentifikator}:
+    get:
+      operationId: hentHendelseDokument
+      parameters:
+        - description: Identifikator (uuid) for en hendelse
+          in: path
+          name: hendelsesidentifikator
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.DokumentForHendelse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.DokumentForHendelse'
+          description: Returnerer hendelse.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          description: Ukjent dokumentid.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter en hendelse.
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/arkiv/{dokumentidentifikator}:
+    get:
+      operationId: hentArkivperson
+      parameters:
+        - description: Dokumentidentifikator for en arkivert versjon av persondataene til en person
+          in: path
+          name: dokumentidentifikator
+          required: true
+          schema:
+            type: string
+        - description: Hent ut et utsnitt av personen. Spesifiser hvilke entiteter som skal hentes ut. F.eks. identifikasjonsnummer og identitetsgrunnlag.
+          in: query
+          name: part
+          schema:
+            type: array
+            items:
+              type: string
+            uniqueItems: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+          description: Returnerer persondata.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          description: Ukjent dokumentid.
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter en arkivert versjon av persondata for en person.
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/bulkoppslag:
+    post:
+      operationId: hentPersoner
+      parameters:
+        - description: Hent ut et utsnitt av personen. Spesifiser hvilke entiteter som skal hentes ut. F.eks. identifikasjonsnummer og identitetsgrunnlag.
+          in: query
+          name: part
+          schema:
+            type: array
+            items:
+              type: string
+            uniqueItems: true
+        - description: Henter personer i den rekkefølge de kommer i requestet. Evt. duplikate identifikatorer vil gi duplikate treff. For utgåtte identifikatorer eller identifikatorer som ikke finnes vil man få feilmelding i responsen istedet for persondata.
+          in: query
+          name: somBestilt
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.request.PersonBulkoppslagRequest'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.request.PersonBulkoppslagRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.PersonBulkoppslagResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.PersonBulkoppslagResponse'
+          description: Returnerer persondata.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter persondata for et sett med personer.
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/bulkoppslag/arkiv:
+    post:
+      operationId: hentArkivpersoner
+      parameters:
+        - description: Hent ut et utsnitt av personen. Spesifiser hvilke entiteter som skal hentes ut. F.eks. identifikasjonsnummer og identitetsgrunnlag.
+          in: query
+          name: part
+          schema:
+            type: array
+            items:
+              type: string
+            uniqueItems: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.request.ArkivDokumentBulkoppslagRequest'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.request.ArkivDokumentBulkoppslagRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.ArkivPersonDokumentBulkoppslagResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.ArkivPersonDokumentBulkoppslagResponse'
+          description: Returnerer persondata.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter en arkivert versjon av persondata for et sett med personer.
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/entydigsoek:
+    get:
+      description: |-
+        Minimumskrav til bruk av entydig søk er definert her: https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/oppslag/
+        . Evt. identifiserende adresse må innbefatte minst (adressenavn + husnummer/bokstav) eller (adressenavn + postnummer).  Treffet kan smalnes inn ved å oppgi ytterligere kriterier. Hvis kriteriene til sammen er entydig identifiserende returneres personen. Ved null treff eller mer enn ett treff returneres 404 (NOT FOUND).
+      operationId: entydigSoek
+      parameters:
+        - description: Fødsels- eller d-nummer, 11 siffer. Treffer både gjeldende og historiske opplysninger, uavhengig av parameter 'opplysingsgrunnlag'.
+          in: query
+          name: identifikasjonsnummer
+          schema:
+            type: string
+        - description: Utenlandsk personidentifikasjon med landkode(ISO-alpha-3)
+          example: AFG-1458-4555
+          in: query
+          name: utenlandskpersonidentifikasjon
+          schema:
+            type: string
+        - description: Legitimasjonsdokument med landkode (ISO alpha-3)
+          example: IRL-195509132386
+          in: query
+          name: legitimasjonsdokument
+          schema:
+            type: string
+        - description: UDIs DUF-nummer
+          in: query
+          name: utlendingsmyndighetenesidentifikasjonsnummer
+          schema:
+            type: string
+        - description: Fødselsdato (YYYYMMDD)
+          example: 19951223
+          in: query
+          name: foedselsdato
+          schema:
+            type: string
+        - description: 'Minst to delnavn skilt med mellomrom. Første ord må treffe et helt ord fornavnet. Siste ord må treffe et helt ord i etternavnet. Evt. andre ord må treffe hele ord i vilkårlige delnavn.Kan søke fonetisk ved bruk av parameter ''soekfonetisk''. Kan treffe historiske opplysninger ved bruk av parameter ''opplysningsgrunnlag''. '
+          in: query
+          name: navn
+          schema:
+            type: string
+        - description: 'Postnummer, 4 siffer. Kan treffe historiske opplysninger ved bruk av parameter ''opplysningsgrunnlag''. '
+          in: query
+          name: postnummer
+          schema:
+            type: string
+        - description: 'Gatenavnet, eller minst 3 tegn fra begynnelsen av det. Kan treffe historiske opplysninger ved bruk av parameter ''opplysningsgrunnlag''. '
+          in: query
+          name: adressenavn
+          schema:
+            type: string
+        - description: 'Husnummer, med eller uten bokstav. Bokstav eller fravær av den må stemme med personens adresse. Kan treffe historiske opplysninger ved bruk av parameter ''opplysningsgrunnlag''. '
+          in: query
+          name: husnummer
+          schema:
+            type: string
+        - description: Hvilke opplysninger som skal hentes ut. Flere felter eller aliaser kan oppgis, f.eks. bostedsadresse og navn
+          in: query
+          name: part
+          schema:
+            type: array
+            items:
+              type: string
+            uniqueItems: true
+        - description: Fonetisk søk på navn. Default er false. Påvirker ingen andre felter enn navn.
+          in: query
+          name: soekFonetisk
+          schema:
+            type: boolean
+        - description: '(gjeldende | historisk) Hvorvidt navn og adressefelter skal treffe kun gjeldende eller også historiske opplysninger.Default er ''gjeldende''.For alle andre opplysninger søkes det alltid kun på gjeldende, unntatt identifikasjonsnummer, der det alltid søkes på både gjeldende og historiske opplysninger. '
+          in: query
+          name: opplysningsgrunnlag
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+          description: Returnerer persondata
+        '400':
+          description: Ugyldig parameter
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang
+        '404':
+          description: Ukjent person, eller ikke entydig treff
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter oppdaterte data om en person basert på entydig identifiserende opplysninger.
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/soek:
+    get:
+      operationId: personsoek
+      parameters:
+        - description: Et eller flere hele ord fra personnavnet, skilt med mellomrom.
+          in: query
+          name: navn
+          schema:
+            type: string
+        - description: '''mann'' eller ''kvinne'''
+          in: query
+          name: kjoenn
+          schema:
+            type: string
+        - description: Fødselsdato (YYYYMMDD)
+          in: query
+          name: foedselsdato
+          schema:
+            type: string
+        - description: Laveste fødselsår (4 siffer)
+          in: query
+          name: foedselsaarFraOgMed
+          schema:
+            type: string
+        - description: Høyeste fødselsår (4 siffer)
+          in: query
+          name: foedselsaarTilOgMed
+          schema:
+            type: string
+        - description: Minst 3 tegn fra begynnelsen av gatenavn
+          in: query
+          name: adressenavn
+          schema:
+            type: string
+        - description: Husnummer, med eller uten bokstav
+          in: query
+          name: husnummer
+          schema:
+            type: string
+        - description: Filtrerer treff på postnummer (4 siffer)
+          in: query
+          name: postnummer
+          schema:
+            type: string
+        - description: Filtrerer treff på kommunenummer (4 siffer)
+          in: query
+          name: kommunenummer
+          schema:
+            type: string
+        - description: Filtrerer treff på fylkesnummer (2 siffer)
+          in: query
+          name: fylkesnummer
+          schema:
+            type: string
+        - description: 'Treffer oppholdsasdresse i tillegg til bostedsadresse. Default: false'
+          in: query
+          name: inkluderOppholdsadresse
+          schema:
+            type: boolean
+        - description: 'Søk også på lignende navn. Default: false'
+          in: query
+          name: soekFonetisk
+          schema:
+            type: boolean
+        - description: 'Treffer også døde personer. Default: false'
+          in: query
+          name: inkluderDoede
+          schema:
+            type: boolean
+        - description: 'Styrer håndtering av historikk. En av (''gjeldende'', ''historisk''). Default: ''gjeldende''. Påvirker kun navn og adresse - for andre opplysninger søkes det alltid kun på gjeldende.'
+          in: query
+          name: opplysningsgrunnlag
+          schema:
+            type: string
+        - description: Maksimalt antall treff å returnere.  Maks 10.000.
+          in: query
+          name: maksTreff
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.soek.response.PersonsoekResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.soek.response.PersonsoekResponse'
+          description: Returnerer en liste av fødsels-eller d-numre, kan være tom dersom søket ikke treffer noe
+        '400':
+          description: Ugyldig parameter
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Finner fnr/dnr til personer som oppfyller søkekriteriene
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/xsd:
+    get:
+      operationId: getXsd_1
+      responses:
+        default:
+          content:
+            application/xml: {}
+          description: default response
+      summary: Hent XSD for person
+      tags:
+        - Offentlig med hjemmel
+  /v1/personer/{personidentifikator}:
+    get:
+      operationId: hentSisteVersjonAvPerson
+      parameters:
+        - description: Fødsels- eller D-nummer
+          in: path
+          name: personidentifikator
+          required: true
+          schema:
+            type: string
+        - description: Hent ut et utsnitt av personen. Spesifiser hvilke entiteter som skal hentes ut. F.eks. identifikasjonsnummer og identitetsgrunnlag.
+          in: query
+          name: part
+          schema:
+            type: array
+            items:
+              type: string
+            uniqueItems: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+          description: Returnerer persondata.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          description: Ukjent person.
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig part.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+      summary: Henter oppdaterte data om en person.
+      tags:
+        - Offentlig med hjemmel
+  /v1/uttrekk/komplett:
+    get:
+      description: Lager en async uttrekksjobb for alle data i rettighetspakken opp til og med inngitt feedsekvensnummer.Dersom inngitt feedsekvenssnummer er større enn det som finnes i rettighetspakken overstyres det til maksverdien i rettighetspakken.
+      operationId: lagJobb_1
+      parameters:
+        - in: query
+          name: feedsekvensnr
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkJobbResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkJobbResponse'
+          description: Returnerer en jobb id.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+        '503':
+          description: Tjenesten er for tiden utilgjengelig
+      tags:
+        - Offentlig med hjemmel
+  /v1/uttrekk/tilpasset:
+    post:
+      operationId: lagJobb
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.request.TilpassetUttrekkJobbRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkJobbResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkJobbResponse'
+          description: Returnerer en jobb id.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+        '503':
+          description: Tjenesten er for tiden utilgjengelig
+      summary: Lager en async tilpasset uttrekksjobb
+      tags:
+        - Offentlig med hjemmel
+  /v1/uttrekk/{jobbid}/batch/{batchnr}:
+    get:
+      operationId: hentBatch
+      parameters:
+        - in: path
+          name: jobbid
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: batchnr
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+          description: Returnerer liste med forespurte identifikatorer.
+        '400':
+          description: Ugyldig parameter.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Autentisering feiler.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding'
+          description: Ugyldig tilgang.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+          description: Jobb med jobbid er enda ikke ferdig, og batch med batch id finnes ikke
+        '410':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse'
+          description: Jobb med jobbid eller batch med batch id eksisterer ikke
+        '429':
+          description: For mange kall er gjort på kort tid. Vent i minimum antall ms oppgitt i Retry-After header før neste request utføres.
+        '503':
+          description: Tjenesten er for tiden utilgjengelig
+      summary: Henter identifikatorer for angitt jobb
+      tags:
+        - Offentlig med hjemmel
+components:
+  schemas:
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Adressenummer:
+      type: object
+      properties:
+        husbokstav:
+          type: string
+        husnummer:
+          type: string
+      required:
+        - husnummer
+      title: Adressenummer
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.AdvokatSomKontakt:
+      type: object
+      properties:
+        organisasjonsnavn:
+          type: string
+        organisasjonsnummer:
+          type: string
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+      required:
+        - personnavn
+      title: AdvokatSomKontakt
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.BibeholdAvNorskStatsborgerskap:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        bibeholdstatus:
+          type: string
+          enum:
+            - harBibehold
+            - harIkkeLengerBibehold
+            - norskStatsborgerTrengerIkkeBibehold
+          title: Bibehold
+        datoForBibehold:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - bibeholdstatus
+      title: BibeholdAvNorskStatsborgerskap
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Bostedsadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        flyttedato:
+          type: string
+          format: date
+        grunnkrets:
+          type: integer
+          format: int64
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kirkekrets:
+          type: integer
+          format: int64
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkeladresse'
+        naerAdresseIdentifikatorFraMatrikkelen:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        skolekrets:
+          type: integer
+          format: int64
+        stemmekrets:
+          type: integer
+          format: int64
+        ukjentBosted:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.UkjentBosted'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Vegadresse'
+      required:
+        - adressegradering
+      title: Bostedsadresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.DeltBosted:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkeladresse'
+        naerAdresseIdentifikatorFraMatrikkelen:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        sluttdatoForKontrakt:
+          type: string
+          format: date
+        startdatoForKontrakt:
+          type: string
+          format: date
+        ukjentBosted:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.UkjentBosted'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Vegadresse'
+      required:
+        - adressegradering
+        - startdatoForKontrakt
+      title: DeltBosted
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Doedsfall:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        doedsdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: Doedsfall
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.DokumentForHendelse:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: string
+        hendelse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Hendelse'
+        skjemaversjon:
+          type: string
+      required:
+        - dokumentidentifikator
+        - hendelse
+        - skjemaversjon
+      title: DokumentForHendelse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.FalskIdentitet:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erFalsk:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rettIdentitetErUkjent:
+          type: boolean
+        rettIdentitetVedIdentifikasjonsnummer:
+          type: string
+        rettIdentitetVedOpplysninger:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.IdentifiserendeInformasjon'
+      title: FalskIdentitet
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Familierelasjon:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        minRolleForPerson:
+          type: string
+          enum:
+            - mor
+            - far
+            - medmor
+            - barn
+            - soesken
+            - ektefelleEllerPartner
+            - doedfoedtBarn
+          title: Familierelasjontype
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        relatertPerson:
+          type: string
+        relatertPersonUtenFolkeregisteridentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.RelatertBiPerson'
+        relatertPersonsRolle:
+          type: string
+          enum:
+            - mor
+            - far
+            - medmor
+            - barn
+            - soesken
+            - ektefelleEllerPartner
+            - doedfoedtBarn
+          title: Familierelasjontype
+      required:
+        - relatertPersonsRolle
+      title: Familierelasjon
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Foedsel:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        foedekommuneINorge:
+          type: string
+        foedeland:
+          type: string
+        foedested:
+          type: string
+        foedselsaar:
+          type: string
+        foedselsdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - foedselsaar
+      title: Foedsel
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.FoedselINorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        foedselsinstitusjonsnavn:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rekkefoelgenummer:
+          type: integer
+          format: int64
+      title: FoedselINorge
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisteridentifikator:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        foedselsEllerDNummer:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikatortype:
+          type: string
+          enum:
+            - foedselsnummer
+            - dNummer
+          title: Folkeregisteridentifikatortype
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - iBruk
+            - opphoert
+          title: Identifikatorstatuskode
+      required:
+        - foedselsEllerDNummer
+        - identifikatortype
+        - status
+      title: Folkeregisteridentifikator
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisterpersonnavn:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        etternavn:
+          type: string
+        forkortetNavn:
+          type: string
+        fornavn:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        mellomnavn:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        originaltNavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+      required:
+        - etternavn
+        - fornavn
+      title: Folkeregisterpersonnavn
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisterpersonstatus:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - bosatt
+            - utflyttet
+            - forsvunnet
+            - doed
+            - opphoert
+            - foedselsregistrert
+            - midlertidig
+            - inaktiv
+            - ikkeBosatt
+            - aktiv
+          title: Personstatus
+      required:
+        - status
+      title: Folkeregisterpersonstatus
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Foreldreansvar:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        ansvar:
+          type: string
+          enum:
+            - felles
+            - mor
+            - far
+            - medmor
+            - andre
+            - ukjent
+          title: Foreldreansvarstype
+        ansvarlig:
+          type: string
+        ansvarligOrganisasjon:
+          type: string
+        ansvarligUtenIdentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.RelatertBiPerson'
+        ansvarssubjekt:
+          type: string
+        ansvarssubjektUtenIdentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.RelatertBiPerson'
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - ansvar
+      title: Foreldreansvar
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.FratattRettsligHandleevne:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: FratattRettsligHandleevne
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.GraderingAvAdresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        graderingsnivaa:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - graderingsnivaa
+      title: GraderingAvAdresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Hendelse:
+      type: object
+      properties:
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        egenskapshendelse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Registerdata'
+        folkeregisteridentifikator:
+          type: string
+        hendelsesaarsakIDsf:
+          type: string
+        hendelsestype:
+          type: string
+          enum:
+            - endringIAdressebeskyttelse
+            - endringIBostedsadresse
+            - endringIBostedsadresseUtenFlytting
+            - endringIBrukAvSamiskSpraak
+            - endringIDeltBosted
+            - endringIDoedsfall
+            - endringIFalskIdentitet
+            - endringIFamilierelasjon
+            - endringIFoedsel
+            - endringIFoedselINorge
+            - endringIForeldreansvar
+            - endringIFratattRettsligHandleevne
+            - endringIIdentifikasjonsnummer
+            - endringIIdentitetsgrunnlag
+            - endringIInnflytting
+            - endringIKjoenn
+            - endringIKontaktinformasjon
+            - endringIKontaktopplysningerForDoedsbo
+            - endringILegitimasjonsdokument
+            - endringINavn
+            - endringIOpphold
+            - endringIOppholdPaaSvalbard
+            - endringIOppholdsadresse
+            - endringIPerson
+            - endringIRettsligHandleevne
+            - endringISametingetsValgmanntall
+            - endringISivilstand
+            - endringIStatsborgerskap
+            - endringIStatus
+            - endringIUtenlandskPersonidentifikasjon
+            - endringIUtflytting
+            - endringIUtlendingsmyndighetenesIdentifikasjonsnummer
+            - endringIVergemaal
+            - personErBosatt
+            - personErDoed
+            - personErEndretVedSplitting
+            - personErGjenopprettetVedSplitting
+            - personErOppdatert
+            - personErOpphoert
+            - personErOpphoertSomDublett
+            - personErOpprettet
+            - personErReaktivert
+            - personErUtflyttet
+            - personErViderefoertSomGjeldendeVedSammenslaaing
+          title: Hendelsestype
+      required:
+        - ajourholdstidspunkt
+        - folkeregisteridentifikator
+        - hendelsestype
+      title: Hendelse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Identifikasjonsdokument:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        dokumentkontroll:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.TekniskDokumentkontroll'
+        gyldigFra:
+          type: string
+          format: date
+        gyldigTil:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikasjonsdokumentnummer:
+          type: string
+        identifikasjonsdokumenttype:
+          type: string
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utstederland:
+          type: string
+        utstedernavn:
+          type: string
+      required:
+        - identifikasjonsdokumenttype
+        - utstederland
+      title: Identifikasjonsdokument
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.IdentifiserendeInformasjon:
+      type: object
+      properties:
+        foedselsdato:
+          type: string
+          format: date
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+        statsborgerskap:
+          type: array
+          items:
+            type: string
+      required:
+        - personnavn
+        - statsborgerskap
+      title: IdentifiserendeInformasjon
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Identitetsgrunnlag:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        legitimasjonskontroll:
+          type: string
+          enum:
+            - ingenStatus
+            - ikkeKontrollert
+            - kontrollert
+          title: Identitetsgrunnlagstatus
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - legitimasjonskontroll
+      title: Identitetsgrunnlag
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.InnflyttingTilNorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        fraflyttingsland:
+          type: string
+        fraflyttingsstedIUtlandet:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: InnflyttingTilNorge
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.InternasjonalAdresse:
+      type: object
+      properties:
+        adressenavn:
+          type: string
+        boenhet:
+          type: string
+        byEllerStedsnavn:
+          type: string
+        bygning:
+          type: string
+        coAdressenavn:
+          type: string
+        distriktsnavn:
+          type: string
+        etasjenummer:
+          type: string
+        landkode:
+          type: string
+        postboks:
+          type: string
+        postkode:
+          type: string
+        region:
+          type: string
+      required:
+        - landkode
+      title: InternasjonalAdresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.InternasjonalAdresseIFrittFormat:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        byEllerStedsnavn:
+          type: string
+        landkode:
+          type: string
+        postkode:
+          type: string
+      required:
+        - landkode
+      title: InternasjonalAdresseIFrittFormat
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Kontaktadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        postadresseIFrittFormat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.PostadresseIFrittFormat'
+        postboksadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Postboksadresse'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.VegadresseForPost'
+      required:
+        - adressegradering
+      title: Kontaktadresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktadresseForDoedsbo:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        landkode:
+          type: string
+        postnummer:
+          type: string
+        poststedsnavn:
+          type: string
+      required:
+        - adresselinje
+        - postnummer
+        - poststedsnavn
+      title: KontaktadresseForDoedsbo
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktadresseIUtlandet:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utenlandskAdresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.InternasjonalAdresse'
+        utenlandskAdresseIFrittFormat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.InternasjonalAdresseIFrittFormat'
+      required:
+        - adressegradering
+      title: KontaktadresseIUtlandet
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktinformasjonForDoedsbo:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktadresseForDoedsbo'
+        advokat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.AdvokatSomKontakt'
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        attestutstedelsesdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        organisasjon:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.OrganisasjonSomKontakt'
+        person:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.PersonSomKontakt'
+        skifteform:
+          type: string
+          enum:
+            - offentlig
+            - annet
+          title: Skifteform
+      required:
+        - adresse
+        - attestutstedelsesdato
+        - skifteform
+      title: KontaktinformasjonForDoedsbo
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkeladresse:
+      type: object
+      properties:
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        bruksenhetstype:
+          type: string
+          enum:
+            - bolig
+            - annetEnnBolig
+            - fritidsbolig
+            - ikkeGodkjentBolig
+            - unummerertBruksenhet
+          title: Bruksenhetstype
+        coAdressenavn:
+          type: string
+        matrikkelnummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkelnummer'
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed'
+        undernummer:
+          type: integer
+          format: int64
+      required:
+        - matrikkelnummer
+      title: Matrikkeladresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkelnummer:
+      type: object
+      properties:
+        bruksnummer:
+          type: integer
+          format: int64
+        festenummer:
+          type: integer
+          format: int64
+        gaardsnummer:
+          type: integer
+          format: int64
+        kommunenummer:
+          type: string
+      required:
+        - kommunenummer
+      title: Matrikkelnummer
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Opphold:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        oppholdFra:
+          type: string
+          format: date
+        oppholdTil:
+          type: string
+          format: date
+        oppholdstillatelse:
+          type: string
+          enum:
+            - midlertidig
+            - permanent
+            - opplysningMangler
+          title: Oppholdstillatelsetype
+      required:
+        - oppholdstillatelse
+      title: Opphold
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.OppholdPaaSvalbard:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        antallTidligereOpphold:
+          type: integer
+          format: int64
+        antattOppholdsvarighet:
+          type: string
+          enum:
+            - underSeksMaaneder
+            - overSeksMaaneder
+            - overTolvMaaneder
+            - ukjent
+          title: OppholdsvarighetType
+        fraflyttingskommunenummer:
+          type: string
+        fraflyttingsland:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        sluttdato:
+          type: string
+          format: date
+        startdato:
+          type: string
+          format: date
+      required:
+        - antattOppholdsvarighet
+      title: OppholdPaaSvalbard
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Oppholdsadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        adressenErUkjent:
+          type: boolean
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Matrikkeladresse'
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        oppholdAnnetSted:
+          type: string
+          enum:
+            - militaer
+            - utenriks
+            - paaSvalbard
+            - pendler
+          title: OppholdAnnetSted
+        oppholdsadressedato:
+          type: string
+          format: date
+        utenlandskAdresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.InternasjonalAdresse'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Vegadresse'
+      required:
+        - adressegradering
+      title: Oppholdsadresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.OrganisasjonSomKontakt:
+      type: object
+      properties:
+        kontaktpersonnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+        organisasjonsnavn:
+          type: string
+        organisasjonsnummer:
+          type: string
+      required:
+        - organisasjonsnavn
+      title: OrganisasjonSomKontakt
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.PersonSomKontakt:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: string
+        foedselsdato:
+          type: string
+          format: date
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+      title: PersonSomKontakt
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personidentifikasjon:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikasjonsnummer:
+          type: string
+        identifikasjonsnummertype:
+          type: string
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utstederland:
+          type: string
+      required:
+        - identifikasjonsnummer
+        - identifikasjonsnummertype
+        - utstederland
+      title: Personidentifikasjon
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personkjoenn:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - kjoenn
+      title: Personkjoenn
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn:
+      type: object
+      properties:
+        etternavn:
+          type: string
+        fornavn:
+          type: string
+        mellomnavn:
+          type: string
+      required:
+        - etternavn
+        - fornavn
+      title: Personnavn
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.PostadresseIFrittFormat:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed'
+      title: PostadresseIFrittFormat
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Postboksadresse:
+      type: object
+      properties:
+        postboks:
+          type: string
+        postbokseier:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed'
+      required:
+        - postboks
+      title: Postboksadresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed:
+      type: object
+      properties:
+        postnummer:
+          type: string
+        poststedsnavn:
+          type: string
+      title: Poststed
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Registerdata:
+      type: object
+      properties:
+        adressebeskyttelse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.GraderingAvAdresse'
+        bibehold:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.BibeholdAvNorskStatsborgerskap'
+        bostedsadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Bostedsadresse'
+        brukAvSamiskSpraak:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.SamiskSpraak'
+        deltBosted:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.DeltBosted'
+        doedsfall:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Doedsfall'
+        entitet:
+          type: string
+          enum:
+            - adressebeskyttelse
+            - bibehold
+            - bostedsadresse
+            - brukAvSamiskSpraak
+            - deltBosted
+            - doedsfall
+            - falskIdentitet
+            - familierelasjon
+            - foedsel
+            - foedselINorge
+            - foreldreansvar
+            - forholdTilSametingetsValgmanntall
+            - fratattRettsligHandleevne
+            - kontaktinformasjonForDoedsbo
+            - identifikasjonsnummer
+            - identitetsgrunnlag
+            - innflytting
+            - kjoenn
+            - kontaktadresse
+            - kontaktadresseIUtlandet
+            - legitimasjonsdokument
+            - navn
+            - opphold
+            - oppholdsadresse
+            - rettsligHandleevne
+            - sivilstand
+            - statsborgerskap
+            - status
+            - utenlandskPersonidentifikasjon
+            - utflytting
+            - utlendingsmyndighetenesIdentifikasjonsnummer
+            - vergemaalEllerFremtidsfullmakt
+          title: Entitetsnavn
+        entitetsendring:
+          type: string
+          enum:
+            - registrereNy
+            - korrigere
+            - annullere
+            - korrigereHistorisk
+          title: Entitetsendring
+        falskIdentitet:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.FalskIdentitet'
+        familierelasjon:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Familierelasjon'
+        foedsel:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Foedsel'
+        foedselINorge:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.FoedselINorge'
+        foreldreansvar:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Foreldreansvar'
+        forholdTilSametingetsValgmanntall:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.SametingetsValgmanntall'
+        fratattRettsligHandleevne:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.FratattRettsligHandleevne'
+        identifikasjonsnummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisteridentifikator'
+        identitetsgrunnlag:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Identitetsgrunnlag'
+        innflytting:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.InnflyttingTilNorge'
+        kjoenn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personkjoenn'
+        kontaktinformasjonForDoedsbo:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktinformasjonForDoedsbo'
+        legitimasjonsdokument:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Identifikasjonsdokument'
+        navn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisterpersonnavn'
+        opphold:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Opphold'
+        oppholdPaaSvalbard:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.OppholdPaaSvalbard'
+        oppholdsadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Oppholdsadresse'
+        postadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Kontaktadresse'
+        postadresseIUtlandet:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.KontaktadresseIUtlandet'
+        rettsligHandleevne:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.RettsligHandleevne'
+        sivilstand:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Sivilstand'
+        statsborgerskap:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Statsborgerskap'
+        status:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Folkeregisterpersonstatus'
+        utenlandskPersonidentifikasjon:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personidentifikasjon'
+        utflytting:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.UtflyttingFraNorge'
+        utlendingsmyndighetenesIdentifikasjonsnummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personidentifikasjon'
+        vergemaalEllerFremtidsfullmakt:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergemaalRepresentasjonEllerFremtidsfullmakt'
+      required:
+        - entitet
+        - entitetsendring
+      title: Registerdata
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.RelatertBiPerson:
+      type: object
+      properties:
+        foedselsdato:
+          type: string
+          format: date
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        navn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+        statsborgerskap:
+          type: string
+      required:
+        - navn
+      title: RelatertBiPerson
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.RettsligHandleevne:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rettsligHandleevneomfang:
+          type: string
+          enum:
+            - begrenset
+          title: RettsligHandleevneomfang
+      required:
+        - rettsligHandleevneomfang
+      title: RettsligHandleevne
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.SametingetsValgmanntall:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        forhold:
+          type: string
+          enum:
+            - innmeldt
+            - utmeldt
+            - aldriInnmeldt
+          title: ForholdTilSametingetsValgmanntall
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        vedtaksdato:
+          type: string
+          format: date
+      required:
+        - forhold
+        - vedtaksdato
+      title: SametingetsValgmanntall
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.SamiskSpraak:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        spraak:
+          type: array
+          items:
+            type: string
+            enum:
+              - nordsamisk
+              - soersamisk
+              - lulesamisk
+            title: SamiskSpraakType
+      required:
+        - spraak
+      title: SamiskSpraak
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Sivilstand:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kommune:
+          type: string
+        myndighet:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        relatertVedSivilstand:
+          type: string
+        sivilstand:
+          type: string
+          enum:
+            - uoppgitt
+            - ugift
+            - gift
+            - enkeEllerEnkemann
+            - skilt
+            - separert
+            - registrertPartner
+            - separertPartner
+            - skiltPartner
+            - gjenlevendePartner
+          title: Sivilstandstype
+        sivilstandsdato:
+          type: string
+          format: date
+        sted:
+          type: string
+        utland:
+          type: string
+      required:
+        - sivilstand
+      title: Sivilstand
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Statsborgerskap:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        ervervsdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        statsborgerskap:
+          type: string
+      required:
+        - statsborgerskap
+      title: Statsborgerskap
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.TekniskDokumentkontroll:
+      type: object
+      properties:
+        dokumentkontrollstatus:
+          type: string
+        dokumentkontrolltidspunkt:
+          type: string
+          format: date-time
+      required:
+        - dokumentkontrollstatus
+      title: TekniskDokumentkontroll
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.UkjentBosted:
+      type: object
+      properties:
+        bostedskommune:
+          type: string
+      title: UkjentBosted
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.UtflyttingFraNorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        tilflyttingsland:
+          type: string
+        tilflyttingsstedIUtlandet:
+          type: string
+        utflyttingsdato:
+          type: string
+          format: date
+      title: UtflyttingFraNorge
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.Vegadresse:
+      type: object
+      properties:
+        adressekode:
+          type: string
+        adressenavn:
+          type: string
+        adressenummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Adressenummer'
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        bruksenhetstype:
+          type: string
+          enum:
+            - bolig
+            - annetEnnBolig
+            - fritidsbolig
+            - ikkeGodkjentBolig
+            - unummerertBruksenhet
+          title: Bruksenhetstype
+        coAdressenavn:
+          type: string
+        kommunenummer:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed'
+      required:
+        - adressenavn
+        - kommunenummer
+      title: Vegadresse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.VegadresseForPost:
+      type: object
+      properties:
+        adressekode:
+          type: string
+        adressenavn:
+          type: string
+        adressenummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Adressenummer'
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        coAdressenavn:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Poststed'
+      title: VegadresseForPost
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergeRepresentantEllerFullmektig:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: string
+        navn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.Personnavn'
+        navnFoedselsdato:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.IdentifiserendeInformasjon'
+        omfang:
+          type: string
+          enum:
+            - utlendingssakerPersonligeOgOekonomiskeInteresser
+            - personligeOgOekonomiskeInteresser
+            - oekonomiskeInteresser
+            - personligeInteresser
+          title: Vergemaalsomfang
+        omfangetErInnenPersonligOmraade:
+          type: boolean
+        tjenesteomraade:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergeTjenesteomraade'
+      title: VergeRepresentantEllerFullmektig
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergeTjenesteomraade:
+      type: object
+      properties:
+        vergeTjenesteoppgave:
+          type: string
+        vergeTjenestevirksomhet:
+          type: string
+      required:
+        - vergeTjenesteoppgave
+        - vergeTjenestevirksomhet
+      title: VergeTjenesteomraade
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergemaalRepresentasjonEllerFremtidsfullmakt:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        embete:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        verge:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.VergeRepresentantEllerFullmektig'
+        vergemaaltype:
+          type: string
+          enum:
+            - ensligMindreaarigAsylsoeker
+            - ensligMindreaarigFlyktning
+            - voksen
+            - midlertidigForVoksen
+            - mindreaarig
+            - midlertidigForMindreaarig
+            - forvaltningUtenforVergemaal
+            - stadfestetFremtidsfullmakt
+          title: Vergemaaltype
+      required:
+        - verge
+      title: VergemaalRepresentasjonEllerFremtidsfullmakt
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.request.HendelseBulkoppslagRequest:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: array
+          items:
+            type: string
+      title: HendelseBulkoppslagRequest
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.Feilmelding:
+      type: object
+      properties:
+        feilmelding:
+          type: string
+      required:
+        - feilmelding
+      title: Feilmelding
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.HendelseBulkoppslagResponse:
+      type: object
+      properties:
+        oppslag:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.HendelseOppslag'
+      title: HendelseBulkoppslagResponse
+    folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.HendelseOppslag:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: string
+        feilmelding:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.bulk.response.Feilmelding'
+        hendelsedokument:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.hendelse.v1.DokumentForHendelse'
+      required:
+        - dokumentidentifikator
+      title: HendelseOppslag
+    folkeregisteret.tilgjengeliggjoering.person.v1.AdresseIFrittFormat:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        landkode:
+          type: string
+      title: AdresseIFrittFormat
+    folkeregisteret.tilgjengeliggjoering.person.v1.Adressenummer:
+      type: object
+      properties:
+        husbokstav:
+          type: string
+        husnummer:
+          type: string
+      required:
+        - husnummer
+      title: Adressenummer
+    folkeregisteret.tilgjengeliggjoering.person.v1.AdvokatSomKontakt:
+      type: object
+      properties:
+        organisasjonsnavn:
+          type: string
+        organisasjonsnummer:
+          type: string
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+      required:
+        - personnavn
+      title: AdvokatSomKontakt
+    folkeregisteret.tilgjengeliggjoering.person.v1.BibeholdAvNorskStatsborgerskap:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        bibeholdstatus:
+          type: string
+          enum:
+            - harBibehold
+            - harIkkeLengerBibehold
+            - norskStatsborgerTrengerIkkeBibehold
+          title: Bibehold
+        datoForBibehold:
+          type: string
+          format: date
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - bibeholdstatus
+      title: BibeholdAvNorskStatsborgerskap
+    folkeregisteret.tilgjengeliggjoering.person.v1.Bostedsadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        flyttedato:
+          type: string
+          format: date
+        grunnkrets:
+          type: integer
+          format: int64
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kirkekrets:
+          type: integer
+          format: int64
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkeladresse'
+        naerAdresseIdentifikatorFraMatrikkelen:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        skolekrets:
+          type: integer
+          format: int64
+        stemmekrets:
+          type: integer
+          format: int64
+        ukjentBosted:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.UkjentBosted'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Vegadresse'
+      required:
+        - adressegradering
+      title: Bostedsadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.DeltBosted:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkeladresse'
+        naerAdresseIdentifikatorFraMatrikkelen:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        sluttdatoForKontrakt:
+          type: string
+          format: date
+        startdatoForKontrakt:
+          type: string
+          format: date
+        ukjentBosted:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.UkjentBosted'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Vegadresse'
+      required:
+        - adressegradering
+        - startdatoForKontrakt
+      title: DeltBosted
+    folkeregisteret.tilgjengeliggjoering.person.v1.Doedsfall:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        doedsdato:
+          type: string
+          format: date
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: Doedsfall
+    folkeregisteret.tilgjengeliggjoering.person.v1.FalskIdentitet:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erFalsk:
+          type: boolean
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rettIdentitetErUkjent:
+          type: boolean
+        rettIdentitetVedIdentifikasjonsnummer:
+          type: string
+        rettIdentitetVedOpplysninger:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.IdentifiserendeInformasjon'
+      title: FalskIdentitet
+    folkeregisteret.tilgjengeliggjoering.person.v1.Familierelasjon:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        minRolleForPerson:
+          type: string
+          enum:
+            - mor
+            - far
+            - medmor
+            - barn
+            - soesken
+            - ektefelleEllerPartner
+            - doedfoedtBarn
+          title: Familierelasjontype
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        relatertPerson:
+          type: string
+        relatertPersonUtenFolkeregisteridentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.RelatertBiPerson'
+        relatertPersonsRolle:
+          type: string
+          enum:
+            - mor
+            - far
+            - medmor
+            - barn
+            - soesken
+            - ektefelleEllerPartner
+            - doedfoedtBarn
+          title: Familierelasjontype
+      required:
+        - relatertPersonsRolle
+      title: Familierelasjon
+    folkeregisteret.tilgjengeliggjoering.person.v1.Foedsel:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        foedekommuneINorge:
+          type: string
+        foedeland:
+          type: string
+        foedested:
+          type: string
+        foedselsaar:
+          type: string
+        foedselsdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - foedselsaar
+      title: Foedsel
+    folkeregisteret.tilgjengeliggjoering.person.v1.FoedselINorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        foedselsinstitusjonsnavn:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rekkefoelgenummer:
+          type: integer
+          format: int64
+      title: FoedselINorge
+    folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisteridentifikator:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        foedselsEllerDNummer:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikatortype:
+          type: string
+          enum:
+            - foedselsnummer
+            - dNummer
+          title: Folkeregisteridentifikatortype
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - iBruk
+            - opphoert
+          title: Identifikatorstatuskode
+      required:
+        - foedselsEllerDNummer
+        - identifikatortype
+        - status
+      title: Folkeregisteridentifikator
+    folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson:
+      type: object
+      properties:
+        adressebeskyttelse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.GraderingAvAdresse'
+        bibehold:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.BibeholdAvNorskStatsborgerskap'
+        bostedsadresse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Bostedsadresse'
+        brukAvSamiskSpraak:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.SamiskSpraak'
+        deltBosted:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.DeltBosted'
+        doedsfall:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Doedsfall'
+        falskIdentitet:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.FalskIdentitet'
+        familierelasjon:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Familierelasjon'
+        foedsel:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Foedsel'
+        foedselINorge:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.FoedselINorge'
+        foreldreansvar:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Foreldreansvar'
+        forholdTilSametingetsValgmanntall:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.SametingetsValgmanntall'
+        fratattRettsligHandleevne:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.FratattRettsligHandleevne'
+        identifikasjonsnummer:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisteridentifikator'
+        identitetsgrunnlag:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Identitetsgrunnlag'
+        innflytting:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.InnflyttingTilNorge'
+        kjoenn:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personkjoenn'
+        kontaktinformasjonForDoedsbo:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.KontaktinformasjonForDoedsbo'
+        legitimasjonsdokument:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Identifikasjonsdokument'
+        navn:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterpersonnavn'
+        opphold:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Opphold'
+        oppholdPaaSvalbard:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.OppholdPaaSvalbard'
+        oppholdsadresse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Oppholdsadresse'
+        postadresse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Kontaktadresse'
+        postadresseIUtlandet:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.KontaktadresseIUtlandet'
+        preferertKontaktadresse:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.PreferertKontaktadresse'
+        rettsligHandleevne:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.RettsligHandleevne'
+        sivilstand:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Sivilstand'
+        statsborgerskap:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Statsborgerskap'
+        status:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterpersonstatus'
+        utenlandskPersonidentifikasjon:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personidentifikasjon'
+        utflytting:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.UtflyttingFraNorge'
+        utlendingsmyndighetenesIdentifikasjonsnummer:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personidentifikasjon'
+        vergemaalEllerFremtidsfullmakt:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.VergemaalRepresentasjonEllerFremtidsfullmakt'
+      title: Folkeregisterperson
+    folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterpersonnavn:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        etternavn:
+          type: string
+        forkortetNavn:
+          type: string
+        fornavn:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        mellomnavn:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        originaltNavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+      required:
+        - etternavn
+        - fornavn
+      title: Folkeregisterpersonnavn
+    folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterpersonstatus:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - aktiv
+            - bosatt
+            - utflyttet
+            - forsvunnet
+            - doed
+            - opphoert
+            - foedselsregistrert
+            - midlertidig
+            - inaktiv
+            - ikkeBosatt
+          title: Personstatus
+      required:
+        - status
+      title: Folkeregisterpersonstatus
+    folkeregisteret.tilgjengeliggjoering.person.v1.Foreldreansvar:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        ansvar:
+          type: string
+          enum:
+            - felles
+            - mor
+            - far
+            - medmor
+            - andre
+            - ukjent
+          title: Foreldreansvarstype
+        ansvarlig:
+          type: string
+        ansvarligOrganisasjon:
+          type: string
+        ansvarligUtenIdentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.RelatertBiPerson'
+        ansvarssubjekt:
+          type: string
+        ansvarssubjektUtenIdentifikator:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.RelatertBiPerson'
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - ansvar
+      title: Foreldreansvar
+    folkeregisteret.tilgjengeliggjoering.person.v1.FratattRettsligHandleevne:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: FratattRettsligHandleevne
+    folkeregisteret.tilgjengeliggjoering.person.v1.GraderingAvAdresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        graderingsnivaa:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - graderingsnivaa
+      title: GraderingAvAdresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.Identifikasjonsdokument:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        dokumentkontroll:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.TekniskDokumentkontroll'
+        erGjeldende:
+          type: boolean
+        gyldigFra:
+          type: string
+          format: date
+        gyldigTil:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikasjonsdokumentnummer:
+          type: string
+        identifikasjonsdokumenttype:
+          type: string
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utstederland:
+          type: string
+        utstedernavn:
+          type: string
+      required:
+        - identifikasjonsdokumenttype
+        - utstederland
+      title: Identifikasjonsdokument
+    folkeregisteret.tilgjengeliggjoering.person.v1.IdentifiserendeInformasjon:
+      type: object
+      properties:
+        foedselsdato:
+          type: string
+          format: date
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+        statsborgerskap:
+          type: array
+          items:
+            type: string
+      required:
+        - personnavn
+        - statsborgerskap
+      title: IdentifiserendeInformasjon
+    folkeregisteret.tilgjengeliggjoering.person.v1.Identitetsgrunnlag:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identitetsgrunnlagstatus:
+          type: string
+          enum:
+            - ingenStatus
+            - ikkeKontrollert
+            - kontrollert
+          title: Identitetsgrunnlagstatus
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - identitetsgrunnlagstatus
+      title: Identitetsgrunnlag
+    folkeregisteret.tilgjengeliggjoering.person.v1.InnflyttingTilNorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        fraflyttingsland:
+          type: string
+        fraflyttingsstedIUtlandet:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      title: InnflyttingTilNorge
+    folkeregisteret.tilgjengeliggjoering.person.v1.InternasjonalAdresse:
+      type: object
+      properties:
+        adressenavn:
+          type: string
+        boenhet:
+          type: string
+        byEllerStedsnavn:
+          type: string
+        bygning:
+          type: string
+        coAdressenavn:
+          type: string
+        distriktsnavn:
+          type: string
+        etasjenummer:
+          type: string
+        landkode:
+          type: string
+        postboks:
+          type: string
+        postkode:
+          type: string
+        region:
+          type: string
+      required:
+        - landkode
+      title: InternasjonalAdresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.InternasjonalAdresseIFrittFormat:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        byEllerStedsnavn:
+          type: string
+        landkode:
+          type: string
+        postkode:
+          type: string
+      required:
+        - landkode
+      title: InternasjonalAdresseIFrittFormat
+    folkeregisteret.tilgjengeliggjoering.person.v1.Kontaktadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        postadresseIFrittFormat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.PostadresseIFrittFormat'
+        postboksadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Postboksadresse'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.VegadresseForPost'
+      required:
+        - adressegradering
+      title: Kontaktadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.KontaktadresseForDoedsbo:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        landkode:
+          type: string
+        postnummer:
+          type: string
+        poststedsnavn:
+          type: string
+      required:
+        - adresselinje
+        - postnummer
+        - poststedsnavn
+      title: KontaktadresseForDoedsbo
+    folkeregisteret.tilgjengeliggjoering.person.v1.KontaktadresseIUtlandet:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utenlandskAdresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.InternasjonalAdresse'
+        utenlandskAdresseIFrittFormat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.InternasjonalAdresseIFrittFormat'
+      required:
+        - adressegradering
+      title: KontaktadresseIUtlandet
+    folkeregisteret.tilgjengeliggjoering.person.v1.KontaktinformasjonForDoedsbo:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.KontaktadresseForDoedsbo'
+        advokat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.AdvokatSomKontakt'
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        attestutstedelsesdato:
+          type: string
+          format: date
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        organisasjon:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.OrganisasjonSomKontakt'
+        person:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.PersonSomKontakt'
+        skifteform:
+          type: string
+          enum:
+            - offentlig
+            - annet
+          title: Skifteform
+      required:
+        - adresse
+        - attestutstedelsesdato
+        - skifteform
+      title: KontaktinformasjonForDoedsbo
+    folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkeladresse:
+      type: object
+      properties:
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        bruksenhetstype:
+          type: string
+          enum:
+            - bolig
+            - annetEnnBolig
+            - fritidsbolig
+            - ikkeGodkjentBolig
+            - unummerertBruksenhet
+          title: Bruksenhetstype
+        coAdressenavn:
+          type: string
+        matrikkelnummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkelnummer'
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Poststed'
+        undernummer:
+          type: integer
+          format: int64
+      required:
+        - matrikkelnummer
+      title: Matrikkeladresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkelnummer:
+      type: object
+      properties:
+        bruksnummer:
+          type: integer
+          format: int64
+        festenummer:
+          type: integer
+          format: int64
+        gaardsnummer:
+          type: integer
+          format: int64
+        kommunenummer:
+          type: string
+      required:
+        - kommunenummer
+      title: Matrikkelnummer
+    folkeregisteret.tilgjengeliggjoering.person.v1.Opphold:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        oppholdFra:
+          type: string
+          format: date
+        oppholdTil:
+          type: string
+          format: date
+        oppholdstillatelse:
+          type: string
+          enum:
+            - midlertidig
+            - permanent
+            - opplysningMangler
+          title: Oppholdstillatelsetype
+      required:
+        - oppholdstillatelse
+      title: Opphold
+    folkeregisteret.tilgjengeliggjoering.person.v1.OppholdPaaSvalbard:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        antallTidligereOpphold:
+          type: integer
+          format: int64
+        antattOppholdsvarighet:
+          type: string
+          enum:
+            - underSeksMaaneder
+            - overSeksMaaneder
+            - overTolvMaaneder
+            - ukjent
+          title: OppholdsvarighetType
+        erGjeldende:
+          type: boolean
+        fraflyttingskommunenummer:
+          type: string
+        fraflyttingsland:
+          type: string
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        sluttdato:
+          type: string
+          format: date
+        startdato:
+          type: string
+          format: date
+      required:
+        - antattOppholdsvarighet
+        - startdato
+      title: OppholdPaaSvalbard
+    folkeregisteret.tilgjengeliggjoering.person.v1.Oppholdsadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adresseIdentifikatorFraMatrikkelen:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        adressenErUkjent:
+          type: boolean
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        matrikkeladresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Matrikkeladresse'
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        oppholdAnnetSted:
+          type: string
+          enum:
+            - militaer
+            - utenriks
+            - paaSvalbard
+            - pendler
+          title: OppholdAnnetSted
+        oppholdsadressedato:
+          type: string
+          format: date
+        utenlandskAdresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.InternasjonalAdresse'
+        vegadresse:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Vegadresse'
+      required:
+        - adressegradering
+      title: Oppholdsadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.OrganisasjonSomKontakt:
+      type: object
+      properties:
+        kontaktpersonnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+        organisasjonsnavn:
+          type: string
+        organisasjonsnummer:
+          type: string
+      required:
+        - organisasjonsnavn
+      title: OrganisasjonSomKontakt
+    folkeregisteret.tilgjengeliggjoering.person.v1.PersonSomKontakt:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: string
+        foedselsdato:
+          type: string
+          format: date
+        personnavn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+      title: PersonSomKontakt
+    folkeregisteret.tilgjengeliggjoering.person.v1.Personidentifikasjon:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        identifikasjonsnummer:
+          type: string
+        identifikasjonsnummertype:
+          type: string
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        utstederland:
+          type: string
+      required:
+        - identifikasjonsnummer
+        - identifikasjonsnummertype
+        - utstederland
+      title: Personidentifikasjon
+    folkeregisteret.tilgjengeliggjoering.person.v1.Personkjoenn:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+      required:
+        - kjoenn
+      title: Personkjoenn
+    folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn:
+      type: object
+      properties:
+        etternavn:
+          type: string
+        fornavn:
+          type: string
+        mellomnavn:
+          type: string
+      required:
+        - etternavn
+        - fornavn
+      title: Personnavn
+    folkeregisteret.tilgjengeliggjoering.person.v1.PostadresseIFrittFormat:
+      type: object
+      properties:
+        adresselinje:
+          type: array
+          items:
+            type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Poststed'
+      title: PostadresseIFrittFormat
+    folkeregisteret.tilgjengeliggjoering.person.v1.Postboksadresse:
+      type: object
+      properties:
+        postboks:
+          type: string
+        postbokseier:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Poststed'
+      required:
+        - postboks
+      title: Postboksadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.Poststed:
+      type: object
+      properties:
+        postnummer:
+          type: string
+        poststedsnavn:
+          type: string
+      title: Poststed
+    folkeregisteret.tilgjengeliggjoering.person.v1.PreferertKontaktadresse:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        adressegradering:
+          type: string
+          enum:
+            - ugradert
+            - klientadresse
+            - fortrolig
+            - strengtFortrolig
+          title: Adressegradering
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kontaktadresseIFrittFormat:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.AdresseIFrittFormat'
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        valg:
+          type: string
+          enum:
+            - bostedsadresse
+            - oppholdsadresse
+            - postadresse
+            - postadresseIUtlandet
+          title: Adressetype
+      required:
+        - valg
+      title: PreferertKontaktadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.RelatertBiPerson:
+      type: object
+      properties:
+        foedselsdato:
+          type: string
+          format: date
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        navn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+        statsborgerskap:
+          type: string
+      required:
+        - navn
+      title: RelatertBiPerson
+    folkeregisteret.tilgjengeliggjoering.person.v1.RettsligHandleevne:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        rettsligHandleevneomfang:
+          type: string
+          enum:
+            - begrenset
+          title: RettsligHandleevneomfang
+      required:
+        - rettsligHandleevneomfang
+      title: RettsligHandleevne
+    folkeregisteret.tilgjengeliggjoering.person.v1.SametingetsValgmanntall:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        forhold:
+          type: string
+          enum:
+            - innmeldt
+            - utmeldt
+            - aldriInnmeldt
+          title: ForholdTilSametingetsValgmanntall
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        vedtaksdato:
+          type: string
+          format: date
+      required:
+        - forhold
+        - vedtaksdato
+      title: SametingetsValgmanntall
+    folkeregisteret.tilgjengeliggjoering.person.v1.SamiskSpraak:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        spraak:
+          type: array
+          items:
+            type: string
+            enum:
+              - nordsamisk
+              - soersamisk
+              - lulesamisk
+            title: SamiskSpraakType
+      required:
+        - spraak
+      title: SamiskSpraak
+    folkeregisteret.tilgjengeliggjoering.person.v1.Sivilstand:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        kommune:
+          type: string
+        myndighet:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        relatertVedSivilstand:
+          type: string
+        sivilstand:
+          type: string
+          enum:
+            - uoppgitt
+            - ugift
+            - gift
+            - enkeEllerEnkemann
+            - skilt
+            - separert
+            - registrertPartner
+            - separertPartner
+            - skiltPartner
+            - gjenlevendePartner
+          title: Sivilstandstype
+        sivilstandsdato:
+          type: string
+          format: date
+        sted:
+          type: string
+        utland:
+          type: string
+      required:
+        - sivilstand
+      title: Sivilstand
+    folkeregisteret.tilgjengeliggjoering.person.v1.Statsborgerskap:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        ervervsdato:
+          type: string
+          format: date
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        statsborgerskap:
+          type: string
+      required:
+        - statsborgerskap
+      title: Statsborgerskap
+    folkeregisteret.tilgjengeliggjoering.person.v1.TekniskDokumentkontroll:
+      type: object
+      properties:
+        dokumentkontrollstatus:
+          type: string
+        dokumentkontrolltidspunkt:
+          type: string
+          format: date-time
+      required:
+        - dokumentkontrollstatus
+      title: TekniskDokumentkontroll
+    folkeregisteret.tilgjengeliggjoering.person.v1.UkjentBosted:
+      type: object
+      properties:
+        bostedskommune:
+          type: string
+      title: UkjentBosted
+    folkeregisteret.tilgjengeliggjoering.person.v1.UtflyttingFraNorge:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        tilflyttingsland:
+          type: string
+        tilflyttingsstedIUtlandet:
+          type: string
+        utflyttingsdato:
+          type: string
+          format: date
+      title: UtflyttingFraNorge
+    folkeregisteret.tilgjengeliggjoering.person.v1.Vegadresse:
+      type: object
+      properties:
+        adressekode:
+          type: string
+        adressenavn:
+          type: string
+        adressenummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Adressenummer'
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        bruksenhetstype:
+          type: string
+          enum:
+            - bolig
+            - annetEnnBolig
+            - fritidsbolig
+            - ikkeGodkjentBolig
+            - unummerertBruksenhet
+          title: Bruksenhetstype
+        coAdressenavn:
+          type: string
+        kommunenummer:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Poststed'
+      required:
+        - adressenavn
+        - kommunenummer
+      title: Vegadresse
+    folkeregisteret.tilgjengeliggjoering.person.v1.VegadresseForPost:
+      type: object
+      properties:
+        adressekode:
+          type: string
+        adressenavn:
+          type: string
+        adressenummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Adressenummer'
+        adressetilleggsnavn:
+          type: string
+        bruksenhetsnummer:
+          type: string
+        coAdressenavn:
+          type: string
+        poststed:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Poststed'
+      required:
+        - adressenavn
+      title: VegadresseForPost
+    folkeregisteret.tilgjengeliggjoering.person.v1.VergeRepresentantEllerFullmektig:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: string
+        navn:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Personnavn'
+        navnFoedselsdato:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.IdentifiserendeInformasjon'
+        omfang:
+          type: string
+          enum:
+            - utlendingssakerPersonligeOgOekonomiskeInteresser
+            - personligeOgOekonomiskeInteresser
+            - oekonomiskeInteresser
+            - personligeInteresser
+          title: Vergemaalsomfang
+        omfangetErInnenPersonligOmraade:
+          type: boolean
+        tjenesteomraade:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.VergeTjenesteomraade'
+      title: VergeRepresentantEllerFullmektig
+    folkeregisteret.tilgjengeliggjoering.person.v1.VergeTjenesteomraade:
+      type: object
+      properties:
+        vergeTjenesteoppgave:
+          type: string
+        vergeTjenestevirksomhet:
+          type: string
+      required:
+        - vergeTjenesteoppgave
+        - vergeTjenestevirksomhet
+      title: VergeTjenesteomraade
+    folkeregisteret.tilgjengeliggjoering.person.v1.VergemaalRepresentasjonEllerFremtidsfullmakt:
+      type: object
+      properties:
+        aarsak:
+          type: string
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        embete:
+          type: string
+        erGjeldende:
+          type: boolean
+        gyldighetstidspunkt:
+          type: string
+          format: date-time
+        kilde:
+          type: string
+        opphoerstidspunkt:
+          type: string
+          format: date-time
+        verge:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.VergeRepresentantEllerFullmektig'
+        vergemaaltype:
+          type: string
+          enum:
+            - ensligMindreaarigAsylsoeker
+            - ensligMindreaarigFlyktning
+            - voksen
+            - midlertidigForVoksen
+            - mindreaarig
+            - midlertidigForMindreaarig
+            - forvaltningUtenforVergemaal
+            - stadfestetFremtidsfullmakt
+          title: Vergemaaltype
+      required:
+        - verge
+      title: VergemaalRepresentasjonEllerFremtidsfullmakt
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.request.ArkivDokumentBulkoppslagRequest:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: array
+          items:
+            type: string
+      title: ArkivDokumentBulkoppslagRequest
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.ArkivPersonDokumentBulkoppslagResponse:
+      type: object
+      properties:
+        oppslag:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.Oppslag'
+      title: ArkivPersonDokumentBulkoppslagResponse
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.Feilmelding:
+      type: object
+      properties:
+        feilmelding:
+          type: string
+      required:
+        - feilmelding
+      title: Feilmelding
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.Oppslag:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: string
+        feilmelding:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.arkiv.response.Feilmelding'
+        folkeregisterperson:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+      required:
+        - dokumentidentifikator
+      title: Oppslag
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.request.PersonBulkoppslagRequest:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: array
+          items:
+            type: string
+      title: PersonBulkoppslagRequest
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.Feilmelding:
+      type: object
+      properties:
+        feilmelding:
+          type: string
+      required:
+        - feilmelding
+      title: Feilmelding
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.Oppslag:
+      type: object
+      properties:
+        feilmelding:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.Feilmelding'
+        foedselsEllerDNummer:
+          type: string
+        folkeregisterperson:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.Folkeregisterperson'
+      required:
+        - foedselsEllerDNummer
+      title: Oppslag
+    folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.PersonBulkoppslagResponse:
+      type: object
+      properties:
+        oppslag:
+          type: array
+          items:
+            $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.person.v1.bulk.response.Oppslag'
+      title: PersonBulkoppslagResponse
+    folkeregisteret.tilgjengeliggjoering.person.v1.soek.response.PersonsoekResponse:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: array
+          items:
+            type: string
+      title: PersonsoekResponse
+    folkeregisteret.tilgjengeliggjoering.uttrekk.v1.request.Kommunenummer:
+      type: object
+      properties:
+        bostedskommunenummer:
+          type: string
+        oppholdskommunenummer:
+          type: string
+      title: Kommunenummer
+    folkeregisteret.tilgjengeliggjoering.uttrekk.v1.request.TilpassetUttrekkJobbRequest:
+      type: object
+      properties:
+        doedsaarFraOgMed:
+          type: string
+        doedsaarTilOgMed:
+          type: string
+        foedselsaarFraOgMed:
+          type: string
+        foedselsaarTilOgMed:
+          type: string
+        kjoenn:
+          type: string
+          enum:
+            - kvinne
+            - mann
+          title: Kjoenn
+        kommunenummer:
+          $ref: '#/components/schemas/folkeregisteret.tilgjengeliggjoering.uttrekk.v1.request.Kommunenummer'
+        personstatustyper:
+          type: array
+          items:
+            type: string
+            enum:
+              - aktiv
+              - bosatt
+              - utflyttet
+              - doed
+              - inaktiv
+            title: Personstatustyper
+        sivilstandstype:
+          type: string
+          enum:
+            - uoppgitt
+            - ugift
+            - gift
+            - enkeEllerEnkemann
+            - skilt
+            - separert
+            - registrertPartner
+            - separertPartner
+            - skiltPartner
+            - gjenlevendePartner
+          title: Sivilstandstype
+        statsborgerskap:
+          type: string
+      required:
+        - personstatustyper
+      title: TilpassetUttrekkJobbRequest
+    folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkDataResponse:
+      type: object
+      properties:
+        dokumentidentifikator:
+          type: array
+          items:
+            type: string
+        feilmelding:
+          type: string
+        foedselsEllerDNummer:
+          type: array
+          items:
+            type: string
+      title: UttrekkDataResponse
+    folkeregisteret.tilgjengeliggjoering.uttrekk.v1.response.UttrekkJobbResponse:
+      type: object
+      properties:
+        feilmelding:
+          type: string
+        jobbId:
+          type: string
+      title: UttrekkJobbResponse
+    ske.folkeregister.exception.javaxrs.FolkeregisterFeilmelding:
+      type: object
+      properties:
+        alvorlighetsgrad:
+          type: string
+        feilkode:
+          type: string
+        feilmelding:
+          type: string
+        httpStatus:
+          type: integer
+          format: int32
+        tilleggsinformasjon:
+          type: object
+          additionalProperties:
+            type: string
+      title: FolkeregisterFeilmelding
+    ske.folkeregister.lesemodell.universal.feil.ErrorMessageForExternalUsers:
+      type: object
+      properties:
+        code:
+          type: string
+        feilreferanse:
+          type: string
+        httpStatus:
+          type: integer
+          format: int32
+        message:
+          type: string
+      title: ErrorMessageForExternalUsers
+      xml:
+        name: error
+    ske.folkeregister.rettighetspakke.hendelser.HendelseMedDokumentIdentifikatorer:
+      type: object
+      properties:
+        ajourholdstidspunkt:
+          type: string
+          format: date-time
+        folkeregisteridentifikator:
+          type: string
+        hendelsesdokument:
+          type: string
+        hendelsetype:
+          type: string
+        persondokument:
+          type: string
+      title: HendelseMedDokumentIdentifikatorer
+    ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorer:
+      type: object
+      properties:
+        hendelse:
+          $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.HendelseMedDokumentIdentifikatorer'
+        sekvensnummer:
+          type: integer
+          format: int64
+      title: LagretHendelseMedDokumentIdentifikatorer
+    ske.folkeregister.rettighetspakke.hendelser.LagretHendelseMedDokumentIdentifikatorerFiltrert:
+      type: object
+      properties:
+        hendelse:
+          $ref: '#/components/schemas/ske.folkeregister.rettighetspakke.hendelser.HendelseMedDokumentIdentifikatorer'
+        sekvensnummer:
+          type: integer
+          format: int64
+      title: LagretHendelseMedDokumentIdentifikatorerFiltrert
+    ske.folkeregister.rettighetspakke.hendelser.Sekvensnummer:
+      type: object
+      properties:
+        sekvensnummer:
+          type: integer
+          format: int64
+      title: Sekvensnummer
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/skatteetaten/Folkeregisteret_Offentlig_med_hjemmel/1.6.2
