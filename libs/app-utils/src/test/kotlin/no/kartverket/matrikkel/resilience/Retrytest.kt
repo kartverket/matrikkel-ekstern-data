@@ -8,6 +8,7 @@ import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import kotlin.time.Duration
 
 class RetryTest {
     @Test
@@ -27,7 +28,7 @@ class RetryTest {
         every { fn.invoke() } throws IllegalArgumentException("Not gikk feil")
 
         assertThrows<IllegalArgumentException> {
-            retry(attempts = 3, fn = fn)
+            retry(attempts = 3, baseDelay = Duration.ZERO, fn = fn)
         }
 
         verify(exactly = 3) { fn.invoke() }
@@ -56,7 +57,7 @@ class RetryTest {
                 IllegalArgumentException("fail 2") andThen
                 "ok"
 
-        val result = retry(attempts = 3, fn = fn)
+        val result = retry(attempts = 3, baseDelay = Duration.ZERO, fn = fn)
 
         assertThat(result).isEqualTo("ok")
         verify(exactly = 3) { fn.invoke() }

@@ -14,12 +14,14 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import org.openapitools.client.infrastructure.ClientError
 import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class FormuesobjektSyncService(
     private val formueobjektApi: FormuesobjektFastEiendomApi,
     private val messageConsumer: MessageConsumer<Long, Hendelse>,
-    private val messageProducer : MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>
+    private val messageProducer : MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>,
+    private val baseDelay: Duration = 2.seconds,
 ) {
     private val fastEiendomSomFormuesObjektHendelseMapper = FastEiendomSomFormuesObjektHendelseMapper()
 
@@ -46,6 +48,7 @@ class FormuesobjektSyncService(
                         retry(
                             attempts = 3,
                             stopRetryIf = { forventetApiFeil(it) },
+                            baseDelay = baseDelay,
                             fn = {
                                 formueobjektApi.hentFormuesobjektFastEiendom(
                                     rettighetspakke = "kartverketMatrikkel",

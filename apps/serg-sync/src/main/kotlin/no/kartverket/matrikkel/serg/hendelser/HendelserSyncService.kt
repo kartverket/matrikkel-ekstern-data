@@ -16,12 +16,14 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.apis.HendelserApi
 import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelse
 import java.util.*
 import javax.sql.DataSource
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class HendelserSyncService(
     private val dataSource: DataSource,
     private val hendelserApi: HendelserApi,
-    private val messageProducer : MessageProducer<Long, Hendelse>
+    private val messageProducer : MessageProducer<Long, Hendelse>,
+    private val baseDelay: Duration = 2.seconds
 ) {
     private val sekvensnummerKey = "sekvensnummer"
     private val keyValueRepository = KeyValueRepository(dataSource)
@@ -40,7 +42,7 @@ class HendelserSyncService(
         return runCatching {
             dataSource.withTransaction { tx ->
                 val sekvensnummer = keyValueRepository.getValueOrNull(tx, sekvensnummerKey)?.toLong() ?: 1
-                val hendelser = retry(3) {
+                val hendelser = retry(3, baseDelay = baseDelay) {
                     hendelserApi.hentHendelserFormuesobjektFastEiendom(
                         fraSekvensnummer = sekvensnummer,
                         antall = antall,

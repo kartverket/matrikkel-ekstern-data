@@ -37,6 +37,7 @@ import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlin.time.Duration
 
 class FormueobjektSyncServiceTest {
     private var nesteSekvensnummer = 0L
@@ -111,30 +112,46 @@ class FormueobjektSyncServiceTest {
     }
 
     @Test
-    fun `API-feil setter FEIL med feilmelding`() = runTest {
-        // Hendelser mock
-        val hendelser = listOf(lagRecord(4001L, UUID.randomUUID()))
-        val kafkaSergHendelserFeedConsumer = mockk<MessageConsumer<Long, Hendelse>>()
-        coEvery { kafkaSergHendelserFeedConsumer.poll(any()) } returns ConsumerRecords("", hendelser)
-        coEvery { kafkaSergHendelserFeedConsumer.commitSync() } returns Unit
+    fun `uventet API-feil retries tre ganger uten publisering eller commit`() = runTest {
+        val hendelseId = UUID.randomUUID()
+        val hendelser = listOf(lagRecord(4001L, hendelseId))
 
-        // Producer mock
-        val kafkaSergFormuesobjektFeedProducer = mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
-        coEvery { kafkaSergFormuesobjektFeedProducer.send(any()) } returns CompletableDeferred(Unit)
+        val consumer = mockk<MessageConsumer<Long, Hendelse>>()
+        coEvery { consumer.poll(any()) } returns ConsumerRecords("", hendelser)
 
-        // API mock
+        val producer =
+            mockk<MessageProducer<Long, FastEiendomSomFormuesObjektHendelse>>()
+
         val api = mockk<FormuesobjektFastEiendomApi>()
         every {
-            api.hentFormuesobjektFastEiendom("kartverketMatrikkel", any(), any())
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
         } throws RuntimeException("SERG formueobjekt utilgjengelig")
 
-        val result = FormuesobjektSyncService(api, kafkaSergHendelserFeedConsumer, kafkaSergFormuesobjektFeedProducer).sync()
+        val resultat = FormuesobjektSyncService(
+            formueobjektApi = api,
+            messageConsumer = consumer,
+            messageProducer = producer,
+            baseDelay = Duration.ZERO,
+        ).sync()
 
-        assertThat(result).isFailure()
-            .isInstanceOf(RuntimeException::class)
+        assertThat(resultat)
+            .isFailure()
+            .isInstanceOf(IllegalStateException::class)
             .messageContains("SERG formueobjekt utilgjengelig")
-        coVerify(exactly = 0) { kafkaSergFormuesobjektFeedProducer.send(any()) }
-        coVerify(exactly = 0) { kafkaSergHendelserFeedConsumer.commitSync() }
+
+        verify(exactly = 3) {
+            api.hentFormuesobjektFastEiendom(
+                "kartverketMatrikkel",
+                hendelseId.toString(),
+                any(),
+            )
+        }
+        coVerify(exactly = 0) { producer.send(any()) }
+        coVerify(exactly = 0) { consumer.commitSync() }
     }
 
     @Test

@@ -10,10 +10,13 @@ import org.openapitools.client.infrastructure.ClientError
 import org.openapitools.client.infrastructure.ClientException
 import java.util.UUID
 import javax.sql.DataSource
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class FormuesobjektSyncServiceOld(
     private val dataSource: DataSource,
     private val formueobjektApi: FormuesobjektFastEiendomApi,
+    private val baseDelay: Duration = 2.seconds,
 ) {
     private val dokumentRepository = SergDokumentRepository(dataSource)
 
@@ -37,6 +40,7 @@ class FormuesobjektSyncServiceOld(
                             runCatching {
                                 retry(
                                     attempts = 3,
+                                    baseDelay = baseDelay,
                                     stopRetryIf = { exception ->
                                         when (exception) {
                                             is ClientException -> {

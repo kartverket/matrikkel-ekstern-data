@@ -29,6 +29,7 @@ import no.kartverket.tjenestespesifikasjoner.serg.hendelser.models.Hendelsestype
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.UUID
+import kotlin.time.Duration
 
 class HendelserSyncServiceTest : WithDatabase {
 
@@ -134,7 +135,7 @@ class HendelserSyncServiceTest : WithDatabase {
             hendelserApi.hentHendelserFormuesobjektFastEiendom(any(), any(), any())
         } throws RuntimeException("SERG unavailable")
 
-        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer).sync()
+        val result = HendelserSyncService(dataSource(), hendelserApi, kafkaSergHendelserFeedProducer, baseDelay = Duration.ZERO).sync()
 
         assertThat(result)
             .isFailure()
