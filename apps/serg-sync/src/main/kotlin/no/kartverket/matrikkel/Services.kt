@@ -243,6 +243,9 @@ class Services(
         timers += refreshingGauge("sync_hendeler_pending", period = 1.minutes) {
             antallJobberMedStatus(SergDokumentStatus.KREVER_SYNKRONISERING)
         }
+        timers += refreshingGauge("serg_dokument_feil", period = 1.minutes) {
+            antallJobberMedStatus(SergDokumentStatus.FEIL)
+        }
         timers += refreshingGauge("antall_avvik", period = 5.minutes) {
             avvikRepository.antallAvvik()
         }
