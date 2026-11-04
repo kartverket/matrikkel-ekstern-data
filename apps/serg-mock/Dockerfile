@@ -1,12 +1,16 @@
-FROM ghcr.io/kartverket/emudhra-images/jdk/dockerhub:jdk-25.0-alpine3.24@sha256:9040fd4372ac7c4581712c77ba9324a175ff9f9679ab3ff60ea5c12eb02fcdb9
+# JDK image for tilgang til gradle
+FROM dhi.io/eclipse-temurin:25.0.5.8-jdk-alpine3.24-dev@sha256:98d05ec86c91fdcd0e1d5922d2eb34099e5f5dd822028a9d8777ca0d2daf2503 AS builder
+
 WORKDIR /workspace
 COPY . .
 ARG GITHUB_USER
 ARG KV_PACKAGES_PAT
 RUN ./gradlew :apps:serg-mock:installDist --no-daemon
 
-FROM ghcr.io/kartverket/emudhra-images/jre/dockerhub:jre-25.0-alpine3.24@sha256:a1a2a58677616ad8d737329c6c00e93d9a3c45661a0effc2bf7a93924c0b76fb
+# Bruker dev image for å ha tilgang til shell
+FROM dhi.io/eclipse-temurin:25.0.5.8-alpine3.24-dev@sha256:632ffcc51872097d8a7c5077d13a2ed36f248db1b0cf2a878d7146fa695bbb3e AS runtime
+
 WORKDIR /app
-COPY --from=build /workspace/apps/serg-mock/build/install/serg-mock /app
+COPY --from=builder /workspace/apps/serg-mock/build/install/serg-mock/lib /app/lib
 EXPOSE 8084
-ENTRYPOINT ["/app/bin/serg-mock"]
+ENTRYPOINT ["java", "-cp", "/app/lib/*", "no.kartverket.serg.mock.AppKt"]
