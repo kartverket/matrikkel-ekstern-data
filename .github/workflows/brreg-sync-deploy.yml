@@ -1,16 +1,16 @@
-name: "[freg-sync] Build and deploy"
+name: "[brreg-sync] Build and deploy"
 
 on:
   push:
     paths:
-      - '.github/workflows/freg-sync-deploy.yml'
-      - '.skip/matrikkel-freg-sync-*'
-      - 'apps/freg-sync/**'
+      - '.github/workflows/brreg-sync-deploy.yml'
+      - '.skip/matrikkel-brreg-sync-*'
+      - 'apps/brreg-sync/**'
       - 'build/**'
       - 'gradle/**'
       - 'libs/**'
       - 'tjenestespesifikasjoner/openapi-infrastructure/**'
-      - 'tjenestespesifikasjoner/freg/**'
+      - 'tjenestespesifikasjoner/brreg/**'
   workflow_dispatch:
 
 env:
@@ -18,7 +18,7 @@ env:
   TZ: Europe/Oslo
 
 concurrency:
-  group: freg-sync-${{ github.ref }}
+  group: brreg-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,9 +34,9 @@ jobs:
         id: version-string
         shell: bash
         run: |
-          version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)-freg"
+          version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)-brreg"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/matrikkel-freg-sync:${version}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/matrikkel-brreg-sync:${version}" >> "$GITHUB_OUTPUT"
 
   test:
     name: Run tests
@@ -96,7 +96,7 @@ jobs:
 
 
       - name: Build app
-        run: ./gradlew :apps:freg-sync:installDist --no-daemon
+        run: ./gradlew :apps:brreg-sync:installDist --no-daemon
         env:
           PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -106,7 +106,7 @@ jobs:
           image: ${{ needs.version.outputs.image }}
         with:
           context: .
-          file: apps/freg-sync/Dockerfile
+          file: apps/brreg-sync/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ env.image }}
           cache-from: type=gha
@@ -155,7 +155,7 @@ jobs:
         uses: kartverket/matrikkel-actions/heimdall-deploy@main
         with:
           cluster: 'atkv3-dev'
-          resource: '.skip/matrikkel-freg-sync-dev.yaml'
+          resource: '.skip/matrikkel-brreg-sync-dev.yaml'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
 
@@ -181,7 +181,7 @@ jobs:
         with:
           identity: 'matrikkel-ekstern-data'
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-freg-sync:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-brreg-sync:${{ needs.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -205,7 +205,7 @@ jobs:
         with:
           identity: 'matrikkel-ekstern-data'
           environment: 'produksjon'
-          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-freg-sync:${{ needs.version.outputs.version }}
+          appDescriptor: atkv3-prod:matrikkel-main:matrikkel-brreg-sync:${{ needs.version.outputs.version }}
           messageId: ${{ needs.deploy-prod-notifier.outputs.messageId }}
           status: ${{ job.status }}
         env:
@@ -216,6 +216,6 @@ jobs:
         uses: kartverket/matrikkel-actions/heimdall-deploy@main
         with:
           cluster: 'atkv3-prod'
-          resource: '.skip/matrikkel-freg-sync-prod.yaml'
+          resource: '.skip/matrikkel-brreg-sync-prod.yaml'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
