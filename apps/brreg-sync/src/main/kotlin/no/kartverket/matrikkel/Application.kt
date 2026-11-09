@@ -29,7 +29,7 @@ fun runApplication() {
     val producerConfig = MessageProducer.Config(
         config.kafka.brokerUrl,
         authentication = authentication,
-        topic = "FREG_OPPDATERING",
+        topic = "BRREG_OPPDATERING",
         keySerializer = StringSerde,
         valueSerializer = jsonSerde<DummyObject>(),
         correlationIdProvider = { Uuid.random().toHexDashString() }
@@ -37,7 +37,7 @@ fun runApplication() {
 
     val offsetSync = KafkaStoredValue(
         config = config.kafka,
-        topic = "FREG_OFFSET",
+        topic = "BRREG_OFFSET",
         serde = LongSerde,
         authentication = authentication
     )
@@ -46,7 +46,7 @@ fun runApplication() {
         .create(Netty, port = 8090) {
             install(Metrics.Plugin)
             install(Selftest.Plugin) {
-                appname = "matrikkel-freg-sync"
+                appname = "matrikkel-brreg-sync"
                 version = config.version
             }
 
@@ -55,7 +55,7 @@ fun runApplication() {
 
             val producer = MessageProducer
                 .Impl(producerConfig)
-                .withSelftest("FREG_KAFKA_PRODUCER", false)
+                .withSelftest("BRREG_KAFKA_PRODUCER", false)
 
         }.start(wait = true)
 }
