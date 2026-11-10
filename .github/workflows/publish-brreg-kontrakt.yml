@@ -1,0 +1,71 @@
+name: "[brreg-kontrakt] Publish"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Endringer i den publiserte domenemodellen.
+      - "libs/domene/brreg-kontrakt/src/main/**"
+      # Endringer i modulens avhengigheter eller publiseringsoppsett.
+      - "libs/domene/brreg-kontrakt/build.gradle.kts"
+      - ".github/workflows/publish-brreg-kontrakt.yml"
+
+  # Gjør det mulig å publisere manuelt ved behov.
+  workflow_dispatch:
+
+concurrency:
+  group: publish-brreg-kontrakt-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish brreg-kontrakt to GitHub Packages
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate version
+        id: version
+        shell: bash
+        run: |
+          version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Test brreg-kontrakt
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew \
+          :libs:domene:brreg-kontrakt:check \
+          :apps:brreg-sync:test \
+          --tests "no.kartverket.matrikkel.brreg.kafka.JsonSerdeTest" \
+          --no-daemon
+
+      - name: Publish brreg-kontrakt
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew :libs:domene:brreg-kontrakt:publish \
+            --no-daemon \
+            --stacktrace \
+            -Pversion="${{ steps.version.outputs.value }}"
