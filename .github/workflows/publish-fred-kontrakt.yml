@@ -1,0 +1,63 @@
+name: "[fred-kontrakt] Publish"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "libs/domene/fred-kontrakt/src/main/**"
+      - "libs/domene/fred-kontrakt/build.gradle.kts"
+      - ".github/workflows/publish-fred-kontrakt.yml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: publish-fred-kontrakt-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish fred-kontrakt to GitHub Packages
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate version
+        id: version
+        shell: bash
+        run: |
+          version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Test fred-kontrakt
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :libs:domene:fred-kontrakt:check --no-daemon
+
+      - name: Publish fred-kontrakt
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew :libs:domene:fred-kontrakt:publish \
+            --no-daemon \
+            --stacktrace \
+            -Pversion="${{ steps.version.outputs.value }}"
