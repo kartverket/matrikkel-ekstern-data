@@ -39,7 +39,7 @@ jobs:
           echo "image=ghcr.io/kartverket/matrikkel-ekstern-data/matrikkel-serg-sync:${version}" >> "$GITHUB_OUTPUT"
 
   test:
-    name: Run tests
+    name: Run serg-sync tests
     runs-on: ubuntu-latest
 
     steps:
