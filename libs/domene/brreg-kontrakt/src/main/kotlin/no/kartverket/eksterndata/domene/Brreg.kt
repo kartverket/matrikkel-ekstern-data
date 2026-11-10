@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
 
 object Brreg {
     @Serializable
@@ -14,7 +14,7 @@ object Brreg {
         val postadresse: Adresse.Postadresse? = null,
         val forretningsadresse: Adresse.ForretningAdresse? = null,
         val tlf: String? = null,
-        val slettetDato: Instant? = null,
+        val slettetDato: LocalDate? = null,
         val enhetsTypeKode: String? = null,
         val enhetsTypeBeskrivelse: String? = null
     )
