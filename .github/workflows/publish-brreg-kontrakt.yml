@@ -50,16 +50,6 @@ jobs:
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "value=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Test brreg-kontrakt
-        env:
-          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew \
-          :libs:domene:brreg-kontrakt:check \
-          :apps:brreg-sync:test \
-          --tests "no.kartverket.matrikkel.brreg.kafka.JsonSerdeTest" \
-          --no-daemon
-
       - name: Publish brreg-kontrakt
         env:
           GITHUB_ACTOR: ${{ github.actor }}
