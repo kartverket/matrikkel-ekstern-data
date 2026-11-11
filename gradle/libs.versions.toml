@@ -20,7 +20,7 @@ mockk="1.14.11"
 testcontainersVersion = "1.21.4"
 prometheusVersion = "1.17.2"
 hikariVersion = "7.1.0"
-heimdallCommonVersion = "1.2026.10.21-08.43-89ca888"
+heimdallCommonVersion = "1.2026.11.05-10.47-05244ce"
 kafkaLightVersion = "2026.10.29-16.32-8385616"
 
 [libraries]
