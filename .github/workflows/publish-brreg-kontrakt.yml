@@ -11,7 +11,6 @@ on:
       - "libs/domene/brreg-kontrakt/build.gradle.kts"
       - ".github/workflows/publish-brreg-kontrakt.yml"
 
-  # Gjør det mulig å publisere manuelt ved behov.
   workflow_dispatch:
 
 concurrency:
@@ -49,6 +48,11 @@ jobs:
         run: |
           version="$(date -u '+%Y.%m.%d-%H.%M')-$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Test brreg-kontrakt
+        env:
+          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :libs:domene:brreg-kontrakt:check --no-daemon
 
       - name: Publish brreg-kontrakt
         env:

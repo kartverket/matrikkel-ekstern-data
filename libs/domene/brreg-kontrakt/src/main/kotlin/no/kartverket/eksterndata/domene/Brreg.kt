@@ -11,12 +11,12 @@ object Brreg {
     data class VirksomhetHendelse(
         val organisasjonsnr: String,
         val navn: String,
-        val postadresse: Adresse.Postadresse? = null,
-        val forretningsadresse: Adresse.ForretningAdresse? = null,
-        val tlf: String? = null,
-        val slettetDato: LocalDate? = null,
-        val enhetsTypeKode: String? = null,
-        val enhetsTypeBeskrivelse: String? = null
+        val postadresse: Adresse.Postadresse?,
+        val forretningsadresse: Adresse.ForretningAdresse?,
+        val tlf: String?,
+        val slettetDato: LocalDate?,
+        val enhetsTypeKode: String?,
+        val enhetsTypeBeskrivelse: String?
     )
 
     @JsonTypeInfo(
@@ -29,36 +29,36 @@ object Brreg {
         JsonSubTypes.Type(value = Adresse.ForretningAdresse::class, name = "ForretningAdresse")
     )
     @Serializable
-    sealed class Adresse {
-        abstract val adresselinje1: String?
-        abstract val adresselinje2: String?
-        abstract val adresselinje3: String?
-        abstract val postnr: String?
-        abstract val poststed: String?
-        abstract val land: String?
+    sealed interface Adresse {
+        val adresselinje1: String?
+        val adresselinje2: String?
+        val adresselinje3: String?
+        val postnr: String?
+        val poststed: String?
+        val land: String?
 
         @Serializable
         @SerialName("Postadresse")
         data class Postadresse(
-            override val adresselinje1: String? = null,
-            override val adresselinje2: String? = null,
-            override val adresselinje3: String? = null,
-            override val postnr: String? = null,
-            override val poststed: String? = null,
-            override val land: String? = null,
-            val utenlandskPoststed: String? = null
-        ) : Adresse()
+            override val adresselinje1: String?,
+            override val adresselinje2: String?,
+            override val adresselinje3: String?,
+            override val postnr: String,
+            override val poststed: String,
+            override val land: String?,
+            val utenlandskPoststed: String?
+        ) : Adresse
 
         @Serializable
         @SerialName("ForretningAdresse")
         data class ForretningAdresse(
-            override val adresselinje1: String? = null,
-            override val adresselinje2: String? = null,
-            override val adresselinje3: String? = null,
-            override val postnr: String? = null,
-            override val poststed: String? = null,
-            override val land: String? = null,
-            val utenlandskAdresse: String? = null
-        ) : Adresse()
+            override val adresselinje1: String?,
+            override val adresselinje2: String?,
+            override val adresselinje3: String?,
+            override val postnr: String?,
+            override val poststed: String?,
+            override val land: String?,
+            val utenlandskAdresse: String?
+        ) : Adresse
     }
 }
