@@ -1,0 +1,1911 @@
+openapi: 3.1.0
+info:
+  title: Virksomhet TLG API
+  description: "<p>Velkommen til vår nye API-dokumentasjon til virksomheter.\_</p>\n\n<p>Her finner du teknisk beskrivelse av våre REST-tjenester.</p>\n\n\n[Read this documentation in English](../en/)\n\n[Se den rå OpenAPI-spesifikasjonen i Swagger UI](./swagger-ui.html)\n\n# Oversikt over tjenester\n\n| Metode | Endepunkt | Beskrivelse |\n|---|---|---|\n| `GET` | [`/api/virksomheter`](#tag/totalbestand/operation/getVirksomheter) | Hent paginert totalbestand |\n| `GET` | [`/api/virksomheter/{organisasjonsnummer}`](#tag/virksomhet/operation/getVirksomhet_2) | Hent data for organisasjonsnummer (krever autentisering) |\n| `GET` | [`/api/public/virksomheter/{organisasjonsnummer}`](#tag/virksomhet/operation/getVirksomhet) | Hent data for organisasjonsnummer (uautentisert, sladdet modell) |\n| `GET` | [`/api/virksomheter/{organisasjonsnummer}/historikk/{dato}`](#tag/historikk/operation/getHistorikkForGittDato) | Henter versjonen av virksomheten slik den ville sett ut på en gitt dato |\n| `GET` | [`/api/virksomheter/{organisasjonsnummer}/endring`](#tag/historikk/operation/getEndringerForParameterGittDato) | Hent endringer for en gitt egenskap fordelt på datoer |\n| `GET` | [`/api/virksomheter/endringslogg`](#tag/historikk/operation/getEndredeVirksomheter) | Hent alle virksomheter som har blitt endret eller opprettet for en gitt periode |\n| `GET` | [`/frivillighetsregisteret/api/frivillige-organisasjoner`](#tag/frivillighetsregisteret/operation/searchFrivillighet) | Søk etter frivillige organisasjoner |\n| `GET` | [`/frivillighetsregisteret/api/frivillige-organisasjoner/{organisasjonsnummer}`](#tag/frivillighetsregisteret/operation/getFrivillighet) | Hent Frivillig organisasjon for organisasjonsnummer |\n| `GET` | [`/frivillighetsregisteret/api/icnpo-kategorier`](#tag/frivillighetsregisteret-icnpo/operation/getIcnpoKategorier) | Hent ICNPO-kategorier |\n| `GET` | [`/frivillighetsregisteret/api/informasjonstyper`](#tag/frivillighetsregisteret-informasjonstyper/operation/getInformasjonstyper) | Hent informasjonstyper |\n\n# Feilhåndtering\n\n<dl>\n  <dt>400 Ugyldig forespørsel</dt>\n  <dd>\n    <p>\n      Hvis en parameter har en ugyldig verdi (f.eks. et organisasjonsnummer som ikke er nøyaktig 9 siffer, eller en filterspørring som ikke lar seg tolke), får du en respons med statuskode 400. Svaret er som regel et JSON-objekt på <code>application/problem+json</code>-format (RFC 7807):\n    </p>\n    <pre><code>\nHTTP/1.1 400 Bad Request\nContent-Type: application/problem+json\n\n{\n  \"status\": 400,\n  \"detail\": \"Bad Request: Invalid organisasjonsnummer\",\n  \"id\": \"b6e1e2b0-df3e-4d0a-9c1a-6f9a2f0a1b2c\"\n}\n    </code></pre>\n    <p>\n      Enkelte parametervalideringer (f.eks. et ugyldig format på et sti-parameter) kan i stedet gi et enklere svar der feltnavn er nøkkel og feilmelding er verdi.\n    </p>\n  </dd>\n  <dt>404 Ikke funnet</dt>\n  <dd>\n    <p>\n      Hvis du gjør oppslag på et organisasjonsnummer som ikke finnes, får du en respons med statuskode 404. De fleste endepunktene gir et svar uten innhold. [Hent Frivillig organisasjon for organisasjonsnummer](#tag/frivillighetsregisteret/operation/getFrivillighet) er unntaket — der får du i tillegg et enkelt JSON-objekt med <code>status</code> og <code>message</code>.\n    </p>\n  </dd>\n  <dt>500 Feil på server</dt>\n  <dd>\n    <p>\n      Ved en uventet feil får du en respons med statuskode 500 og en <code>id</code> (en UUID) i responsen. Ta gjerne kontakt med oss hvis feilen vedvarer, og ta med denne <code>id</code>-en — den gjør at vi lettere kan finne loggene fra forespørselen som feilet.\n    </p>\n  </dd>\n</dl>\n\n# Versjonering\n\nAlle endepunktene støtter versjonering via HTTP-headeren <code>X-API-Version</code>. I dag finnes det bare én versjon, <code>1.0.0</code>, som også er standardverdien hvis du ikke sender headeren selv.\n\nHvis vi på et senere tidspunkt må gjøre en endring som bryter bakoverkompatibiliteten, vil vi innføre en ny versjon og fortsette å tilby <code>1.0.0</code> parallelt en periode, slik at eksisterende integrasjoner ikke stopper å virke uten varsel.\n\n# Paginering\n\n<code>[Hent paginert totalbestand](#tag/totalbestand/operation/getVirksomheter)</code> og <code>[Hent filtrert totalbestand for reginfo med paginering](#tag/totalbestand/operation/getVirksomheterWithFilters)</code> er paginert med <code>page</code> (sidenummer, fra 0) og <code>size</code> (sidestørrelse). For <code>getVirksomheter</code> er standard sidestørrelse 100, og den kan ikke overskride 1000. <code>getVirksomheterWithFilters</code> har ingen slik øvre grense satt i APIet og bruker Spring sin standard sidestørrelse (20) hvis <code>size</code> ikke oppgis.\n\nSvaret er en <code>PagedModelVirksomhetV1</code>, som i tillegg til virksomhetene selv inneholder sidemetadata (`totalElements`, `totalPages`, `number`) og HAL-navigasjonslenker (`first`/`prev`/`self`/`next`/`last`).\n\n[Søk etter frivillige organisasjoner](#tag/frivillighetsregisteret/operation/searchFrivillighet) bruker i stedet cursor-basert paginering med <code>searchAfter</code>: sett denne til organisasjonsnummeret til siste organisasjon du fikk i forrige side, og hent neste bolk. Svaret har en <code>next</code>-lenke så lenge antallet organisasjoner i responsen er likt <code>size</code>-parameteret.\n\n# Holde en lokal kopi synkronisert\n\nSkal du holde en egen kopi av totalbestanden oppdatert uten å hente alt på nytt hver gang, er mønsteret:\n\n1. **Full nedlasting** — hent hele totalbestanden side for side via [Hent paginert totalbestand](#tag/totalbestand/operation/getVirksomheter) (eller [med filter](#tag/totalbestand/operation/getVirksomheterWithFilters) hvis du bare trenger et utvalg).\n2. **Endringsstrøm** — poll deretter [Hent alle virksomheter som har blitt endret eller opprettet for en gitt periode](#tag/historikk/operation/getEndredeVirksomheter) med jevne mellomrom for å få organisasjonsnumrene til det som er endret siden forrige nedlasting.\n3. **Punktoppslag** — for hvert organisasjonsnummer som kommer tilbake i endringsstrømmen, hent den oppdaterte virksomheten på nytt (f.eks. via [Hent data for organisasjonsnummer](#tag/virksomhet/operation/getVirksomhet_2)), eller se nøyaktig hvilke felt som endret seg med [Hent endringer for en gitt egenskap fordelt på datoer](#tag/historikk/operation/getEndringerForParameterGittDato).\n\n⚠️ Steg 2 og 3 krever et Keycloak-utstedt token (scope <code>virksomhet-registerinfo</code>), mens steg 1 kan gjøres med et Maskinporten-utstedt token (scope <code>brreg:virksomhet.read</code>) alene. En integrasjon som bare har Maskinporten-tilgang kan gjenta full nedlasting periodisk, men har ikke tilgang til endringsstrømmen i steg 2/3 — den er forbeholdt konsumenter med Keycloak-tilgang.\n\n# Endringslogg\n\n<dl>\n<dt>21. juli 2026</dt>\n<dd>\n\nEndringsloggen er innført. Fremtidige endringer i APIet legges til her, med dato, hvilke endepunkt som er påvirket og hva som er endret.\n\n</dd>\n</dl>\n"
+  version: api-1.0.0-SNAPSHOT
+  x-logo:
+    url: https://scf.brreg.no/bilder/brreg_logo.svg
+servers:
+  - url: https://virksomhet-tlg-api.app-ppe.brreg.no
+    description: Server
+security: []
+tags:
+  - name: virksomhet
+    x-displayName: Hent virksomhet på organisasjonsnummer
+    description: "<p>Hent virksomhet på organisasjonsnummer\_</p>\n\n<p>Tjenesten gir informasjon i sanntid om registrerte virksomheter.\_</p>\n\n<p>Dersom virksomheten er slettet vises kun \"virksomhetsstatus\" og slettedato i feltet\_ \"gyldigFraOgMed\".</p>\n"
+  - name: totalbestand
+    x-displayName: Hent totalbestand
+    description: "<p>Totalbestand gir en oversikt over alle innførte virksomheter i Enhetsregisteret. Den inneholder også informasjon om virksomheter som er registrert i Foretaksregisteret og Frivillighetsregisteret. Virksomheter som er slettet i Enhetsregisteret er ikke med i totalbestand.\_</p>\n\n<p>Totalbestand er i JSON-format, og oppdateres daglig mellom kl xx og xx.</p>\n\n<p>Tjenesten inneholder fødselsnummer, og er derfor kun tilgjengelig for offentlig myndigheter, kredittopplysningsforetak og finansforetak. For tilgang, send en søknad til xxx</p>\n\n<p>Autentisering skjer via maskinporten</p>\n"
+  - name: historikk
+    x-displayName: Historiske data
+    description: "<p>Historiske data\_</p>\n\n<p>Via ulike tjenester kan du hente historiske opplysninger om virksomheter.\_</p>\n\n<p>Tjenestene krever autorisasjon via maskinporten.</p>\n"
+  - name: frivillighetsregisteret
+    x-displayName: Frivillighetsregisteret
+    description: "<p>Frivillighetsregisteret er et register over organisasjoner som driver frivillig virksomhet.</p>\n\n<p>For å bli registrert i Frivillighetsregisteret må virksomheten være registrert i Enhetsregisteret. Informasjon om blant annet navn, adresse og kontaktinformasjon til virksomheten, finnes i Enhetsregisteret.\_</p>\n"
+paths:
+  /api/virksomheter:
+    get:
+      tags:
+        - totalbestand
+      summary: Hent paginert totalbestand
+      description: |
+        <p>Hent paginert totalbestand (beskrivelse)</p>
+      operationId: getVirksomheter
+      security:
+        - maskinportenAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 100
+            maximum: 1000
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedModelVirksomhetV1'
+  /frivillighetsregisteret/api/informasjonstyper:
+    get:
+      tags:
+        - frivillighetsregisteret
+      summary: Hent informasjonstyper
+      operationId: getInformasjonstyper
+      security: []
+      parameters:
+        - name: spraak
+          in: query
+          description: Språk informasjonstyper skal returneres på
+          required: false
+          schema:
+            type: string
+            default: NOB
+            enum:
+              - NOB
+              - NNO
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionModelFrivInformasjonstype'
+      description: "<p>Hent alle informasjonstyper som inngår i APIet fra Frivillighetsregisteret.</p>\n\n<p>\_</p>\n"
+  /frivillighetsregisteret/api/icnpo-kategorier:
+    get:
+      tags:
+        - frivillighetsregisteret
+      summary: Hent ICNPO kategorier
+      operationId: getIcnpoKategorier
+      security: []
+      parameters:
+        - name: spraak
+          in: query
+          description: Språk ICNPO kategori skal returneres på
+          required: false
+          schema:
+            type: string
+            default: NOB
+            enum:
+              - NOB
+              - NNO
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionModelICNPOKategoriKodeverk'
+      description: |
+        <p>Hent ICNPO kategorier (International Classification of Nonprofit Organizations Kategorier)</p>
+  /frivillighetsregisteret/api/frivillige-organisasjoner:
+    get:
+      tags:
+        - frivillighetsregisteret
+      summary: Søk etter frivillige organisasjoner
+      description: "<p>Dette endepunktet lar deg søke blant alle frivillige organisasjoner.</p>\n\n<p>Her kan du hente en totalbestand med alle frivillige organisasjoner ved hjelp av paginering. Historikk eller slettede frivillige organisasjoner er ikke med i totalbestanden.</p>\n\n<p>Om Paginering:</p>\n\n<p>Av dataintegritet- og ytelseshensyn bruker dette endepunktet \"searchAfter\" fremfor klassisk paginering. Det fungerer slik:</p>\n\n<ul>\n\t<li>Først setter du \"size\" parameteret til ønsket sidestørrelse.</li>\n\t<li>Så gjør du det første API-kallet, dette gir deg den første siden.</li>\n\t<li>For å hente neste side, sett \"searchAfter\" parameteret til det siste/høyeste organisasjonsnummeret du fikk fra den forrige siden.</li>\n\t<li>Hent nye sider helt til du mottar færre objekter enn det \"size\" parameteret tilsier. Da er du på siste side.</li>\n</ul>\n\n<p>Du kan også bruke \"next\" lenken fra API-responsen for å hente neste side. Next lenken er satt så lenge antall organisasjoner i responsen det samme antallet som size-parameteret tilsier.</p>\n"
+      operationId: searchFrivillighet
+      security: []
+      parameters:
+        - name: spraak
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - NOB
+              - NNO
+        - name: searchAfter
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 100
+            maximum: 100
+            minimum: 1
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionModelAktivFrivilligOrganisasjonResponse'
+  /frivillighetsregisteret/api/frivillige-organisasjoner/{organisasjonsnummer}:
+    get:
+      tags:
+        - frivillighetsregisteret
+      summary: Hent én frivillig organisasjon med organisasjonsnummer
+      description: "<p>Hent informasjon om en frivillig organisasjon fra Frivillighetsregisteret ved oppslag på organisasjonsnummer.</p>\n\n<p>Dersom en virksomhet er slettet fra Frivillighetsregisteret, vises kun status og slettedato.\_</p>\n"
+      operationId: getFrivillighet
+      security: []
+      parameters:
+        - name: organisasjonsnummer
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: spraak
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - NOB
+              - NNO
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AktivFrivilligOrganisasjonResponse'
+                  - $ref: '#/components/schemas/SlettetFrivilligOrganisasjonModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /api/virksomheter/{organisasjonsnummer}/historikk/{dato}:
+    get:
+      tags:
+        - historikk
+      summary: Hent informasjon om virksomheten på en gitt dato
+      description: |
+        <p>Hent informasjon om virksomheten på en gitt dato. Ved oppslag på organisasjonsnummer og en gitt dato vil resultatet vise hva som var registrert på virksomheten på den angitte datoen.</p>
+      operationId: getHistorikkForGittDato
+      security:
+        - keycloakAuth: []
+      parameters:
+        - name: organisasjonsnummer
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dato
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirksomhetV1'
+        '404':
+          description: Not Found
+  /api/virksomheter/{organisasjonsnummer}/endring:
+    get:
+      tags:
+        - historikk
+      summary: Hent endringer for en gitt egenskap fordelt på datoer, f.eks alle historiske navn og når de ble endret
+      description: |
+        <p>Hent endringer for en gitt egenskap fordelt på datoer, f.eks alle historiske navn og når de ble endret (beskrivelse)</p>
+      operationId: getEndringerForParameterGittDato
+      security:
+        - keycloakAuth: []
+      parameters:
+        - name: organisasjonsnummer
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dato
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endretLedd
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - Navn
+              - Versjon
+              - Stiftelsesdato
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Endringslogg'
+  /api/public/virksomheter/{organisasjonsnummer}:
+    get:
+      tags:
+        - virksomhet
+      summary: Hent virksomhet på organisasjonsnummer
+      operationId: getVirksomhet
+      security: []
+      parameters:
+        - name: organisasjonsnummer
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 9
+            minLength: 9
+            pattern: \d+
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedactedVirksomhetV1'
+        '404':
+          description: Not Found
+      description: "<p>Hent virksomhet på organisasjonsnummer.</p>\n\n<p>Åpent API med informasjon om en virksomhet. Informasjonen er i sanntid.\_</p>\n\n<p>Informasjon om rolleinnehavere vil inneholder navn og fødselsdato.\_</p>\n"
+  /api/virksomheter/{organisasjonsnummer}:
+    get:
+      tags:
+        - virksomhet
+      summary: Hent virksomhet på organisasjonsnummer - krever autorisasjon
+      description: "<p>Hent virksomhet på organisasjonsnummer - krever autorisasjon</p>\n\n<p>Tjenesten inneholder fullt fødselsnummer på rolleinnehavere, og krever autorisasjon via maskinporten for å få tilgang.</p>\n\n<p>\_</p>\n"
+      operationId: getVirksomhet_2
+      security:
+        - maskinportenAuth: []
+      parameters:
+        - name: organisasjonsnummer
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 9
+            minLength: 9
+            pattern: \d+
+        - name: X-API-Version
+          in: header
+          schema:
+            type: string
+            default: 1.0.0
+            enum:
+              - 1.0.0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirksomhetV1'
+        '404':
+          description: Not Found
+components:
+  securitySchemes:
+    maskinportenAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Maskinporten-utstedt JWT med scope `brreg:virksomhet.read`.
+    keycloakAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Keycloak-utstedt JWT med scope `virksomhet-registerinfo`.
+  schemas:
+    OrganisasjonsforminfoV1:
+      description: Virksomhetens organisasjonsform. Organisasjonsformen gir retningslinjer for blant annet ansvarsforhold, skatt og hvilke roller virksomheten kan/må registrere.
+      type: object
+      properties:
+        kode:
+          type: string
+          description: Kode for organisasjonsformen, f.eks. "AS" eller "ENK".
+        navn:
+          type: string
+          description: Organisasjonsformens fulle navn.
+        kortnavn:
+          type: string
+          description: Kortnavn for organisasjonsformen.
+    TilstandsstatusV1:
+      description: En midlertidig eller pågående tilstand ved virksomheten eller foretaket, f.eks. konkursbehandling eller sletting.
+      type: object
+      properties:
+        tilstandsstatus:
+          type: string
+          description: Kode for tilstanden virksomheten eller foretaket er i.
+          enum:
+            - virksomhetstilstandsstatus.underKonkursbehandling
+            - virksomhetstilstandsstatus.underSletting
+            - foretakstilstandsstatus.underKonkursbehandling
+            - foretakstilstandsstatus.meldtAkkord
+            - foretakstilstandsstatus.klageUnderBehandlingIForetaksregisteret
+            - foretakstilstandsstatus.underRekonstruksjonsforhandling
+            - foretakstilstandsstatus.finansforetak
+            - ugyldig
+        dato:
+          type: string
+          format: date
+          description: Dato tilstanden ble registrert.
+    InstitusjonellSektorkodeV1:
+      description: Institusjonell sektorkode, SSBs kodeverk som klassifiserer virksomheten etter samfunnsøkonomisk sektor.
+      type: object
+      properties:
+        kode:
+          type: string
+          description: Kode for den institusjonelle sektoren.
+        navn:
+          type: string
+          description: Sektorkodens fulle navn.
+        kortnavn:
+          type: string
+          description: Kortnavn for sektorkoden.
+    NaeringskodeinfoV1:
+      description: Næringskode som beskriver virksomhetens aktivitet, etter SSBs standard for næringsgruppering (SN).
+      type: object
+      properties:
+        kode:
+          type: string
+          description: Næringskoden.
+        navn:
+          type: string
+          description: Beskrivelse av næringen koden representerer.
+        rekkefoelge:
+          type: integer
+          format: int32
+          description: Rangering blant flere registrerte næringskoder. Koden med lavest verdi er hovednæringskoden.
+        erHjelpeenhetskode:
+          type: boolean
+          description: Angir om dette er en hjelpeenhetskode, dvs. en næringskode for en enhet som bare yter tjenester internt i konsernet/foretaket.
+        datoGyldigFra:
+          type: string
+          format: date
+          description: Dato næringskoden ble registrert fra.
+        naeringskodestandard:
+          type: string
+          description: Hvilken versjon av SSBs standard for næringsgruppering koden er hentet fra.
+    AntallAnsatteV1:
+      description: Opplysninger om antall ansatte i virksomheten.
+      type: object
+      properties:
+        antall:
+          type: integer
+          format: int32
+          description: Antall registrerte ansatte.
+        gjelderFra:
+          type: string
+          format: date
+          description: Dato opplysningen om antall ansatte gjelder fra.
+        harAnsatte:
+          type: boolean
+          description: Angir om virksomheten har registrerte ansatte.
+      required:
+        - harAnsatte
+    TilknyttetRegisterV1:
+      description: Et offentlig register virksomheten er tilknyttet, i tillegg til Enhets-/Foretaksregisteret.
+      type: object
+      properties:
+        register:
+          type: string
+          description: Kode for registeret virksomheten er tilknyttet.
+          enum:
+            - tilknyttetRegister.StatistiskSentralByraaaVirksomhetOgForetaksregister
+            - tilknyttetRegister.Foretaksregisteret
+            - tilknyttetRegister.Konkursregisteret
+            - tilknyttetRegister.Merverdiavgiftsregisteret
+            - tilknyttetRegister.Stiftelsesregisteret
+            - tilknyttetRegister.NAVAa_registeret
+            - ugyldig
+        tilknyttetDato:
+          type: string
+          format: date
+          description: Dato virksomheten ble tilknyttet registeret.
+    AnnetRegisterV1:
+      description: Et annet register virksomheten er registrert i, f.eks. Frivillighetsregisteret eller Partiregisteret.
+      type: object
+      properties:
+        register:
+          type: string
+          description: Kode for registeret virksomheten er registrert i.
+          enum:
+            - annetRegister.Frivillighetsregisteret
+            - annetRegister.Partiregisteret
+            - annetRegister.ArbeidsformidlingsOgUtleieregisteret
+            - annetRegister.LegalEntityIdentifier
+            - ugyldig
+        registrertDato:
+          type: string
+          format: date
+          description: Dato virksomheten ble registrert i registeret.
+    TelefonnummerV1:
+      description: Telefon-, mobil- eller telefaksnummer.
+      type: object
+      properties:
+        internasjonaltPrefiks:
+          type: string
+          description: Landets internasjonale telefonprefiks, f.eks. "+47".
+        nasjonaltNummer:
+          type: string
+          description: Telefonnummeret uten landprefiks.
+    AdresseV1:
+      description: Fellesfelter for de ulike adressetypene en virksomhet kan ha (forretnings-, post- og beliggenhetsadresse).
+      type: object
+      properties:
+        coNavn:
+          type: array
+          description: C/o-navn eller andre tilleggslinjer knyttet til adressen, f.eks. navnet til den adressen er omadressert via.
+          items:
+            type: string
+        adresseType:
+          type: string
+          description: Angir hvilken av adressetypene de øvrige feltene skal tolkes som.
+          enum:
+            - adressetype.vegadresse
+            - adressetype.stedsadresse
+            - adressetype.postboksadresse
+            - adressetype.internasjonalAdresse
+            - adressetype.ustrukturertAdresse
+      required:
+        - adresseType
+        - coNavn
+    InternasjonalAdresse:
+      description: Adresse i utlandet, angitt i et friere format som følger avsenderlandets egne adressekonvensjoner.
+      allOf:
+        - $ref: '#/components/schemas/AdresseV1'
+        - type: object
+          properties:
+            adressenavn:
+              type: string
+              description: Gate-/vegnavn eller tilsvarende adressenavn.
+            adressenummer:
+              type: string
+              description: Hus- eller bygningsnummer.
+            bygning:
+              type: string
+              description: Navn på bygningen, der det er relevant.
+            etasjenummer:
+              type: string
+              description: Etasje adressen gjelder for.
+            boenhet:
+              type: string
+              description: Identifikasjon av bo- eller bruksenheten, f.eks. leilighetsnummer.
+            postboks:
+              type: string
+              description: Postboksnummer, dersom adressen benytter postboks.
+            postkode:
+              type: string
+              description: Landets postkode/postnummer for adressen.
+            byEllerStedsnavn:
+              type: string
+              description: By eller stedsnavn.
+            distriktEllerBydel:
+              type: string
+              description: Distrikt eller bydel adressen ligger i.
+            region:
+              type: string
+              description: Region, delstat eller provins adressen ligger i.
+            landkode:
+              type: string
+              description: Landkode for landet adressen ligger i.
+            friAdressetekst:
+              type: string
+              description: Hele adressen som fritekst, brukt når adressen ikke lar seg dele opp i enkeltfelter.
+            adresseidentifikator:
+              type: string
+              description: Unik identifikator for adressen i avsenderlandets adressesystem, der en slik finnes.
+      required:
+        - adresseType
+        - coNavn
+    PoststedV1:
+      description: Poststed en adresse er knyttet til.
+      type: object
+      properties:
+        postnummer:
+          type: string
+          description: Firesifret postnummer.
+        poststed:
+          type: string
+          description: Poststedets navn.
+    KommuneV1:
+      description: Kommunen en adresse er knyttet til.
+      type: object
+      properties:
+        kommunenummer:
+          type: string
+          description: Firesifret kommunenummer.
+        navn:
+          type: string
+          description: Kommunens navn.
+    Postboksadresse:
+      description: Adresse angitt som postboks.
+      allOf:
+        - $ref: '#/components/schemas/AdresseV1'
+        - type: object
+          properties:
+            postboksnummer:
+              type: string
+              description: Nummeret på postboksen.
+            postboksanleggsnavn:
+              type: string
+              description: Navnet på postboksanlegget postboksen hører til, typisk et postkontor.
+            poststed:
+              $ref: '#/components/schemas/PoststedV1'
+            kommune:
+              $ref: '#/components/schemas/KommuneV1'
+      required:
+        - adresseType
+        - coNavn
+    Stedsadresse:
+      description: Adresse angitt med stedsnavn, brukt der det ikke finnes en vegadresse med gatenavn og husnummer.
+      allOf:
+        - $ref: '#/components/schemas/AdresseV1'
+        - type: object
+          properties:
+            stedsnavn:
+              type: string
+              description: Navnet på stedet adressen er knyttet til.
+            poststed:
+              $ref: '#/components/schemas/PoststedV1'
+            kommune:
+              $ref: '#/components/schemas/KommuneV1'
+      required:
+        - adresseType
+        - coNavn
+    UstrukturertAdresse:
+      description: Adresse angitt som fritekst i to linjer, brukt når adressen ikke lar seg strukturere som noen av de andre adressetypene.
+      allOf:
+        - $ref: '#/components/schemas/AdresseV1'
+        - type: object
+          properties:
+            adresselinje1:
+              type: string
+              description: Første linje i den ustrukturerte adressen.
+            adresselinje2:
+              type: string
+              description: Andre linje i den ustrukturerte adressen.
+            poststed:
+              $ref: '#/components/schemas/PoststedV1'
+            kommune:
+              $ref: '#/components/schemas/KommuneV1'
+      required:
+        - adresseType
+        - coNavn
+    AdressenummerV1:
+      description: Husnummer i en vegadresse, eventuelt med bokstav.
+      type: object
+      properties:
+        nummer:
+          type: string
+          description: Husnummeret.
+        bokstav:
+          type: string
+          description: Bokstav som følger husnummeret, f.eks. "A" i "12A".
+    Vegadresse:
+      description: Strukturert adresse angitt med vegnavn og husnummer, slik den er registrert i Matrikkelen.
+      allOf:
+        - $ref: '#/components/schemas/AdresseV1'
+        - type: object
+          properties:
+            vegadresseId:
+              type: integer
+              format: int64
+              description: Matrikkelens identifikator for vegadressen.
+            adressenavn:
+              type: string
+              description: Navnet på gaten/vegen.
+            kortAdressenavn:
+              type: string
+              description: Forkortet form av adressenavnet, brukt der det fulle navnet ikke får plass.
+            nummer:
+              $ref: '#/components/schemas/AdressenummerV1'
+            poststed:
+              $ref: '#/components/schemas/PoststedV1'
+            adressetilleggsnavn:
+              type: string
+              description: Tilleggsnavn til adressen, f.eks. gårds- eller bruksnavn.
+            kommune:
+              $ref: '#/components/schemas/KommuneV1'
+      required:
+        - adresseType
+        - coNavn
+    AktivitetV1:
+      description: En registrert aktivitet knyttet til virksomheten, angitt med kode og fritekst.
+      type: object
+      properties:
+        kode:
+          type: integer
+          format: int32
+          description: Kode som identifiserer aktivitetstypen.
+        rekkefolge:
+          type: integer
+          format: int32
+          description: Sorteringsrekkefølge blant flere registrerte aktiviteter.
+        tekst:
+          type: string
+          description: Fritekstbeskrivelse av aktiviteten.
+        datoGyldigFra:
+          type: string
+          format: date
+          description: Dato aktiviteten er gyldig fra.
+    RolleinnehaverResponseV1:
+      description: Fellestype for hvem som kan inneha en rolle i virksomheten – en person, en annen virksomhet eller en annen aktør.
+    AnnenAktoerResponseV1:
+      description: En annen aktør enn en person eller virksomhet som innehar en rolle, f.eks. et konkursbo eller en utenlandsk enhet uten organisasjonsnummer.
+      allOf:
+        - $ref: '#/components/schemas/RolleinnehaverResponseV1'
+        - type: object
+          properties:
+            navn:
+              type: string
+              description: Aktørens navn.
+    PersonnavnV1:
+      description: Navnet på en person.
+      type: object
+      properties:
+        fornavn:
+          type: string
+          description: Fornavn.
+        mellomnavn:
+          type: string
+          description: Mellomnavn.
+        etternavn:
+          type: string
+          description: Etternavn.
+    PersonV1:
+      description: En person som innehar en rolle i virksomheten.
+      allOf:
+        - $ref: '#/components/schemas/RolleinnehaverResponseV1'
+        - type: object
+          properties:
+            navn:
+              $ref: '#/components/schemas/PersonnavnV1'
+            foedselsdato:
+              type: string
+              description: Personens fødselsdato.
+            personType:
+              type: string
+              description: Angir om personopplysningene er vist i full eller sladdet (redigert) form.
+              enum:
+                - persontype.full
+                - persontype.redacted
+    Link:
+      description: En HAL-lenke (RFC 8288/HAL) til en relatert ressurs.
+      type: object
+      properties:
+        href:
+          type: string
+          description: URL-en lenken peker til.
+        hreflang:
+          type: string
+          description: Språket til ressursen lenken peker til.
+        title:
+          type: string
+          description: Menneskelesbar tittel for lenken.
+        type:
+          type: string
+          description: Forventet media-type for ressursen lenken peker til.
+        deprecation:
+          type: string
+          description: Lenke til dokumentasjon om at denne relasjonen er utfaset, dersom aktuelt.
+        profile:
+          type: string
+          description: Lenke til en profil som beskriver ressursen.
+        name:
+          type: string
+          description: Sekundær identifikator for lenken, brukt til å skille flere lenker med samme relasjon.
+        templated:
+          type: boolean
+          description: Angir om href er en URI-mal som må fylles ut før den kan brukes.
+    Links:
+      description: HAL-lenker knyttet til ressursen, med lenkenavn som nøkkel.
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Link'
+    VirksomhetsreferanseV1:
+      description: En referanse til en annen virksomhet som innehar en rolle, f.eks. et selskap som er styremedlem i et annet selskap.
+      allOf:
+        - $ref: '#/components/schemas/RolleinnehaverResponseV1'
+        - type: object
+          properties:
+            organisasjonsnummer:
+              type: string
+              description: Organisasjonsnummeret til virksomheten som innehar rollen.
+            _links:
+              $ref: '#/components/schemas/Links'
+    PersonFullV1:
+      description: En person som innehar en rolle i virksomheten, med fullt fødsels- eller D-nummer.
+      allOf:
+        - $ref: '#/components/schemas/PersonV1'
+        - type: object
+          properties:
+            foedselsEllerDNummer:
+              type: string
+              description: Personens fødselsnummer eller D-nummer.
+    PersonRedactedV1:
+      description: En person som innehar en rolle i virksomheten, uten fødsels- eller D-nummer.
+      allOf:
+        - $ref: '#/components/schemas/PersonV1'
+    BroekV1:
+      description: En brøk, brukt til å angi en ansvarsandel.
+      type: object
+      properties:
+        teller:
+          type: integer
+          format: int32
+          description: Brøkens teller.
+        nevner:
+          type: integer
+          format: int32
+          description: Brøkens nevner.
+    AnsvarsandelV1:
+      description: Hvor stor andel av ansvaret en rolleinnehaver har, angitt som prosent og/eller brøk.
+      type: object
+      properties:
+        prosent:
+          type: number
+          format: double
+          description: Ansvarsandelen angitt i prosent.
+        broek:
+          $ref: '#/components/schemas/BroekV1'
+    RolleV1:
+      description: En rolle en person, virksomhet eller annen aktør har i virksomheten, f.eks. styremedlem eller innehaver.
+      type: object
+      properties:
+        rolletype:
+          type: string
+          description: Fritekstbeskrivelse av rolletypen.
+        rolleinnehaver:
+          description: Personen, virksomheten eller aktøren som innehar rollen.
+          oneOf:
+            - $ref: '#/components/schemas/AnnenAktoerResponseV1'
+            - $ref: '#/components/schemas/PersonV1'
+            - $ref: '#/components/schemas/VirksomhetsreferanseV1'
+            - $ref: '#/components/schemas/PersonFullV1'
+            - $ref: '#/components/schemas/PersonRedactedV1'
+        rolleinnehaverType:
+          type: string
+          description: Angir om rolleinnehaveren er en person, en virksomhet eller en annen aktør.
+          enum:
+            - rolleinnehavertype.person
+            - rolleinnehavertype.virksomhet
+            - rolleinnehavertype.annenaktoer
+        rolleinnehaverFritekst:
+          type: string
+          description: Fritekstbeskrivelse av rolleinnehaveren, brukt når innehaveren ikke er registrert som person, virksomhet eller aktør.
+        avdelingskontor:
+          type: string
+          description: Avdelingskontoret rollen er knyttet til, dersom aktuelt.
+        harBegrensningIRettsligHandleevne:
+          type: boolean
+          description: Angir om rolleinnehaveren har begrensning i rettslig handleevne.
+        harStadfestetFremtidsfullmakt:
+          type: boolean
+          description: Angir om rolleinnehaveren har en stadfestet fremtidsfullmakt.
+        valgtAv:
+          type: string
+          description: Angir hvem som har valgt rolleinnehaveren inn i rollen.
+          enum:
+            - valgtAv.ansatte
+            - ugyldig
+        anmerkningPaaRolleInnehaver:
+          type: string
+          description: Anmerkning knyttet til rolleinnehaveren, f.eks. at personen er død, avregistrert eller slettet.
+          enum:
+            - anmerkningPaaRolleinnehaver.doed
+            - anmerkningPaaRolleinnehaver.avregistrert
+            - anmerkningPaaRolleinnehaver.slettet
+            - ugyldig
+        ansvarsandel:
+          $ref: '#/components/schemas/AnsvarsandelV1'
+        rekkefolge:
+          type: integer
+          format: int32
+          description: Sorteringsrekkefølge blant flere rolleinnehavere i samme rolle.
+    RolletypegruppeV1:
+      description: En logisk gruppering av roller, f.eks. styret eller varamedlemmer.
+      type: object
+      properties:
+        rolletypegruppe:
+          type: string
+          description: Kode/navn for rollegruppen.
+        harRolletypegruppeFritekst:
+          type: boolean
+          description: Angir om rollegruppen har registrert fritekst i tillegg til rollene.
+        rolletypegruppeFritekstTopp:
+          type: string
+          description: Fritekst plassert over rollene i gruppen.
+        rolletypegruppeFritekstBunn:
+          type: string
+          description: Fritekst plassert under rollene i gruppen.
+        roller:
+          type: array
+          description: Rollene som hører til denne gruppen.
+          items:
+            $ref: '#/components/schemas/RolleV1'
+      required:
+        - harRolletypegruppeFritekst
+        - roller
+    RollesettV1:
+      description: Angir hvilke rolletyper som må være representert, og hvor mange, for at en signatur- eller prokurabestemmelse skal være oppfylt.
+      type: object
+      properties:
+        rolletyper:
+          type: array
+          description: Rolletypene som kan oppfylle bestemmelsen.
+          items:
+            type: string
+        minsteAntall:
+          type: integer
+          format: int32
+          description: Minste antall rolleinnehavere fra rollesettet som må delta.
+        minsteMengdeangivelse:
+          type: string
+          description: Angir hvordan minste antall skal tolkes, f.eks. som flertall.
+          enum:
+            - mengdeangivelse.alle
+            - mengdeangivelse.simpeltFlertall
+            - mengdeangivelse.alminneligFlertall
+            - mengdeangivelse.udefinert
+            - ugyldig
+        roller:
+          type: array
+          description: Rolleinnehaverne som utgjør rollesettet.
+          items:
+            $ref: '#/components/schemas/RolleV1'
+      required:
+        - roller
+    SignaturrettbestemmelseV1:
+      description: En bestemmelse om hvem som kan signere på vegne av virksomheten.
+      type: object
+      properties:
+        regel:
+          type: string
+          description: Angir om rollene i bestemmelsen signerer alene eller i fellesskap.
+          enum:
+            - alene
+            - iFellesskap
+            - ugyldig
+        rollesett:
+          type: array
+          description: Rollesettene som til sammen utgjør signaturretten.
+          items:
+            $ref: '#/components/schemas/RollesettV1'
+      required:
+        - rollesett
+    SignaturrettV1:
+      description: Opplysninger om hvem som kan signere på vegne av virksomheten.
+      type: object
+      properties:
+        signaturrettbestemmelser:
+          type: array
+          description: Bestemmelsene som beskriver signaturretten.
+          items:
+            $ref: '#/components/schemas/SignaturrettbestemmelseV1'
+        signaturrettFritekstTopp:
+          type: string
+          description: Fritekst plassert over signaturrettbestemmelsene.
+        signaturrettFritekstBunn:
+          type: string
+          description: Fritekst plassert under signaturrettbestemmelsene.
+        harSignaturrettFritekst:
+          type: boolean
+          description: Angir om signaturretten har registrert fritekst i tillegg til bestemmelsene.
+      required:
+        - signaturrettbestemmelser
+    ProkurabestemmelseV1:
+      description: En bestemmelse om hvem som kan tegne prokura på vegne av virksomheten.
+      type: object
+      properties:
+        regel:
+          type: string
+          description: Angir om rollene i bestemmelsen tegner prokura alene eller i fellesskap.
+          enum:
+            - alene
+            - iFellesskap
+            - ugyldig
+        rollesett:
+          type: array
+          description: Rollesettene som til sammen utgjør prokuraretten.
+          items:
+            $ref: '#/components/schemas/RollesettV1'
+      required:
+        - rollesett
+    ProkuraV1:
+      description: Opplysninger om hvem som kan tegne prokura på vegne av virksomheten.
+      type: object
+      properties:
+        prokurabestemmelser:
+          type: array
+          description: Bestemmelsene som beskriver prokuraretten.
+          items:
+            $ref: '#/components/schemas/ProkurabestemmelseV1'
+        prokuraFritekstTopp:
+          type: string
+          description: Fritekst plassert over prokurabestemmelsene.
+        prokuraFritekstBunn:
+          type: string
+          description: Fritekst plassert under prokurabestemmelsene.
+        harProkuraFritekst:
+          type: boolean
+          description: Angir om prokuraretten har registrert fritekst i tillegg til bestemmelsene.
+    FrivilligRegistreringMerverdiavgiftsregisteretV1:
+      description: En frivillig registrering i Merverdiavgiftsregisteret, for virksomheter som driver aktivitet med rett til frivillig registrering (f.eks. utleie av bygg).
+      type: object
+      properties:
+        rekkefoelge:
+          type: integer
+          format: int32
+          description: Sorteringsrekkefølge blant flere frivillige registreringer.
+        kategori:
+          type: string
+          description: Kategori for den frivillige registreringen.
+          enum:
+            - frivilligRegistreringIMerverdiavgiftsregisteretType1
+            - frivilligRegistreringIMerverdiavgiftsregisteretType2
+            - frivilligRegistreringIMerverdiavgiftsregisteretType3
+            - frivilligRegistreringIMerverdiavgiftsregisteretType4
+            - frivilligRegistreringIMerverdiavgiftsregisteretType5
+            - ugyldig
+        navn:
+          type: string
+          description: Navnet på kategorien for den frivillige registreringen.
+    UstrukturertInnholdV1:
+      description: Fritekstinnhold registrert på virksomheten som ikke passer inn i noen av de strukturerte feltene.
+      type: object
+      properties:
+        identifikatorInformasjonstype:
+          type: string
+          description: Identifikator for hvilken type informasjon fritekstinnholdet representerer.
+        fritekst:
+          type: string
+          description: Selve fritekstinnholdet.
+    PaategningV1:
+      description: En påtegning registrert på virksomheten, f.eks. et vedlagt dokument eller en anmerkning.
+      type: object
+      properties:
+        identifikatorInformasjonstype:
+          type: string
+          description: Identifikator for hvilken type informasjon påtegningen representerer.
+        paategning:
+          type: string
+          description: Selve påtegningsteksten.
+        navn:
+          type: string
+          description: Navn på påtegningen eller det tilhørende dokumentet.
+        sti:
+          type: string
+          description: Sti/lenke til dokumentet påtegningen viser til, dersom aktuelt.
+        _links:
+          $ref: '#/components/schemas/Links'
+    OvertakelseOgOverdragelseV1:
+      description: En registrert overtakelse eller overdragelse av virksomheten eller deler av den.
+      type: object
+      properties:
+        tidligereEier:
+          type: string
+          description: Navnet på eller identifikator for den tidligere eieren.
+        erHeleVirksomhetenOvertatt:
+          type: boolean
+          description: Angir om hele virksomheten ble overtatt, eller bare deler av den.
+        eierskiftedato:
+          type: string
+          format: date
+          description: Dato eierskiftet fant sted.
+    Utestengelsesperiode:
+      description: Perioden en organisasjon er utestengt fra grasrotandelen.
+      type: object
+      properties:
+        fraDato:
+          type: string
+          format: date
+          description: Dato utestengelsen gjelder fra.
+        tilDato:
+          type: string
+          format: date
+          description: Dato utestengelsen gjelder til.
+    Grasrotandel:
+      description: Opplysninger om organisasjonens deltakelse i Norsk Tippings grasrotandel.
+      type: object
+      properties:
+        deltarI:
+          type: boolean
+          description: Angir om organisasjonen deltar i grasrotandelen.
+        utestengelsesperiode:
+          $ref: '#/components/schemas/Utestengelsesperiode'
+    SistInnsendteAarsregnskap:
+      description: Det sist innsendte årsregnskapet for organisasjonen.
+      type: object
+      properties:
+        regnskapsaar:
+          type: integer
+          format: int32
+          description: Regnskapsåret årsregnskapet gjelder for.
+        registreringsdato:
+          type: string
+          format: date
+          description: Dato årsregnskapet ble registrert som innsendt.
+    Regnskapsrapportering:
+      description: Opplysninger om organisasjonens regnskapsrapportering.
+      type: object
+      properties:
+        harPaatattSegRapporteringsplikt:
+          type: boolean
+          description: Angir om organisasjonen har påtatt seg rapporteringsplikt for regnskap.
+        avslutningsdatoForRegnskapsperiode:
+          type: string
+          description: Datoen organisasjonens regnskapsperiode avsluttes.
+        sistInnsendteAarsregnskap:
+          $ref: '#/components/schemas/SistInnsendteAarsregnskap'
+    Vedtekter:
+      description: Opplysninger om organisasjonens vedtekter.
+      type: object
+      properties:
+        frivilligRegistrerteVedtekter:
+          type: boolean
+          description: Angir om organisasjonen har registrert vedtekter frivillig.
+        sistOppdaterteVedtekter:
+          type: string
+          format: date
+          description: Dato vedtektene sist ble oppdatert.
+    ICNPOKategori:
+      description: En ICNPO-kategori (International Classification of Nonprofit Organizations) organisasjonen er klassifisert under.
+      type: object
+      properties:
+        kategori:
+          type: string
+          description: Navn på hovedkategorien.
+        icnpoNummer:
+          type: string
+          description: ICNPO-kategoriens nummer.
+        navn:
+          type: string
+          description: Kategoriens navn.
+        rekkefoelge:
+          type: integer
+          format: int32
+          description: Sorteringsrekkefølge blant flere registrerte kategorier.
+        _links:
+          $ref: '#/components/schemas/Links'
+    FrivilligOrganisasjonV1:
+      description: Opplysninger fra Frivillighetsregisteret for en virksomhet som er registrert der.
+      type: object
+      properties:
+        frivilligOrganisasjonsstatus:
+          type: string
+          description: Organisasjonens status i Frivillighetsregisteret, f.eks. om den er innført eller slettet.
+        kontonummer:
+          type: string
+          description: Organisasjonens registrerte kontonummer.
+        foersteGangInnfoert:
+          type: string
+          format: date
+          description: Dato organisasjonen først ble innført i Frivillighetsregisteret.
+        grasrotandel:
+          $ref: '#/components/schemas/Grasrotandel'
+        regnskapsrapportering:
+          $ref: '#/components/schemas/Regnskapsrapportering'
+        vedtekter:
+          $ref: '#/components/schemas/Vedtekter'
+        icnpoKategorier:
+          type: array
+          description: ICNPO-kategoriene organisasjonens virksomhet er klassifisert under.
+          items:
+            $ref: '#/components/schemas/ICNPOKategori'
+        slettedato:
+          type: string
+          format: date-time
+          description: Tidspunktet organisasjonen ble slettet fra Frivillighetsregisteret, dersom aktuelt.
+    RelasjonV1:
+      description: En relasjon mellom virksomheten og en annen virksomhet, f.eks. et konsernforhold.
+      type: object
+      properties:
+        relasjonsrolleFra:
+          type: string
+          description: Rollen virksomheten selv har i relasjonen.
+        relasjonsrolleTil:
+          type: string
+          description: Rollen den andre virksomheten har i relasjonen.
+        relasjonTil:
+          type: string
+          description: Organisasjonsnummeret til virksomheten på den andre siden av relasjonen.
+    VirksomhetsvedtekterV1:
+      description: Opplysninger om virksomhetens vedtekter.
+      type: object
+      properties:
+        vedtektsfestetformaal:
+          type: string
+          description: Virksomhetens formål slik det er formulert i vedtektene.
+        vedtektsdato:
+          type: string
+          format: date
+          description: Dato vedtektene sist ble endret.
+    MatrikkelnummerV1:
+      description: Matrikkelnummer (gårds- og bruksnummer) for en eiendom knyttet til virksomheten.
+      type: object
+      properties:
+        kommunenummer:
+          type: string
+          description: Firesifret kommunenummer eiendommen ligger i.
+        gaardsnummer:
+          type: string
+          description: Gårdsnummer.
+        bruksnummer:
+          type: string
+          description: Bruksnummer.
+        festenummer:
+          type: string
+          description: Festenummer, dersom eiendommen er en festegrunn.
+    VirksomhetV1:
+      description: En virksomhet med alle registrerte opplysninger, slik reginfo kjenner dem.
+      type: object
+      properties:
+        organisasjonsnummer:
+          type: string
+          description: Nisifret nummer som entydig identifiserer virksomheten.
+        navn:
+          type: string
+          description: Virksomhetens registrerte navn.
+        maalform:
+          type: string
+          description: Hvilket språk (bokmål eller nynorsk) virksomheten har valgt for kommunikasjon med det offentlige.
+          enum:
+            - nob
+            - nno
+            - ugyldig
+        organisasjonsform:
+          $ref: '#/components/schemas/OrganisasjonsforminfoV1'
+        virksomhetsstatus:
+          type: string
+          description: Virksomhetens status, f.eks. om den er aktiv.
+        tilstandsstatuser:
+          type: array
+          description: Midlertidige eller pågående tilstander registrert på virksomheten, f.eks. konkursbehandling.
+          items:
+            $ref: '#/components/schemas/TilstandsstatusV1'
+        formaal:
+          type: string
+          description: Virksomhetens formål.
+        foretaksstatus:
+          type: string
+          description: Status for foretaket, dersom virksomheten er registrert i Foretaksregisteret.
+        institusjonellSektorkode:
+          $ref: '#/components/schemas/InstitusjonellSektorkodeV1'
+        naeringskoder:
+          type: array
+          description: Virksomhetens registrerte næringskoder.
+          items:
+            $ref: '#/components/schemas/NaeringskodeinfoV1'
+        antallAnsatte:
+          $ref: '#/components/schemas/AntallAnsatteV1'
+        registrertITilknyttedeRegistre:
+          type: array
+          description: Andre offentlige registre virksomheten er tilknyttet.
+          items:
+            $ref: '#/components/schemas/TilknyttetRegisterV1'
+        registrertIAnnetRegister:
+          type: array
+          description: Andre registre virksomheten er registrert i, f.eks. Frivillighetsregisteret.
+          items:
+            $ref: '#/components/schemas/AnnetRegisterV1'
+        epostadresse:
+          type: string
+          description: Virksomhetens registrerte e-postadresse.
+        nettside:
+          type: string
+          description: Virksomhetens registrerte nettside.
+        registrertIEnhetsregisteret:
+          type: string
+          format: date-time
+          description: Tidspunktet virksomheten ble registrert i Enhetsregisteret.
+        registrertIForetaksregisteret:
+          type: string
+          format: date-time
+          description: Tidspunktet virksomheten ble registrert i Foretaksregisteret.
+        registrertIFrivillighetsregisteret:
+          type: string
+          format: date
+          description: Dato virksomheten ble registrert i Frivillighetsregisteret.
+        sistInnsendteAarsoppgjoer:
+          type: integer
+          format: int32
+          description: Årstallet for det sist innsendte årsoppgjøret.
+        nedleggelsesdato:
+          type: string
+          format: date
+          description: Dato virksomheten ble nedlagt.
+        erUbemannet:
+          type: boolean
+          description: Angir om virksomheten er ubemannet.
+        eierskiftedato:
+          type: string
+          format: date
+          description: Dato for siste eierskifte.
+        avdelingsbetegnelse:
+          type: string
+          description: Betegnelse på avdelingen, dersom virksomheten er en avdeling av en annen virksomhet.
+        ansvarsform:
+          type: string
+          description: Hvordan ansvaret for virksomhetens forpliktelser er fordelt mellom deltakerne.
+          enum:
+            - ansvarsform.deltAnsvar
+            - ansvarsform.fulltAnsvar
+            - ugyldig
+        harAnsvarsbegrensning:
+          type: boolean
+          description: Angir om virksomheten har begrenset ansvar.
+        stiftelsesdato:
+          type: string
+          format: date
+          description: Dato virksomheten ble stiftet.
+        gyldigFraOgMed:
+          type: string
+          format: date-time
+          description: Tidspunktet denne versjonen av virksomhetsopplysningene ble gyldig fra.
+        gyldigTil:
+          type: string
+          format: date-time
+          description: Tidspunktet denne versjonen av virksomhetsopplysningene opphørte å være gyldig, dersom den er avløst av en nyere versjon.
+        createdAt:
+          type: string
+          format: date-time
+          description: Tidspunktet posten ble opprettet i reginfo.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Tidspunktet posten sist ble oppdatert i reginfo.
+        mobilnummer:
+          description: Virksomhetens mobilnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        telefonnummer:
+          description: Virksomhetens telefonnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        telefaksnummer:
+          description: Virksomhetens telefaksnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        forretningsadresse:
+          description: Virksomhetens forretningsadresse.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        beliggenhetsadresse:
+          description: Adressen der virksomheten faktisk driver sin virksomhet.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        postadresse:
+          description: Virksomhetens postadresse.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        aktiviteter:
+          type: array
+          description: Aktiviteter registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/AktivitetV1'
+        rolletypegrupper:
+          type: array
+          description: Rollegrupper registrert på virksomheten, f.eks. styret.
+          items:
+            $ref: '#/components/schemas/RolletypegruppeV1'
+        signaturrett:
+          $ref: '#/components/schemas/SignaturrettV1'
+        prokura:
+          $ref: '#/components/schemas/ProkuraV1'
+        frivilligeRegistreringerIMerverdiavgiftsregisteret:
+          type: array
+          description: Frivillige registreringer i Merverdiavgiftsregisteret.
+          items:
+            $ref: '#/components/schemas/FrivilligRegistreringMerverdiavgiftsregisteretV1'
+        ustrukturertInnhold:
+          type: array
+          description: Ustrukturert fritekstinnhold registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/UstrukturertInnholdV1'
+        paategninger:
+          type: array
+          description: Påtegninger registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/PaategningV1'
+        overtakelserOgOverdragelser:
+          type: array
+          description: Overtakelser og overdragelser registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/OvertakelseOgOverdragelseV1'
+        frivilligOrganisasjon:
+          description: Opplysninger fra Frivillighetsregisteret, dersom virksomheten er registrert der.
+          $ref: '#/components/schemas/FrivilligOrganisasjonV1'
+        relasjoner:
+          type: array
+          description: Relasjoner til andre virksomheter, f.eks. et konsernforhold.
+          items:
+            $ref: '#/components/schemas/RelasjonV1'
+        vedtekter:
+          $ref: '#/components/schemas/VirksomhetsvedtekterV1'
+        matrikkelnummer:
+          type: array
+          description: Matrikkelnumre for eiendommer knyttet til virksomheten.
+          items:
+            $ref: '#/components/schemas/MatrikkelnummerV1'
+        _links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - aktiviteter
+        - frivilligeRegistreringerIMerverdiavgiftsregisteret
+        - matrikkelnummer
+        - naeringskoder
+        - organisasjonsnummer
+        - overtakelserOgOverdragelser
+        - paategninger
+        - registrertIAnnetRegister
+        - registrertITilknyttedeRegistre
+        - relasjoner
+        - rolletypegrupper
+        - tilstandsstatuser
+        - ustrukturertInnhold
+    PageMetadata:
+      description: Metadata om en paginert side med resultater.
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int64
+          description: Antall elementer per side.
+        totalElements:
+          type: integer
+          format: int64
+          description: Totalt antall elementer i hele resultatet, over alle sider.
+        totalPages:
+          type: integer
+          format: int64
+          description: Totalt antall sider i resultatet.
+        number:
+          type: integer
+          format: int64
+          description: Sidenummeret til denne siden, der 0 er første side.
+    PagedModelVirksomhetV1:
+      description: En paginert liste av virksomheter, med HAL-lenker og sidemetadata.
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            virksomhetResponseV1List:
+              type: array
+              description: Virksomhetene i denne siden av resultatet.
+              items:
+                $ref: '#/components/schemas/VirksomhetV1'
+        _links:
+          $ref: '#/components/schemas/Links'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+    FrivInformasjonstype:
+      description: En informasjonstype som kan registreres på en frivillig organisasjon.
+      type: object
+      properties:
+        identifikator:
+          type: string
+          description: Identifikator for informasjonstypen.
+        navn:
+          type: string
+          description: Informasjonstypens navn, på det språket som ble forespurt.
+        spraakkode:
+          type: string
+          description: Språket navnet er oversatt til.
+        _links:
+          $ref: '#/components/schemas/Links'
+    CollectionModelFrivInformasjonstype:
+      description: En liste av informasjonstyper, med HAL-lenker.
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            informasjonstyper:
+              type: array
+              description: Informasjonstypene i resultatet.
+              items:
+                $ref: '#/components/schemas/FrivInformasjonstype'
+        _links:
+          $ref: '#/components/schemas/Links'
+    ICNPOKategoriKodeverk:
+      description: En rad i kodeverket over ICNPO-kategorier (International Classification of Nonprofit Organizations).
+      type: object
+      properties:
+        icnpoNummer:
+          type: string
+          description: ICNPO-kategoriens nummer.
+        navn:
+          type: string
+          description: Kategoriens navn, på det språket som ble forespurt.
+        spraakkode:
+          type: string
+          description: Språket navnet er oversatt til.
+        _links:
+          $ref: '#/components/schemas/Links'
+    CollectionModelICNPOKategoriKodeverk:
+      description: En liste av ICNPO-kategorier fra kodeverket, med HAL-lenker.
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            icnpoKategorier:
+              type: array
+              description: ICNPO-kategoriene i resultatet.
+              items:
+                $ref: '#/components/schemas/ICNPOKategoriKodeverk'
+        _links:
+          $ref: '#/components/schemas/Links'
+    Paategning:
+      description: En påtegning registrert på den frivillige organisasjonen, f.eks. et vedlagt dokument eller en anmerkning.
+      type: object
+      properties:
+        identifikatorInformasjonstype:
+          type: string
+          description: Identifikator for hvilken type informasjon påtegningen representerer.
+        paategning:
+          type: string
+          description: Selve påtegningsteksten.
+        navn:
+          type: string
+          description: Navn på påtegningen eller det tilhørende dokumentet.
+        sti:
+          type: string
+          description: Sti/lenke til dokumentet påtegningen viser til, dersom aktuelt.
+        _links:
+          $ref: '#/components/schemas/Links'
+    AktivFrivilligOrganisasjonResponse:
+      description: En aktiv (innført) frivillig organisasjon i Frivillighetsregisteret.
+      type: object
+      properties:
+        organisasjonsnummer:
+          type: string
+          description: Nisifret nummer som entydig identifiserer organisasjonen.
+        frivilligOrganisasjonsstatus:
+          type: string
+          description: Organisasjonens status i Frivillighetsregisteret.
+        kontonummer:
+          type: string
+          description: Organisasjonens registrerte kontonummer.
+        innfoertDato:
+          type: string
+          format: date
+          description: Dato organisasjonen ble innført i Frivillighetsregisteret med gjeldende status.
+        foersteGangInnfoert:
+          type: string
+          format: date
+          description: Dato organisasjonen først ble innført i Frivillighetsregisteret.
+        grasrotandel:
+          $ref: '#/components/schemas/Grasrotandel'
+        regnskapsrapportering:
+          $ref: '#/components/schemas/Regnskapsrapportering'
+        vedtekter:
+          $ref: '#/components/schemas/Vedtekter'
+        icnpoKategorier:
+          type: array
+          description: ICNPO-kategoriene organisasjonens virksomhet er klassifisert under.
+          items:
+            $ref: '#/components/schemas/ICNPOKategori'
+        paategninger:
+          type: array
+          description: Påtegninger registrert på organisasjonen.
+          items:
+            $ref: '#/components/schemas/Paategning'
+        _links:
+          $ref: '#/components/schemas/Links'
+    CollectionModelAktivFrivilligOrganisasjonResponse:
+      description: En liste av aktive frivillige organisasjoner, med HAL-lenker.
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            frivilligeOrganisasjoner:
+              type: array
+              description: De frivillige organisasjonene i denne siden av resultatet.
+              items:
+                $ref: '#/components/schemas/AktivFrivilligOrganisasjonResponse'
+        _links:
+          $ref: '#/components/schemas/Links'
+    SlettetFrivilligOrganisasjonModel:
+      description: En organisasjon som er slettet fra Frivillighetsregisteret.
+      type: object
+      properties:
+        slettetDato:
+          type: string
+          format: date
+          description: Dato organisasjonen ble slettet fra Frivillighetsregisteret.
+        organisasjonsnummer:
+          type: string
+          description: Nisifret nummer som entydig identifiserer organisasjonen.
+        frivilligOrganisasjonsstatus:
+          type: string
+          description: Organisasjonens status i Frivillighetsregisteret.
+    NotFoundResponse:
+      description: Standardsvar når en forespurt ressurs ikke finnes.
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTP-statuskoden, 404.
+        message:
+          type: string
+          description: Menneskelesbar feilmelding.
+        _links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - message
+        - status
+    Endring:
+      description: En enkelt feltendring på en virksomhet.
+      type: object
+      properties:
+        operasjon:
+          type: string
+          description: Hvilken type endringsoperasjon som ble utført, f.eks. oppdatering av feltet.
+        path:
+          type: string
+          description: Sti til feltet som ble endret.
+        nyVerdi:
+          type: string
+          description: Feltets verdi etter endringen.
+        gammelVerdi:
+          type: string
+          description: Feltets verdi før endringen.
+        kilde:
+          type: string
+          description: Registeret endringen stammer fra.
+          enum:
+            - enhet
+            - foretak
+            - friv
+            - opendata
+      required:
+        - gammelVerdi
+        - kilde
+        - nyVerdi
+        - operasjon
+        - path
+    Endringslogg:
+      description: Endringene som ble registrert på virksomheten på en gitt dato.
+      type: object
+      properties:
+        endringsdato:
+          type: string
+          format: date-time
+          description: Tidspunktet endringene ble registrert.
+        endring:
+          type: array
+          description: Feltendringene som ble registrert på dette tidspunktet.
+          items:
+            $ref: '#/components/schemas/Endring'
+      required:
+        - endring
+        - endringsdato
+    RedactedNaeringskodeinfoV1:
+      description: Sladdet versjon av næringskodeinformasjon, uten registreringsdato.
+      type: object
+      properties:
+        kode:
+          type: string
+          description: Næringskoden.
+        navn:
+          type: string
+          description: Beskrivelse av næringen koden representerer.
+        rekkefoelge:
+          type: integer
+          format: int32
+          description: Rangering blant flere registrerte næringskoder. Koden med lavest verdi er hovednæringskoden.
+        erHjelpeenhetskode:
+          type: boolean
+          description: Angir om dette er en hjelpeenhetskode, dvs. en næringskode for en enhet som bare yter tjenester internt i konsernet/foretaket.
+        naeringskodestandard:
+          type: string
+          description: Hvilken versjon av SSBs standard for næringsgruppering koden er hentet fra.
+    RedactedAktivitetV1:
+      description: Sladdet versjon av en registrert aktivitet, uten kode og gyldighetsdato.
+      type: object
+      properties:
+        rekkefolge:
+          type: integer
+          format: int32
+          description: Sorteringsrekkefølge blant flere registrerte aktiviteter.
+        tekst:
+          type: string
+          description: Fritekstbeskrivelse av aktiviteten.
+    RedactedVirksomhetV1:
+      description: En sladdet versjon av virksomhetsopplysningene, uten sensitive personopplysninger.
+      type: object
+      properties:
+        organisasjonsnummer:
+          type: string
+          description: Nisifret nummer som entydig identifiserer virksomheten.
+        navn:
+          type: string
+          description: Virksomhetens registrerte navn.
+        maalform:
+          type: string
+          description: Hvilket språk (bokmål eller nynorsk) virksomheten har valgt for kommunikasjon med det offentlige.
+          enum:
+            - nob
+            - nno
+            - ugyldig
+        organisasjonsform:
+          $ref: '#/components/schemas/OrganisasjonsforminfoV1'
+        virksomhetsstatus:
+          type: string
+          description: Virksomhetens status, f.eks. om den er aktiv.
+        formaal:
+          type: string
+          description: Virksomhetens formål.
+        foretaksstatus:
+          type: string
+          description: Status for foretaket, dersom virksomheten er registrert i Foretaksregisteret.
+        institusjonellSektorkode:
+          $ref: '#/components/schemas/InstitusjonellSektorkodeV1'
+        naeringskoder:
+          type: array
+          description: Virksomhetens registrerte næringskoder.
+          items:
+            $ref: '#/components/schemas/RedactedNaeringskodeinfoV1'
+        antallAnsatte:
+          $ref: '#/components/schemas/AntallAnsatteV1'
+        registrertITilknyttedeRegistre:
+          type: array
+          description: Andre offentlige registre virksomheten er tilknyttet.
+          items:
+            $ref: '#/components/schemas/TilknyttetRegisterV1'
+        registrertIAnnetRegister:
+          type: array
+          description: Andre registre virksomheten er registrert i, f.eks. Frivillighetsregisteret.
+          items:
+            $ref: '#/components/schemas/AnnetRegisterV1'
+        epostadresse:
+          type: string
+          description: Virksomhetens registrerte e-postadresse.
+        nettside:
+          type: string
+          description: Virksomhetens registrerte nettside.
+        registrertIEnhetsregisteret:
+          type: string
+          format: date-time
+          description: Tidspunktet virksomheten ble registrert i Enhetsregisteret.
+        registrertIForetaksregisteret:
+          type: string
+          format: date-time
+          description: Tidspunktet virksomheten ble registrert i Foretaksregisteret.
+        registrertIFrivillighetsregisteret:
+          type: string
+          format: date
+          description: Dato virksomheten ble registrert i Frivillighetsregisteret.
+        sistInnsendteAarsoppgjoer:
+          type: integer
+          format: int32
+          description: Årstallet for det sist innsendte årsoppgjøret.
+        nedleggelsesdato:
+          type: string
+          format: date
+          description: Dato virksomheten ble nedlagt.
+        erUbemannet:
+          type: boolean
+          description: Angir om virksomheten er ubemannet.
+        eierskiftedato:
+          type: string
+          format: date
+          description: Dato for siste eierskifte.
+        avdelingsbetegnelse:
+          type: string
+          description: Betegnelse på avdelingen, dersom virksomheten er en avdeling av en annen virksomhet.
+        ansvarsform:
+          type: string
+          description: Hvordan ansvaret for virksomhetens forpliktelser er fordelt mellom deltakerne.
+          enum:
+            - ansvarsform.deltAnsvar
+            - ansvarsform.fulltAnsvar
+            - ugyldig
+        harAnsvarsbegrensning:
+          type: boolean
+          description: Angir om virksomheten har begrenset ansvar.
+        stiftelsesdato:
+          type: string
+          format: date
+          description: Dato virksomheten ble stiftet.
+        gyldigFraOgMed:
+          type: string
+          format: date-time
+          description: Tidspunktet denne versjonen av virksomhetsopplysningene ble gyldig fra.
+        createdAt:
+          type: string
+          format: date-time
+          description: Tidspunktet posten ble opprettet i reginfo.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Tidspunktet posten sist ble oppdatert i reginfo.
+        mobilnummer:
+          description: Virksomhetens mobilnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        telefonnummer:
+          description: Virksomhetens telefonnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        telefaksnummer:
+          description: Virksomhetens telefaksnummer.
+          $ref: '#/components/schemas/TelefonnummerV1'
+        forretningsadresse:
+          description: Virksomhetens forretningsadresse.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        beliggenhetsadresse:
+          description: Adressen der virksomheten faktisk driver sin virksomhet.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        postadresse:
+          description: Virksomhetens postadresse.
+          oneOf:
+            - $ref: '#/components/schemas/InternasjonalAdresse'
+            - $ref: '#/components/schemas/Postboksadresse'
+            - $ref: '#/components/schemas/Stedsadresse'
+            - $ref: '#/components/schemas/UstrukturertAdresse'
+            - $ref: '#/components/schemas/Vegadresse'
+        tilstandsstatuser:
+          type: array
+          description: Midlertidige eller pågående tilstander registrert på virksomheten, f.eks. konkursbehandling.
+          items:
+            $ref: '#/components/schemas/TilstandsstatusV1'
+        aktiviteter:
+          type: array
+          description: Aktiviteter registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/RedactedAktivitetV1'
+        rolletypegrupper:
+          type: array
+          description: Rollegrupper registrert på virksomheten, f.eks. styret.
+          items:
+            $ref: '#/components/schemas/RolletypegruppeV1'
+        signaturrett:
+          $ref: '#/components/schemas/SignaturrettV1'
+        prokura:
+          $ref: '#/components/schemas/ProkuraV1'
+        matrikkelnummer:
+          type: array
+          description: Matrikkelnumre for eiendommer knyttet til virksomheten.
+          items:
+            $ref: '#/components/schemas/MatrikkelnummerV1'
+        frivilligeRegistreringerIMerverdiavgiftsregisteret:
+          type: array
+          description: Frivillige registreringer i Merverdiavgiftsregisteret.
+          items:
+            $ref: '#/components/schemas/FrivilligRegistreringMerverdiavgiftsregisteretV1'
+        ustrukturertInnhold:
+          type: array
+          description: Ustrukturert fritekstinnhold registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/UstrukturertInnholdV1'
+        paategninger:
+          type: array
+          description: Påtegninger registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/PaategningV1'
+        overtakelserOgOverdragelser:
+          type: array
+          description: Overtakelser og overdragelser registrert på virksomheten.
+          items:
+            $ref: '#/components/schemas/OvertakelseOgOverdragelseV1'
+        frivilligOrganisasjon:
+          description: Opplysninger fra Frivillighetsregisteret, dersom virksomheten er registrert der.
+          $ref: '#/components/schemas/FrivilligOrganisasjonV1'
+        relasjoner:
+          type: array
+          description: Relasjoner til andre virksomheter, f.eks. et konsernforhold.
+          items:
+            $ref: '#/components/schemas/RelasjonV1'
+        vedtekter:
+          $ref: '#/components/schemas/VirksomhetsvedtekterV1'
