@@ -16,7 +16,7 @@ dependencies {
 }
 
 openApiGenerate {
-    val specFile = file("openapi.yaml")
+    val specFile = file("openapi.json")
     inputSpec = specFile
     outputDir =
         layout.buildDirectory
