@@ -11,6 +11,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: brreg-sync-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dependency-submission:
     permissions:
