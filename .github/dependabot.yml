@@ -33,7 +33,7 @@ updates:
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
-    directory: "/apps/freg-sync"
+    directory: "/apps/brreg-sync"
     registries:
       - dhi
     schedule:

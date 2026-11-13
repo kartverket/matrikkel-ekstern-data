@@ -31,3 +31,20 @@ spec:
   owner: "heimdall"
   system: "m22"
   subcomponentOf: "matrikkel-ekstern-data"
+---
+apiVersion: "backstage.io/v1alpha1"
+kind: "Component"
+metadata:
+  name: "matrikkel-brreg-sync"
+  title: "matrikkel-brreg-sync"
+  tags:
+    - "public"
+  annotations:
+    github.com/project-slug: "kartverket/matrikkel-ekstern-data"
+    backstage.io/source-location: "url:https://github.com/kartverket/matrikkel-ekstern-data/tree/main/apps/brreg-sync"
+spec:
+  type: "service"
+  lifecycle: "development"
+  owner: "heimdall"
+  system: "m22"
+  subcomponentOf: "matrikkel-ekstern-data"
