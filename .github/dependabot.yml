@@ -29,7 +29,7 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      - dependency-name: "dhi.io/eclipse-temurin"
+      - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
@@ -39,7 +39,7 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      - dependency-name: "dhi.io/eclipse-temurin"
+      - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
@@ -49,5 +49,5 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      - dependency-name: "dhi.io/eclipse-temurin"
+      - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
