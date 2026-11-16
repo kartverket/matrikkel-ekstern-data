@@ -31,6 +31,7 @@ rootProject.name = "matrikkel-ekstern-data"
 include(":apps:serg-sync")
 include(":apps:serg-mock")
 include(":apps:brreg-sync")
+include(":apps:brreg-datalast-job")
 include(":libs:app-utils")
 include(":libs:logging")
 include(":libs:domene:serg-kontrakt")

@@ -1,0 +1,20 @@
+plugins {
+    id("buildsrc.convention.kotlin-jvm")
+    application
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.kotlinPluginSerialization)
+}
+
+dependencies {
+    implementation(project(":libs:app-utils"))
+    implementation(project(":tjenestespesifikasjoner:brreg"))
+    implementation(project(":libs:domene:brreg-kontrakt"))
+
+    implementation(libs.kotlinUtils)
+    implementation(libs.tokenClient)
+    implementation(libs.kafkaLight)
+}
+
+application {
+    mainClass = "no.kartverket.matrikkel.MainKt"
+}
