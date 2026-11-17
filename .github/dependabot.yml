@@ -31,6 +31,10 @@ updates:
       - dhi
     schedule:
       interval: "daily"
+    groups:
+      eclipse-temurin:
+        patterns:
+          - "eclipse-temurin"
     ignore:
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
