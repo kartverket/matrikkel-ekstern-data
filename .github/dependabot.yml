@@ -23,27 +23,10 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "docker"
-    directory: "/apps/serg-sync"
-    registries:
-      - dhi
-    schedule:
-      interval: "daily"
-    ignore:
-      - dependency-name: "eclipse-temurin"
-        update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "docker"
-    directory: "/apps/brreg-sync"
-    registries:
-      - dhi
-    schedule:
-      interval: "daily"
-    ignore:
-      - dependency-name: "eclipse-temurin"
-        update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "docker"
-    directory: "/apps/serg-mock"
+    directories:
+      - "/apps/serg-sync"
+      - "/apps/serg-mock"
+      - "/apps/brreg-sync"
     registries:
       - dhi
     schedule:
