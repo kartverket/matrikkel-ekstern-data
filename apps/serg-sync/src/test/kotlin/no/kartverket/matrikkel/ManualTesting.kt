@@ -1,9 +1,10 @@
 package no.kartverket.matrikkel
 
 import no.kartverket.matrikkel.config.Configuration
+import no.kartverket.matrikkel.test.TestEnv
 
 fun main() {
-    Env.load("docker/idea.private.env")
+    TestEnv.load("docker/idea.private.env")
     val config = Configuration()
     val services = Services(config)
 
