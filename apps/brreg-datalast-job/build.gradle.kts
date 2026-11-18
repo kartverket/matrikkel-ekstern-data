@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.kafkaLight)
 
     testImplementation(project(":libs:test-utils"))
+    testImplementation(libs.bundles.testEcosystem)
 }
 
 application {
