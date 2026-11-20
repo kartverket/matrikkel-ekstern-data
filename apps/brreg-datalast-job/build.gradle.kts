@@ -20,6 +20,7 @@ dependencies {
 
     testImplementation(project(":libs:test-utils"))
     testImplementation(libs.bundles.testEcosystem)
+    testRuntimeOnly(libs.junitPlatformLauncher)
 }
 
 application {
