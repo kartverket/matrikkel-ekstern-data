@@ -25,7 +25,7 @@ kafkaLightVersion = "2026.11.19-11.14-7fa32f0"
 
 [libraries]
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.20" }
-logbackClassic = { module = "ch.qos.logback:logback-classic", version = "1.6.7" }
+logbackClassic = { module = "ch.qos.logback:logback-classic", version = "1.6.8" }
 logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 tokenClient = { module = "no.kartverket.heimdall.common:token-client", version.ref = "heimdallCommonVersion"}
 kotlinUtils = { module = "no.kartverket.heimdall.common:kotlin-utils", version.ref = "heimdallCommonVersion"}
