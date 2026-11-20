@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.hikari)
     implementation(libs.postgresql)
 
+    testImplementation(project(":libs:test-utils"))
     testImplementation(libs.bundles.testEcosystem)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
