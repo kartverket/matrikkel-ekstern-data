@@ -16,38 +16,32 @@ updates:
     directory: ".github/workflows"
     schedule:
       interval: "weekly"
+    cooldown:
+      exclude: # ikke cooldown for interne pakker
+        - "kartverket/*"
 
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      exclude: # ikke cooldown for interne pakker
+        - "no.kartverket.*:*"
+        - "no.statkart.*:*"
 
   - package-ecosystem: "docker"
-    directory: "/apps/serg-sync"
+    directories:
+      - "/apps/serg-sync"
+      - "/apps/serg-mock"
+      - "/apps/brreg-sync"
     registries:
       - dhi
     schedule:
       interval: "daily"
-    ignore:
-      - dependency-name: "eclipse-temurin"
-        update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "docker"
-    directory: "/apps/brreg-sync"
-    registries:
-      - dhi
-    schedule:
-      interval: "daily"
-    ignore:
-      - dependency-name: "eclipse-temurin"
-        update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "docker"
-    directory: "/apps/serg-mock"
-    registries:
-      - dhi
-    schedule:
-      interval: "daily"
+    groups:
+      eclipse-temurin:
+        patterns:
+          - "eclipse-temurin"
     ignore:
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]

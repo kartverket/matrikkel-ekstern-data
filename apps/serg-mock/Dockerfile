@@ -1,5 +1,5 @@
 # JDK image for tilgang til gradle
-FROM dhi.io/eclipse-temurin:25.0.5.8-jdk-alpine3.24-dev@sha256:e8da9bf2eeeaf182609d207a92d837771d3f68776e8b0149267c0bb0a5883453 AS builder
+FROM dhi.io/eclipse-temurin:25.0.5.8-jdk-alpine-dev@sha256:6655d4130a0e9415a4ecbf041d03a5a78b443bdbb7b21e216867d9f5414b4908 AS builder
 
 WORKDIR /workspace
 COPY . .
@@ -8,7 +8,7 @@ ARG KV_PACKAGES_PAT
 RUN ./gradlew :apps:serg-mock:installDist --no-daemon
 
 # Bruker dev image for å ha tilgang til shell
-FROM dhi.io/eclipse-temurin:25.0.5.8-alpine3.24-dev@sha256:5fc671b6380de25a0627c6ba9405a8939754991481134c73c42e4a972c7ffc0c AS runtime
+FROM dhi.io/eclipse-temurin:25.0.5.8-alpine-dev@sha256:cb9ef534f22958ac87a548f0e5c5afa84c4e8046dab84d6983f61de67ff6c5d1 AS runtime
 
 WORKDIR /app
 COPY --from=builder /workspace/apps/serg-mock/build/install/serg-mock/lib /app/lib
