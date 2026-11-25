@@ -37,29 +37,13 @@ class BrregService(
     fun hentOppdateringerForEnheter(sekvensnummer: Long): List<Brreg.Hendelse> {
         val response = oppdateringerApi.hentOppdateringerForEnheter(oppdateringsid = "$sekvensnummer", size = "100")
         val oppdateringer = response.embedded?.oppdaterteEnheter ?: emptyList()
-        return oppdateringer
-            .map {
-                Brreg.Hendelse(
-                    registerType = Brreg.RegisterType.ENHET,
-                    oppdateringsId = it.oppdateringsid.toLong(),
-                    organisasjonsnr = it.organisasjonsnummer,
-                    endringstype = Brreg.HendelseType.parse(it.endringstype)
-                )
-            }
+        return oppdateringer.map { it.toKafkaDTO() }
     }
 
     fun hentOppdateringerForUnderenheter(sekvensnummer: Long): List<Brreg.Hendelse> {
         val response = oppdateringerApi.hentOppdateringerForUnderenheter(oppdateringsid = "$sekvensnummer", size = "100")
         val oppdateringer = response.embedded?.oppdaterteUnderenheter ?: emptyList()
-        return oppdateringer
-            .map {
-                Brreg.Hendelse(
-                    registerType = Brreg.RegisterType.UNDERENHET,
-                    oppdateringsId = it.oppdateringsid.toLong(),
-                    organisasjonsnr = it.organisasjonsnummer,
-                    endringstype = Brreg.HendelseType.parse(it.endringstype)
-                )
-            }
+        return oppdateringer.map { it.toKafkaDTO() }
     }
 
     fun hentVirksomhet(

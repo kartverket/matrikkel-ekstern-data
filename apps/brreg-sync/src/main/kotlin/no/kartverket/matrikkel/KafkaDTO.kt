@@ -96,3 +96,21 @@ private fun EnhetForretningsadresse.toKafkaDTO(): Brreg.Adresse {
         landkode = this.landkode,
     )
 }
+
+fun OppdateringerEnhet.toKafkaDTO(): Brreg.Hendelse {
+    return Brreg.Hendelse(
+        registerType = Brreg.RegisterType.ENHET,
+        oppdateringsId = this.oppdateringsid.toLong(),
+        organisasjonsnr = this.organisasjonsnummer,
+        endringstype = Brreg.HendelseType.parse(this.endringstype)
+    )
+}
+
+fun OppdateringerUnderenhet.toKafkaDTO(): Brreg.Hendelse {
+    return Brreg.Hendelse(
+        registerType = Brreg.RegisterType.UNDERENHET,
+        oppdateringsId = this.oppdateringsid.toLong(),
+        organisasjonsnr = this.organisasjonsnummer,
+        endringstype = Brreg.HendelseType.parse(this.endringstype)
+    )
+}
