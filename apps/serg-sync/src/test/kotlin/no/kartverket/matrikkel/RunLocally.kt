@@ -1,24 +1,9 @@
 package no.kartverket.matrikkel
 
-import java.util.Properties
-import kotlin.io.path.Path
-import kotlin.io.path.reader
+import no.kartverket.matrikkel.test.TestEnv
 
-
-class Env {
-    companion object {
-        fun load(file: String) {
-            val env = Properties()
-            env.load(Path(file).reader())
-
-            env.entries.forEach { entry ->
-                System.setProperty(entry.key.toString(), entry.value.toString())
-            }
-        }
-    }
-}
 
 fun main() {
-    Env.load("docker/local-runlocally.env")
+    TestEnv.load("docker/local-runlocally.env")
     runApplication(disableExternalAuthentication = true)
 }
