@@ -15,6 +15,8 @@ dependencies {
 
     implementation(project(":libs:app-utils"))
     implementation(project(":libs:logging"))
+    implementation(project(":tjenestespesifikasjoner:brreg"))
+    implementation(project(":libs:domene:brreg-kontrakt"))
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.kotliQuery)
     implementation(libs.flyway)

@@ -32,4 +32,34 @@ object Brreg {
         val land: String?,
         val landkode: String?,
     )
+
+    @Serializable
+    data class Hendelse(
+        val registerType: RegisterType,
+        val organisasjonsnr: String,
+        val oppdateringsId: Long,
+        val endringstype: HendelseType,
+    )
+
+    @Serializable
+    enum class HendelseType {
+        UKJENT,
+        NY,
+        ENDRING,
+        SLETTING,
+        FJERNING;
+
+        companion object {
+            fun parse(value: String): HendelseType {
+                return when (value) {
+                    "Ukjent" -> UKJENT
+                    "Ny" -> NY
+                    "Endring" -> ENDRING
+                    "Sletting" -> SLETTING
+                    "Fjerning" -> FJERNING
+                    else -> error("Ukjent hendelsetype fra BRREG: $value")
+                }
+            }
+        }
+    }
 }
