@@ -2,45 +2,15 @@ package no.kartverket.matrikkel
 
 import io.ktor.server.application.*
 import io.ktor.server.netty.*
-import kotlinx.serialization.Serializable
 import no.kartverket.heimdall.common.ktor.plugins.Metrics
 import no.kartverket.heimdall.common.ktor.plugins.selftest.Selftest
 import no.kartverket.heimdall.common.ktor.utils.KtorServer
-import no.kartverket.heimdall.common.tokenclient.TokenClientFactory
-import no.kartverket.matrikkel.kafka.KafkaStoredValue
-import no.kartverket.matrikkel.kafka.asKafkaAuth
-import no.kartverket.matrikkel.kafka.withSelftest
-import no.kartverket.matrikkel.kafkaclient.LongSerde
-import no.kartverket.matrikkel.kafkaclient.MessageProducer
-import no.kartverket.matrikkel.kafkaclient.StringSerde
-import no.kartverket.matrikkel.kafkaclient.jsonSerde
-import kotlin.uuid.Uuid
+import org.slf4j.LoggerFactory
 
-@Serializable
-data class DummyObject(val name: String)
+val logger = LoggerFactory.getLogger("brreg-sync")
 
 fun runApplication() {
     val config = Configuration()
-
-    val authentication = TokenClientFactory.MachineToMachine
-        .azureAd()
-        .asKafkaAuth(config.kafka.brokerScope)
-
-    val producerConfig = MessageProducer.Config(
-        config.kafka.brokerUrl,
-        authentication = authentication,
-        topic = "BRREG_OPPDATERING",
-        keySerializer = StringSerde,
-        valueSerializer = jsonSerde<DummyObject>(),
-        correlationIdProvider = { Uuid.random().toHexDashString() }
-    )
-
-    val offsetSync = KafkaStoredValue(
-        config = config.kafka,
-        topic = "BRREG_OFFSET",
-        serde = LongSerde,
-        authentication = authentication
-    )
 
     KtorServer
         .create(Netty, port = 8090) {
@@ -50,12 +20,16 @@ fun runApplication() {
                 version = config.version
             }
 
-            // offsetSync.start()
-            // offsetSync.waitToReady()
+            val services = createServices(config)
+            services.waitForStartup()
 
-            val producer = MessageProducer
-                .Impl(producerConfig)
-                .withSelftest("BRREG_KAFKA_PRODUCER", false)
+            startEnhetOppdateringJob(services)
+            startUnderenhetOppdateringJob(services)
+            startVirksomhetSyncJob(services)
 
+            monitor.subscribe(ApplicationStopping) {
+                logger.info("Stopper services")
+                services.close()
+            }
         }.start(wait = true)
 }
