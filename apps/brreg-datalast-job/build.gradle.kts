@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":tjenestespesifikasjoner:brreg"))
     implementation(project(":libs:domene:brreg-kontrakt"))
+    implementation(project(":apps:brreg-sync"))
 
 
     implementation(libs.logbackClassic)

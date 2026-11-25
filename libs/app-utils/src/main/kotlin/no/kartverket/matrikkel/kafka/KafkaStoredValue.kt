@@ -3,22 +3,19 @@ package no.kartverket.matrikkel.kafka
 import kotlinx.coroutines.*
 import no.kartverket.matrikkel.kafkaclient.*
 import org.slf4j.LoggerFactory
-import kotlin.concurrent.atomics.AtomicReference
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.updateAndFetch
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalAtomicApi::class)
 class KafkaStoredValue<T : Comparable<T>>(
     private val consumer: MessageConsumer<String, T>,
     private val producer: MessageProducer<String, T>,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaStoredValue::class.java)
     private val ready = CompletableDeferred<Unit>()
-    private val localCopy: AtomicReference<T?> = AtomicReference(null)
+    private val localCopies = ConcurrentHashMap<String, T>()
     private var job: Job? = null
 
     constructor(
@@ -58,7 +55,7 @@ class KafkaStoredValue<T : Comparable<T>>(
     fun start() {
         if (job != null) error("Already started")
 
-        job = scope.launch {
+        job = scope.launch(Dispatchers.IO) {
             while (isActive) {
                 runCatching {
                     val response = consumer.poll(timeout = 10.seconds)
@@ -67,8 +64,10 @@ class KafkaStoredValue<T : Comparable<T>>(
                         ready.complete(Unit)
                         delay(10.seconds)
                     } else {
-                        val newValue = requireNotNull(response.records.last().value)
-                        localCopy.setMax(newValue)
+                        for (record in response.records) {
+                            val newValue = requireNotNull(record.value)
+                            localCopies.setMax(record.key, newValue)
+                        }
                     }
                 }
                     .onFailure { exception ->
@@ -100,25 +99,36 @@ class KafkaStoredValue<T : Comparable<T>>(
         }
     }
 
-    fun getValue(): T? {
+    fun computeIfAbsent(key: String = "update", fn: () -> T): T {
         waitToReady(15.seconds)
-        return localCopy.load()
+        return localCopies.computeIfAbsent(key) {
+            fn()
+        }
+    }
+
+    fun getValue(key: String = "update"): T? {
+        waitToReady(15.seconds)
+        return localCopies[key]
     }
 
     fun setValue(value: T) {
-        localCopy.setMax(value)
+        setValue(key = "update", value = value)
+    }
+
+    fun setValue(key: String, value: T) {
+        localCopies.setMax(key, value)
         runBlocking {
             producer.send(
                 ProducerRecord(
-                    key = "update",
+                    key = key,
                     value = value
                 )
             ).await()
         }
     }
 
-    private fun AtomicReference<T?>.setMax(value: T) {
-        updateAndFetch { current ->
+    private fun ConcurrentHashMap<String, T>.setMax(key: String, value: T) {
+        compute(key) { _, current ->
             if (current == null || value > current) value else current
         }
     }
