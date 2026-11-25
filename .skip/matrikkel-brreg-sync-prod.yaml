@@ -36,27 +36,23 @@ spec:
     outbound:
       rules:
         - application: matrikkel-kafka-light
-#      external:
-#        - host: virksomhet-tlg-api.app-ppe.brreg.no
-#        - host: maskinporten.no
+      external:
+        - host: data.brreg.no
 
   azure:
     application:
       enabled: true
 
-#  maskinporten:
-#    enabled: true
-#    scopes:
-#      consumes:
-#        - name: "brreg:virksomhet.read"
-
   env:
+    - name: DRY_RUN
+    - value: "true"
     - name: KAFKA_BROKER_URL
       value: "http://matrikkel-kafka-light:8081"
     - name: KAFKA_BROKER_SCOPE
       value: "atkv3-prod:matrikkel-main:matrikkel-kafka-light"
-#    - name: BRREG_URL
-#      # TODO: riktig url for prod?
-#      value: "https://virksomhet-tlg-api.app-ppe.brreg.no"
+    - name: BRREG_URL
+      value: "https://data.brreg.no"
+    - name: BRREG_START_DATE
+      value: "N/A"
     - name: VERSION
       value: "{{version}}"
