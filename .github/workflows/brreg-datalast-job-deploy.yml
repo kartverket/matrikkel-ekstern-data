@@ -156,6 +156,7 @@ jobs:
         with:
           cluster: 'atkv3-dev'
           resource: '.skip/matrikkel-brreg-datalast-job-dev.yaml'
+          wait: 'false'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
 
@@ -217,5 +218,6 @@ jobs:
         with:
           cluster: 'atkv3-prod'
           resource: '.skip/matrikkel-brreg-datalast-job-prod.yaml'
+          wait: 'false'
           var: |
             image=${{ needs.version.outputs.image }},version=${{ needs.version.outputs.version }}
