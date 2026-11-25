@@ -21,11 +21,13 @@ fun runApplication() {
             }
 
             val services = createServices(config)
-            services.waitForStartup()
 
-            startEnhetOppdateringJob(services)
-            startUnderenhetOppdateringJob(services)
-            startVirksomhetSyncJob(services)
+            if (!config.dryRun) {
+                services.waitForStartup()
+                startEnhetOppdateringJob(services)
+                startUnderenhetOppdateringJob(services)
+                startVirksomhetSyncJob(services)
+            }
 
             monitor.subscribe(ApplicationStopping) {
                 logger.info("Stopper services")
