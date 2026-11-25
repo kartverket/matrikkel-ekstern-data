@@ -12,7 +12,7 @@ on:
       - main
 
 concurrency:
-  group: brreg-sync-${{ github.ref }}
+  group: deps-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
