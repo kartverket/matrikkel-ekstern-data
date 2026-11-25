@@ -48,8 +48,12 @@ fun Application.createServices(config: Configuration): Services {
     val topicConfig = TopicConfiguration(config.kafka)
 
     val offsetSync = KafkaStoredValue(
-        consumer = MessageConsumer.Impl(topicConfig.offsetConsumerConfig),
-        producer = MessageProducer.Impl(topicConfig.offsetProducerConfig),
+        consumer = MessageConsumer
+            .Impl(topicConfig.offsetConsumerConfig)
+            .withSelftest("BRREG_OFFSET_CONSUMER", false),
+        producer = MessageProducer
+            .Impl(topicConfig.offsetProducerConfig)
+            .withSelftest("BRREG_OFFSET_PRODUCER", false),
     )
 
     val hendelseProducer = MessageProducer
