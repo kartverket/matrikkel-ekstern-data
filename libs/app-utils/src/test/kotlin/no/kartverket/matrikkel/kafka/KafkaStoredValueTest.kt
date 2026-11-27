@@ -129,12 +129,7 @@ class KafkaSimulator {
         coEvery { consumer.seek(any<Long>()) } answers {
             val offset = it.invocation.args.first() as Long
             if (seekError-- > 0) {
-                throw KafkaClientException(
-                    status = HttpStatusCode.BadRequest,
-                    code = "badRequest",
-                    message = "A current lease prevents seeking for this consumer group",
-                    cause = RuntimeException()
-                )
+                throw MessageConsumer.LockedTopicException("")
             }
             currentOffset = offset.toInt()
         }
