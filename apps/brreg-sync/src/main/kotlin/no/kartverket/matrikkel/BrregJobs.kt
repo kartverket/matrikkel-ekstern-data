@@ -1,13 +1,12 @@
 package no.kartverket.matrikkel
 
-import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import no.kartverket.eksterndata.domene.Brreg
 import no.kartverket.matrikkel.kafkaclient.ProducerRecord
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-fun Application.startEnhetOppdateringJob(services: Services): Job {
+fun CoroutineScope.startEnhetOppdateringJob(services: Services): Job {
     return launchJob("henting av oppdatering for enheter") {
         val sekvensnummer = requireNotNull(services.offsetSync.getValue(ENHET_OFFSET)) {
             "Sekvenummer for enhet kan ikke være null"
@@ -35,7 +34,7 @@ fun Application.startEnhetOppdateringJob(services: Services): Job {
     }
 }
 
-fun Application.startUnderenhetOppdateringJob(services: Services): Job {
+fun CoroutineScope.startUnderenhetOppdateringJob(services: Services): Job {
     return launchJob("henting av oppdatering for underenheter") {
         val sekvensnummer = requireNotNull(services.offsetSync.getValue(UNDERENHET_OFFSET)) {
             "Sekvenummer for underenhet kan ikke være null"
@@ -63,7 +62,7 @@ fun Application.startUnderenhetOppdateringJob(services: Services): Job {
     }
 }
 
-fun Application.startVirksomhetSyncJob(services: Services): Job {
+fun CoroutineScope.startVirksomhetSyncJob(services: Services): Job {
     return launchJob("syncing av virksomheter basert på hendelser") {
         val response = services.hendelseConsumer.poll(maxRecords = 100)
         val harFlere = response.records.size == 100
@@ -104,7 +103,7 @@ fun Application.startVirksomhetSyncJob(services: Services): Job {
 enum class JobStatus {
     WAIT, RERUN_AT_ONCE
 }
-private fun Application.launchJob(
+private fun CoroutineScope.launchJob(
     name: String,
     backoff: Duration = 60.seconds,
     action: suspend () -> JobStatus,
@@ -135,13 +134,6 @@ private fun Application.launchJob(
 
     job.invokeOnCompletion {
         logger.info("Stoppet jobb: '$name'")
-    }
-
-    monitor.subscribe(ApplicationStopping) {
-        logger.info("Stopper jobb: '$name'")
-        runBlocking {
-            job.cancelAndJoin()
-        }
     }
 
     return job

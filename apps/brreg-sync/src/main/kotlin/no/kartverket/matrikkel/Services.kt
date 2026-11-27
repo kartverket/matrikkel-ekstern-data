@@ -2,7 +2,6 @@ package no.kartverket.matrikkel
 
 import io.ktor.server.application.Application
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
 import no.kartverket.eksterndata.domene.Brreg
 import no.kartverket.matrikkel.kafka.KafkaStoredValue
 import no.kartverket.matrikkel.kafka.withSelftest
@@ -22,20 +21,18 @@ class Services(
     val brregService: BrregService,
 ): AutoCloseable {
     context(_: CoroutineScope)
-    fun waitForStartup() {
+    suspend fun waitForStartup() {
         offsetSync.start()
-        runBlocking {
-            offsetSync.waitToReady(5.minutes)
+        offsetSync.waitToReady(5.minutes)
 
-            offsetSync.computeIfAbsent(ENHET_OFFSET) {
-                logger.info("Henter start sekvens for enheter fra {}", config.brregStartDate)
-                brregService.hentStartEnhetSekvensnummerForDato(config.brregStartDate)
-            }
+        offsetSync.computeIfAbsent(ENHET_OFFSET) {
+            logger.info("Henter start sekvens for enheter fra {}", config.brregStartDate)
+            brregService.hentStartEnhetSekvensnummerForDato(config.brregStartDate)
+        }
 
-            offsetSync.computeIfAbsent(UNDERENHET_OFFSET) {
-                logger.info("Henter start sekvens for underenheter fra {}", config.brregStartDate)
-                brregService.hentStartUnderenhetSekvensnummerForDato(config.brregStartDate)
-            }
+        offsetSync.computeIfAbsent(UNDERENHET_OFFSET) {
+            logger.info("Henter start sekvens for underenheter fra {}", config.brregStartDate)
+            brregService.hentStartUnderenhetSekvensnummerForDato(config.brregStartDate)
         }
     }
 
