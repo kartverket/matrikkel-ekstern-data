@@ -61,12 +61,23 @@ class KafkaStoredValue<T : Comparable<T>>(
         job = scope.launch(workerDispatcher) {
             // Seek er kun mulig når ingen lease's er aktive, dvs tidligere konsument har koblet seg fra.
             // Denne venter maks 5minutter for at dette skal skje.
-            retry(attempts = 20, backoffStrategy = BackoffStrategy.Constant(15.seconds)) {
-                consumer.seek(0L)
+            try {
+                retry(
+                    attempts = 20,
+                    backoffStrategy = BackoffStrategy.Constant(15.seconds),
+                    onFailure = { attempt, exception -> logger.warn("Seek feilet (forsøk $attempt/20)", exception) },
+                ) {
+                    consumer.seekOrThrow(0L)
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                // Gir årsaken videre til waitToReady i stedet for å kansellere parent-scope
+                ready.completeExceptionally(e)
+                return@launch
             }
             while (isActive) {
                 runCatching {
-                    val response = consumer.poll(timeout = 10.seconds)
+                    val response = consumer.pollOrThrow(timeout = 10.seconds)
 
                     if (response.records.isEmpty()) {
                         ready.complete(Unit)
@@ -102,7 +113,7 @@ class KafkaStoredValue<T : Comparable<T>>(
     }
 
     fun isReady(): Boolean {
-        return ready.isCompleted
+        return ready.isCompleted && !ready.isCancelled
     }
 
     suspend fun waitToReady(timeout: Duration = 15.seconds) {
