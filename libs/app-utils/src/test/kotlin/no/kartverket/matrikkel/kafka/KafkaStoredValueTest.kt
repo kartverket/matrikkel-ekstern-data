@@ -115,7 +115,7 @@ class KafkaSimulator {
         coEvery { consumer.close() } returns Unit
         coEvery { producer.close() } returns Unit
 
-        coEvery { consumer.poll(maxRecords = any(), timeout = any()) } answers {
+        coEvery { consumer.pollOrThrow(maxRecords = any(), timeout = any()) } answers {
             val maxRecords = (it.invocation.args.firstOrNull() as Long?)?.toInt() ?: 100
             if (topic.isEmpty()) {
                 ConsumerRecords(topic = "topic", records = emptyList())
@@ -126,7 +126,7 @@ class KafkaSimulator {
             }
         }
 
-        coEvery { consumer.seek(any<Long>()) } answers {
+        coEvery { consumer.seekOrThrow(any<Long>()) } answers {
             val offset = it.invocation.args.first() as Long
             if (seekError-- > 0) {
                 throw MessageConsumer.LockedTopicException("")
