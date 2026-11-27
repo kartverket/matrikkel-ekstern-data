@@ -2,6 +2,8 @@ package no.kartverket.matrikkel.kafka
 
 import kotlinx.coroutines.*
 import no.kartverket.matrikkel.kafkaclient.*
+import no.kartverket.matrikkel.resilience.BackoffStrategy
+import no.kartverket.matrikkel.resilience.retry
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
@@ -12,6 +14,7 @@ import kotlin.uuid.Uuid
 class KafkaStoredValue<T : Comparable<T>>(
     private val consumer: MessageConsumer<String, T>,
     private val producer: MessageProducer<String, T>,
+    private val workerDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaStoredValue::class.java)
     private val ready = CompletableDeferred<Unit>()
@@ -55,7 +58,12 @@ class KafkaStoredValue<T : Comparable<T>>(
     fun start() {
         if (job != null) error("Already started")
 
-        job = scope.launch(Dispatchers.IO) {
+        job = scope.launch(workerDispatcher) {
+            // Seek er kun mulig når ingen lease's er aktive, dvs tidligere konsument har koblet seg fra.
+            // Denne venter maks 5minutter for at dette skal skje.
+            retry(attempts = 20, backoffStrategy = BackoffStrategy.Constant(15.seconds)) {
+                consumer.seek(0L)
+            }
             while (isActive) {
                 runCatching {
                     val response = consumer.poll(timeout = 10.seconds)
@@ -79,52 +87,54 @@ class KafkaStoredValue<T : Comparable<T>>(
         }
     }
 
+    suspend fun stop() {
+        job?.cancelAndJoin()
+        withContext(Dispatchers.IO) {
+            consumer.close()
+            producer.close()
+        }
+    }
+
     override fun close() {
         runBlocking {
-            job?.cancelAndJoin()
+            stop()
         }
-        consumer.close()
-        producer.close()
     }
 
     fun isReady(): Boolean {
         return ready.isCompleted
     }
 
-    fun waitToReady(timeout: Duration = 15.seconds) {
-        runBlocking {
-            withTimeout(timeout) {
-                ready.await()
-            }
+    suspend fun waitToReady(timeout: Duration = 15.seconds) {
+        withTimeout(timeout) {
+            ready.await()
         }
     }
 
-    fun computeIfAbsent(key: String = "update", fn: () -> T): T {
+    suspend fun computeIfAbsent(key: String = "update", fn: () -> T): T {
         waitToReady(15.seconds)
         return localCopies.computeIfAbsent(key) {
             fn()
         }
     }
 
-    fun getValue(key: String = "update"): T? {
+    suspend fun getValue(key: String = "update"): T? {
         waitToReady(15.seconds)
         return localCopies[key]
     }
 
-    fun setValue(value: T) {
+    suspend fun setValue(value: T) {
         setValue(key = "update", value = value)
     }
 
-    fun setValue(key: String, value: T) {
+    suspend fun setValue(key: String, value: T) {
         localCopies.setMax(key, value)
-        runBlocking {
-            producer.send(
-                ProducerRecord(
-                    key = key,
-                    value = value
-                )
-            ).await()
-        }
+        producer.send(
+            ProducerRecord(
+                key = key,
+                value = value
+            )
+        ).await()
     }
 
     private fun ConcurrentHashMap<String, T>.setMax(key: String, value: T) {
