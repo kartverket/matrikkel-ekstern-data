@@ -59,6 +59,8 @@ fun Application.startVirksomhetSyncJob(services: Services): Job {
         val response = services.hendelseConsumer.poll()
         for (record in response.records) {
             val hendelse = requireNotNull(record.value)
+        val response = services.hendelseConsumer.poll(maxRecords = 100)
+            val hendelse = requireNotNull(it.value)
             when (hendelse.endringstype) {
                 Brreg.HendelseType.SLETTING, Brreg.HendelseType.FJERNING -> {
                     services.virksomhetProducer.send(
@@ -68,7 +70,6 @@ fun Application.startVirksomhetSyncJob(services: Services): Job {
                         )
                     )
                 }
-
                 else -> {
                     val virksomhet = services.brregService.hentVirksomhet(hendelse)
                     services.virksomhetProducer.send(
@@ -79,6 +80,9 @@ fun Application.startVirksomhetSyncJob(services: Services): Job {
                     )
                 }
             }
+        }.awaitAll()
+
+        services.hendelseConsumer.commitSync()
         }
     }
 }
