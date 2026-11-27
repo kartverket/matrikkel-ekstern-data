@@ -1,5 +1,6 @@
 package no.kartverket.matrikkel.resilience
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 import kotlin.math.pow
@@ -25,6 +26,7 @@ suspend fun <T> retry(
     attempts: Int,
     stopRetryIf: (Throwable) -> Boolean = { false },
     backoffStrategy: BackoffStrategy = BackoffStrategy.Exponential(2.0),
+    onFailure: (attempt: Int, exception: Throwable) -> Unit = { _, _ -> },
     fn: suspend () -> T,
 ): T {
     require(attempts > 0) { "attempts must be > 0" }
@@ -35,6 +37,9 @@ suspend fun <T> retry(
         }
         attempt++
 
+        result.exceptionOrNull()
+            ?.takeIf { it !is CancellationException }
+            ?.let { onFailure(attempt, it) }
         if (result.isSuccess) return result.getOrThrow()
         else if (attempt == attempts) return result.getOrThrow()
         else if (stopRetryIf(result.exceptionOrNull()!!)) return result.getOrThrow()
