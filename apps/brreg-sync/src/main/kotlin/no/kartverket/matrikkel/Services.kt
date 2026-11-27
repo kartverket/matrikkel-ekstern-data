@@ -11,7 +11,7 @@ import no.kartverket.matrikkel.kafkaclient.MessageProducer
 import no.kartverket.tjenestespesifikasjoner.brreg.apis.EnheterApi
 import no.kartverket.tjenestespesifikasjoner.brreg.apis.OppdateringerApi
 import no.kartverket.tjenestespesifikasjoner.brreg.apis.UnderenheterApi
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 class Services(
     val config: Configuration,
@@ -25,7 +25,7 @@ class Services(
     fun waitForStartup() {
         offsetSync.start()
         runBlocking {
-            offsetSync.waitToReady(30.seconds)
+            offsetSync.waitToReady(5.minutes)
 
             offsetSync.computeIfAbsent(ENHET_OFFSET) {
                 logger.info("Henter start sekvens for enheter fra {}", config.brregStartDate)
