@@ -45,7 +45,7 @@ spec:
 
   env:
     - name: DRY_RUN
-      value: "true"
+      value: "false"
     - name: KAFKA_BROKER_URL
       value: "http://matrikkel-kafka-light:8081"
     - name: KAFKA_BROKER_SCOPE
@@ -53,6 +53,6 @@ spec:
     - name: BRREG_URL
       value: "https://data.brreg.no"
     - name: BRREG_START_DATE
-      value: "N/A"
+      value: "2026-11-27T12:00:00.000Z"
     - name: VERSION
       value: "{{version}}"
