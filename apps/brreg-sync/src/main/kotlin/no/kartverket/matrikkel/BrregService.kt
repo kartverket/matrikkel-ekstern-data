@@ -18,6 +18,10 @@ class BrregService(
     val underenheterApi: UnderenheterApi,
     val oppdateringerApi: OppdateringerApi,
 ) {
+    data class HendelserResponse(
+        val hendelser: List<Brreg.Hendelse>,
+        val harFlere: Boolean
+    )
     fun hentStartEnhetSekvensnummerForDato(dato: String): Long {
         val response = oppdateringerApi.hentOppdateringerForEnheter(dato = dato, size = "1")
         val oppdateringId = response.embedded?.oppdaterteEnheter?.get(0)?.oppdateringsid?.toLong()
@@ -34,16 +38,22 @@ class BrregService(
         }
     }
 
-    fun hentOppdateringerForEnheter(sekvensnummer: Long): List<Brreg.Hendelse> {
+    fun hentOppdateringerForEnheter(sekvensnummer: Long): HendelserResponse {
         val response = oppdateringerApi.hentOppdateringerForEnheter(oppdateringsid = "$sekvensnummer", size = "100")
         val oppdateringer = response.embedded?.oppdaterteEnheter ?: emptyList()
-        return oppdateringer.map { it.toKafkaDTO() }
+        return HendelserResponse(
+            hendelser = oppdateringer.map { it.toKafkaDTO() },
+            harFlere = (response.page?.totalPages?.toInt() ?: 1) > 1
+        )
     }
 
-    fun hentOppdateringerForUnderenheter(sekvensnummer: Long): List<Brreg.Hendelse> {
+    fun hentOppdateringerForUnderenheter(sekvensnummer: Long): HendelserResponse {
         val response = oppdateringerApi.hentOppdateringerForUnderenheter(oppdateringsid = "$sekvensnummer", size = "100")
         val oppdateringer = response.embedded?.oppdaterteUnderenheter ?: emptyList()
-        return oppdateringer.map { it.toKafkaDTO() }
+        return HendelserResponse(
+            hendelser = oppdateringer.map { it.toKafkaDTO() },
+            harFlere = (response.page?.totalPages?.toInt() ?: 1) > 1
+        )
     }
 
     fun hentVirksomhet(

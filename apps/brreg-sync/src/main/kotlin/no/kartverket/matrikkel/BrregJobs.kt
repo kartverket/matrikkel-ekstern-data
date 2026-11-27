@@ -13,7 +13,7 @@ fun Application.startEnhetOppdateringJob(services: Services): Job {
             "Sekvenummer for enhet kan ikke være null"
         }
 
-        val oppdateringer = services.brregService.hentOppdateringerForEnheter(sekvensnummer + 1)
+        val (oppdateringer, harFlere) = services.brregService.hentOppdateringerForEnheter(sekvensnummer + 1)
         oppdateringer.map {
             services.hendelseProducer.send(
                 ProducerRecord(
@@ -27,6 +27,11 @@ fun Application.startEnhetOppdateringJob(services: Services): Job {
             services.offsetSync.setValue(ENHET_OFFSET, oppdateringer.last().oppdateringsId)
         }
         logger.info("Publiserte ${oppdateringer.size} hendelser for enheter")
+
+        when (harFlere) {
+            true -> JobStatus.RERUN_AT_ONCE
+            false -> JobStatus.WAIT
+        }
     }
 }
 
@@ -35,7 +40,7 @@ fun Application.startUnderenhetOppdateringJob(services: Services): Job {
         val sekvensnummer = requireNotNull(services.offsetSync.getValue(UNDERENHET_OFFSET)) {
             "Sekvenummer for underenhet kan ikke være null"
         }
-        val oppdateringer = services.brregService.hentOppdateringerForUnderenheter(sekvensnummer)
+        val (oppdateringer, harFlere) = services.brregService.hentOppdateringerForUnderenheter(sekvensnummer)
 
         oppdateringer.map {
             services.hendelseProducer.send(
@@ -51,15 +56,19 @@ fun Application.startUnderenhetOppdateringJob(services: Services): Job {
         }
 
         logger.info("Publiserte ${oppdateringer.size} hendelser for underenheter")
+        when (harFlere) {
+            true -> JobStatus.RERUN_AT_ONCE
+            false -> JobStatus.WAIT
+        }
     }
 }
 
 fun Application.startVirksomhetSyncJob(services: Services): Job {
     return launchJob("syncing av virksomheter basert på hendelser") {
-        val response = services.hendelseConsumer.poll()
-        for (record in response.records) {
-            val hendelse = requireNotNull(record.value)
         val response = services.hendelseConsumer.poll(maxRecords = 100)
+        val harFlere = response.records.size == 100
+
+        response.records.map {
             val hendelse = requireNotNull(it.value)
             when (hendelse.endringstype) {
                 Brreg.HendelseType.SLETTING, Brreg.HendelseType.FJERNING -> {
@@ -83,20 +92,27 @@ fun Application.startVirksomhetSyncJob(services: Services): Job {
         }.awaitAll()
 
         services.hendelseConsumer.commitSync()
+
+        when (harFlere) {
+            true -> JobStatus.RERUN_AT_ONCE
+            false -> JobStatus.WAIT
         }
     }
 }
 
 
+enum class JobStatus {
+    WAIT, RERUN_AT_ONCE
+}
 private fun Application.launchJob(
     name: String,
-    backoff: Duration = 10.seconds,
-    action: suspend () -> Unit,
+    backoff: Duration = 60.seconds,
+    action: suspend () -> JobStatus,
 ): Job {
     val job = launch(Dispatchers.IO) {
         logger.info("Starter jobb: '$name'")
         while (isActive) {
-            try {
+            val result = try {
                 action()
             } catch (e: Exception) {
                 currentCoroutineContext().ensureActive()
@@ -108,6 +124,10 @@ private fun Application.launchJob(
                 }
 
                 logger.warn("Jobb feilet: '$name'. Prøver igjen om $backoff", e)
+                delay(backoff)
+            }
+
+            if (result == JobStatus.WAIT) {
                 delay(backoff)
             }
         }
